@@ -96,6 +96,11 @@
         "playwright-test*browser_*": true,
         "playwright-test*test_*": true
       }
+    },
+    "ai-engineer": {
+      "description": "AI integration specialist. OpenRouter SDK, MTG rules RAG, prompt engineering, streaming /api/judge route, citation formatting.",
+      "mode": "subagent",
+      "tools": { "read": true, "write": true, "edit": true, "bash": true }
     }
   }
 }

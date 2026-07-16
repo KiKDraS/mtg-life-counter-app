@@ -1,0 +1,646 @@
+# DESIGN.md — Project Design Contract
+
+**Version:** 1.0  
+**Date:** {{DATE}}  
+**Status:** Active Contract — All agents MUST comply  
+**Location:** `/DESIGN.md` (project root)  
+**Template:** `DESIGN.md.template` (this file — DO NOT EDIT, copy to DESIGN.md)
+
+---
+
+## ⚠️ TEMPLATE INSTRUCTIONS
+
+> **This is a template.** The orchestrator fills in project-specific values
+> during the Design Thinking phase. Never edit this template directly.
+
+---
+
+## 1. PROJECT IDENTITY & DESIGN PHILOSOPHY
+
+### 1.1 Project Purpose
+**{{PROJECT_PURPOSE}}** — *What problem does this landing page solve? Who uses it?*
+
+### 1.2 Primary Audience
+**{{PRIMARY_AUDIENCE}}**
+
+### 1.3 Primary Conversion Goal
+**{{PRIMARY_GOAL}}** — *The ONE action you want visitors to take*
+
+### 1.4 Design Philosophy (MANDATORY — from `frontend-design` skill)
+> **"Bold editorial design with distinctive character — no generic AI aesthetics."**
+
+| Principle | Project Decision |
+|-----------|------------------|
+| **Aesthetic Direction** | **{{AESTHETIC_DIRECTION}}** |
+| **Typography** | **{{FONT_DISPLAY}}** (display) + **{{FONT_BODY}}** (body) |
+| **Color Strategy** | **{{COLOR_STRATEGY}}** |
+| **Layout Approach** | **{{LAYOUT_APPROACH}}** |
+| **Background Treatment** | **{{BACKGROUND_TREATMENT}}** |
+| **Motion Choreography** | **{{MOTION_CHOREOGRAPHY}}** |
+| **Differentiation** | **{{DIFFERENTIATION}}** — *The ONE thing visitors will remember* |
+
+### 1.5 Anti-Patterns (FORBIDDEN)
+- ❌ Generic purple gradient on white
+- ❌ Inter / Roboto / Arial / System font stacks
+- ❌ Centered hero + 3-column card grid
+- ❌ Subtle gray-on-gray text
+- ❌ Generic rounded cards with soft shadows
+- ❌ Cookie-cutter "AI slop" aesthetics
+
+---
+
+## 2. CSS ARCHITECTURE CONTRACT (IMMUTABLE — from `html-css-best-practices`)
+
+### 2.1 Directory Structure (DO NOT MODIFY)
+```
+src/styles/
+├── boilerplate/
+│   ├── variables.css    # ALL design tokens — CSS custom properties ONLY
+│   ├── reset.css        # Normalization only
+│   ├── base.css         # Global element defaults (html, body, links, headings)
+│   ├── fonts.css        # @font-face declarations ONLY
+│   └── utilities.css    # Atomic modifiers ONLY (.visually-hidden, .container)
+├── layout/
+│   ├── header.css       # Site header only
+│   ├── main.css         # Main content area
+│   └── footer.css       # Site footer only
+├── components/
+│   ├── button.css       # Button component ONLY
+│   ├── card.css         # Card component ONLY
+│   └── [component].css  # One file per component
+└── main.css             # ENTRY POINT — @import ONLY, NO styles here
+```
+
+### 2.2 Import Order (IMMUTABLE — in `src/styles/main.css`)
+```css
+/* 1. Config & Boilerplate */
+@import "./boilerplate/variables.css";
+@import "./boilerplate/reset.css";
+@import "./boilerplate/base.css";
+@import "./boilerplate/fonts.css";
+@import "./boilerplate/utilities.css";
+
+/* 2. Layout */
+@import "./layout/header.css";
+@import "./layout/main.css";
+@import "./layout/footer.css";
+
+/* 3. Components */
+@import "./components/button.css";
+@import "./components/card.css";
+
+/* 4. Utilities */
+@import "./boilerplate/utilities.css";
+```
+
+### 2.3 CSS Custom Properties Contract — `variables.css`
+
+**Required Token Categories (all mandatory):**
+
+```css
+:root {
+  /* ── Color System ── */
+  --color-bg: ;
+  --color-bg-alt: ;
+  --color-bg-elevated: ;
+  --color-text: ;
+  --color-text-muted: ;
+  --color-text-inverse: ;
+  --color-primary: ;
+  --color-primary-hover: ;
+  --color-primary-active: ;
+  --color-accent: ;
+  --color-accent-hover: ;
+  --color-border: ;
+  --color-border-strong: ;
+  --color-focus: ;
+  --color-error: ;
+  --color-success: ;
+  --color-warning: ;
+
+  /* ── Typography ── */
+  --font-display: ;
+  --font-body: ;
+  --font-mono: ;
+  --font-size-fluid-base: ;
+  --font-size-display-1: ;
+  --font-size-display-2: ;
+  --font-size-display-3: ;
+  --font-size-heading-1: ;
+  --font-size-heading-2: ;
+  --font-size-heading-3: ;
+  --font-size-body: ;
+  --font-size-body-sm: ;
+  --font-size-caption: ;
+  --line-height-tight: ;
+  --line-height-base: ;
+  --line-height-relaxed: ;
+  --letter-spacing-tight: ;
+  --letter-spacing-normal: ;
+  --letter-spacing-wide: ;
+
+  /* ── Spacing System (8px base scale) ── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+  --space-10: 8rem;
+
+  /* ── Layout ── */
+  --container-max: ;
+  --container-padding: ;
+  --header-height: ;
+  --footer-height: ;
+
+  /* ── Motion ── */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --duration-slower: 600ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-expressive: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* ── Z-Index Scale ── */
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal-backdrop: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+
+  /* ── Breakpoints (mobile-first) ── */
+  --bp-sm: 480px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1440px;
+  --bp-2xl: 1920px;
+}
+
+/* Dark Mode Override (REQUIRED) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Override ONLY color tokens */
+    --color-bg: ;
+    --color-bg-alt: ;
+    --color-bg-elevated: ;
+    --color-text: ;
+    --color-text-muted: ;
+    --color-text-inverse: ;
+    --color-primary: ;
+    --color-primary-hover: ;
+    --color-accent: ;
+    --color-border: ;
+    --color-border-strong: ;
+  }
+}
+```
+
+### 2.4 CSS Rules (MANDATORY)
+- **Nesting:** Native CSS nesting ONLY, max 3 levels deep
+- **Units:** `rem`/`em` for typography/spacing, `px` ONLY for borders, `clamp()` for fluid typography
+- **No `!important`** — solve via cascade order or specificity
+- **Container queries** preferred over media queries for component responsiveness
+- **Custom properties** for ALL design values — NO hardcoded values in components
+
+---
+
+## 3. HTML STRUCTURE CONTRACT (MANDATORY — from `html-css-best-practices` + `seo`)
+
+### 3.1 Required `index.html` Structure
+```html
+<!doctype html>
+<html lang="{{HTML_LANG}}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="{{META_DESCRIPTION}}" />
+  <meta name="theme-color" content="{{THEME_COLOR}}" />
+  <title>{{PAGE_TITLE}} | {{BRAND_NAME}}</title>
+  <link rel="canonical" href="{{CANONICAL_URL}}" />
+  <link rel="stylesheet" href="/src/styles/main.css" />
+  <link rel="preconnect" href="{{FONT_ORIGIN_1}}" crossorigin />
+  <link rel="preconnect" href="{{FONT_ORIGIN_2}}" crossorigin />
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="{{CANONICAL_URL}}" />
+  <meta property="og:title" content="{{OG_TITLE}}" />
+  <meta property="og:description" content="{{OG_DESCRIPTION}}" />
+  <meta property="og:image" content="{{OG_IMAGE_URL}}" />
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{{TWITTER_TITLE}}" />
+  <meta name="twitter:description" content="{{TWITTER_DESCRIPTION}}" />
+  <meta name="twitter:image" content="{{OG_IMAGE_URL}}" />
+  <!-- JSON-LD Structured Data (REQUIRED) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "{{BRAND_NAME}}",
+    "url": "{{CANONICAL_URL}}"
+  }
+  </script>
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to main content</a>
+  
+  <header class="site-header" role="banner">
+    <nav aria-label="Main navigation">...</nav>
+  </header>
+
+  <main id="main" role="main">
+    <!-- ONE <h1> per page -->
+    <!-- Semantic sections: <section aria-labelledby="...">, <article>, <aside> -->
+  </main>
+
+  <footer class="site-footer" role="contentinfo">...</footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
+```
+
+### 3.2 Semantic HTML Requirements
+| Element | Requirement |
+|---------|-------------|
+| `<header>` | Site header ONLY |
+| `<nav aria-label="...">` | Every navigation block |
+| `<main id="main">` | Exactly ONE per page |
+| `<section aria-labelledby="...">` | Thematic grouping with accessible label |
+| `<article>` | Self-contained, syndication-ready content |
+| `<aside>` | Tangential content |
+| `<footer>` | Site footer ONLY |
+| `<h1>`–`<h6>` | Strict hierarchy, NO skipped levels |
+| `<button>` | Actions (not navigation) |
+| `<a href="">` | Navigation (not actions) |
+| `<figure>`/`<figcaption>` | Images with captions |
+
+### 3.3 SEO Requirements (MANDATORY)
+- **Title:** Unique, 50-60 chars, primary keyword first, brand last
+- **Meta Description:** Unique, 150-160 chars, compelling CTA
+- **Canonical:** Self-referencing on every page
+- **JSON-LD:** `Organization`, `WebSite`, `WebPage` minimum
+- **Open Graph / Twitter Cards:** Complete set
+- **Sitemap:** `/sitemap.xml` at root
+- **Robots:** `/public/robots.txt` allowing all, disallowing `/admin/`, `/api/`, `/private/`
+
+---
+
+## 4. ACCESSIBILITY CONTRACT (WCAG 2.1 AA — MANDATORY from `accessibility-wcag`)
+
+### 4.1 Non-Negotiable Requirements
+| Criterion | Requirement |
+|-----------|-------------|
+| **Color Contrast** | 4.5:1 (text), 3:1 (large text/UI), 3:1 (focus rings) |
+| **Keyboard Navigation** | All interactive elements reachable, operable, visible focus |
+| **Focus Indicators** | Visible, 3:1 contrast, 2px minimum, NEVER `outline: none` |
+| **Skip Link** | First focusable element, visible on focus |
+| **Heading Structure** | Single `<h1>`, no skipped levels |
+| **Landmarks** | `banner`, `main`, `contentinfo`, `navigation`, `search` |
+| **Form Labels** | Every input has `<label for="">` or `aria-label` |
+| **Error Handling** | `aria-invalid`, `aria-describedby` with error message |
+| **Live Regions** | `aria-live="polite"` for dynamic updates |
+| **Images** | `alt=""` for decorative, descriptive alt for content |
+| **Touch Targets** | Minimum 44×44px (48×48px preferred) |
+| **Zoom** | Functional at 200% zoom, no horizontal scroll |
+| **Reduced Motion** | `@media (prefers-reduced-motion: reduce)` disables non-essential motion |
+
+### 4.2 Required ARIA Patterns
+```html
+<!-- Button with loading state -->
+<button aria-busy="true" aria-live="polite" disabled>Loading...</button>
+
+<!-- Disclosure (accordion) -->
+<button aria-expanded="false" aria-controls="panel-id">Trigger</button>
+<div id="panel-id" hidden>Content</div>
+
+<!-- Dialog (native <dialog> preferred) -->
+<dialog aria-modal="true" aria-labelledby="dialog-title">
+  <h2 id="dialog-title">Title</h2>
+  <button aria-label="Close" autofocus>×</button>
+</dialog>
+
+<!-- Navigation -->
+<nav aria-label="Primary navigation">
+  <ul>
+    <li><a href="/" aria-current="page">Home</a></li>
+  </ul>
+</nav>
+```
+
+### 4.3 Testing Requirements (MANDATORY)
+- axe-core: 0 violations
+- Lighthouse Accessibility: 100
+- Keyboard-only: Complete task flow
+- Screen Reader: NVDA/VoiceOver — all content announced
+- Color Contrast: All combinations pass
+
+---
+
+## 5. JAVASCRIPT ARCHITECTURE CONTRACT (MANDATORY — from `modern-javascript-patterns`)
+
+### 5.1 Directory Structure (IMMUTABLE)
+```
+src/js/
+├── layout/
+│   ├── navigation.js      # Mobile menu, sticky header, scroll spy
+│   └── scroll-reveal.js   # IntersectionObserver reveal animations
+├── components/
+│   ├── carousel.js        # Self-contained carousel/slider
+│   ├── accordion.js       # Disclosure pattern
+│   ├── dialog.js          # Modal dialog management
+│   └── [component].js     # One file per component
+├── utils/
+│   ├── debounce.js        # Pure debounce function
+│   ├── throttle.js        # Pure throttle function
+│   ├── dom.js             # DOM query helpers
+│   └── [util].js          # Pure, stateless utilities
+└── main.js                # ENTRY POINT — ONLY initialization calls
+```
+
+### 5.2 Module Contract (EVERY module in `layout/` and `components/`)
+```javascript
+// 1. NO side effects on import
+// 2. Single exported init function
+// 3. Accepts optional config object
+// 4. Uses native browser APIs first
+// 5. Returns cleanup/destroy function (optional)
+
+export function initComponent(config = {}) {
+  const {
+    selector = '.component',
+  } = config;
+
+  const elements = document.querySelectorAll(selector);
+  if (!elements.length) return;
+
+  elements.forEach(element => {
+    // Implementation using native APIs
+  });
+
+  return () => { /* cleanup listeners */ };
+}
+```
+
+### 5.3 Entry Point Contract (`src/main.js`)
+```javascript
+// 1. ONLY imports and calls init functions
+// 2. NO logic, NO DOM manipulation, NO event listeners
+// 3. Sequential execution, top to bottom
+// 4. ES modules are deferred by default — NO DOMContentLoaded
+
+import { initNavigation } from './js/layout/navigation.js';
+import { initScrollReveal } from './js/layout/scroll-reveal.js';
+
+initNavigation();
+initScrollReveal({ threshold: 0.1 });
+```
+
+### 5.4 JavaScript Patterns (MANDATORY)
+- **ES Modules only** — `type="module"` in HTML
+- **Async/await** — no `.then()` chains
+- **Optional chaining** — `obj?.prop?.method()`
+- **Nullish coalescing** — `value ?? default`
+- **Array methods** — `map`, `filter`, `reduce`, `find` over loops
+- **Destructuring** — `const { a, b } = obj`
+- **Early returns** — guard clauses over nesting
+- **No classes** — factory functions / module pattern preferred
+- **No `this` binding issues** — arrow functions for callbacks
+
+---
+
+## 6. ASSET MANAGEMENT CONTRACT (from `AGENTS.md`)
+
+### 6.1 Asset Locations (IMMUTABLE)
+| Asset Type | Location | Vite Processing |
+|------------|----------|-----------------|
+| Images, SVGs, Icons (CSS/HTML refs) | `src/assets/` | ✅ Hashed, optimized |
+| Fonts (TTF/WOFF2) | `src/assets/fonts/` | ✅ Hashed, cached |
+| Favicon bundle | `public/favicon/` | ❌ Served as-is at `/favicon/` |
+| `robots.txt` | `public/robots.txt` | ❌ Served as-is at `/robots.txt` |
+| `sitemap.xml` | Project root | ❌ Served as-is at `/sitemap.xml` |
+
+### 6.2 Font Loading (MANDATORY)
+```css
+/* src/styles/boilerplate/fonts.css */
+@font-face {
+  font-family: '{{FONT_DISPLAY_NAME}}';
+  src: url('../../assets/fonts/{{FONT_DISPLAY_FILE}}.woff2') format('woff2');
+  font-weight: {{FONT_DISPLAY_WEIGHT_RANGE}};
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: '{{FONT_BODY_NAME}}';
+  src: url('../../assets/fonts/{{FONT_BODY_FILE}}.woff2') format('woff2');
+  font-weight: {{FONT_BODY_WEIGHT_RANGE}};
+  font-display: swap;
+  font-style: normal;
+}
+```
+
+### 6.3 Image Requirements
+- **Format:** WebP/AVIF (Vite handles via plugins)
+- **Attributes:** `width`, `height`, `loading="lazy"` (below fold), `fetchpriority="high"` (hero)
+- **Alt text:** Descriptive for content, empty for decorative
+
+---
+
+## 7. GIT FLOW CONTRACT (IMMUTABLE — from `AGENTS.md`)
+
+### 7.1 Branch Structure
+| Branch Type | Prefix | Source | Target | Creator |
+|-------------|--------|--------|--------|---------|
+| Feature | `feature/*` | `develop` | `develop` | `@frontend-dev` ONLY |
+| Release | `release/v*` | `develop` | `main` + `develop` | `@release-manager` ONLY |
+| Hotfix | `hotfix/*` | `main` | `main` + `develop` | `@release-manager` ONLY |
+
+### 7.2 Rules
+- **NEVER** commit directly to `main` or `develop`
+- **NEVER** delete `main` or `develop`
+- **ALL** merges via Pull Requests
+- `@frontend-dev` pushes `feature/*` to remote
+- `@release-manager` handles ALL PR creation, merges, tags, deletions
+- `@orchestrator` authorizes merges/releases
+
+---
+
+## 8. QA PIPELINE CONTRACT (MANDATORY — from `@orchestrator` workflow)
+
+### 8.1 Mandatory Gate Sequence
+```
+1. PLAN (Design Thinking)           → @orchestrator + User approval
+2. BUILD (frontend-dev)             → @frontend-dev
+3. CODE REVIEW (code-review)        → @code-review → STATUS: APPROVED
+4. TEST PLAN (playwright-test-planner)  → @playwright-test-planner
+5. TEST GENERATE (playwright-test-generator) → @playwright-test-generator
+6. TEST EXECUTE (playwright-test-healer)   → @playwright-test-healer → 100% PASS
+7. DOCUMENT (docs/changes.md)       → @orchestrator writes to ./docs/
+8. MERGE (release-manager)          → @release-manager → PR → User approval → Merge
+```
+
+### 8.2 Quality Gates (NON-NEGOTIABLE)
+| Gate | Tool | Pass Criteria |
+|------|------|---------------|
+| Code Review | `@code-review` | `STATUS: APPROVED` — no fake semantics, no generic patterns, no poor JS |
+| Playwright Tests | `@playwright-test-healer` | **100% pass** — no flaky, no skipped |
+| Accessibility | axe-core (in Playwright) | 0 violations |
+| Lighthouse | Performance/Accessibility/SEO | ≥ 90 all categories |
+| HTML Validation | W3C Validator | 0 errors |
+| CSS Validation | W3C CSS Validator | 0 errors |
+
+### 8.3 Documentation Requirement
+After QA passes, **BEFORE merge**, `@orchestrator` MUST create:
+```
+docs/{{FEATURE_NAME}}-changes.md
+```
+Content:
+- **What:** One sentence — what was built/changed
+- **Why:** Key decisions and reasoning
+- **Next:** Active items, blockers, pending approvals
+- **Files:** Modified files with purpose (not every line)
+
+---
+
+## 9. DESIGN TOKENS — PROJECT SPECIFIC
+
+> **This section is EMPTY in the template.** The orchestrator fills it in
+> during the Design Thinking phase after user approval.
+
+### 9.1 Color Palette
+| Token | Light Value | Dark Value | Usage |
+|-------|-------------|------------|-------|
+| `--color-bg` | | | Page background |
+| `--color-bg-alt` | | | Alternate sections |
+| `--color-bg-elevated` | | | Cards, modals |
+| `--color-text` | | | Primary text |
+| `--color-text-muted` | | | Secondary text |
+| `--color-primary` | | | Brand dominant |
+| `--color-accent` | | | CTAs, links |
+| `--color-border` | | | Subtle borders |
+| `--color-focus` | | | Focus rings |
+
+### 9.2 Typography Scale (using `clamp()`)
+| Token | Value |
+|-------|-------|
+| `--font-size-fluid-base` | |
+| `--font-size-display-1` | |
+| `--font-size-display-2` | |
+| `--font-size-display-3` | |
+| `--font-size-heading-1` | |
+| `--font-size-heading-2` | |
+| `--font-size-heading-3` | |
+| `--font-size-body` | `var(--font-size-fluid-base)` |
+| `--font-size-body-sm` | |
+| `--font-size-caption` | |
+
+### 9.3 Spacing Scale
+| Token | Value |
+|-------|-------|
+| `--space-1` | `0.25rem` (4px) |
+| `--space-2` | `0.5rem` (8px) |
+| `--space-3` | `0.75rem` (12px) |
+| `--space-4` | `1rem` (16px) |
+| `--space-5` | `1.5rem` (24px) |
+| `--space-6` | `2rem` (32px) |
+| `--space-7` | `3rem` (48px) |
+| `--space-8` | `4rem` (64px) |
+| `--space-9` | `6rem` (96px) |
+| `--space-10` | `8rem` (128px) |
+
+### 9.4 Motion Tokens
+| Token | Value |
+|-------|-------|
+| `--duration-fast` | `150ms` |
+| `--duration-base` | `250ms` |
+| `--duration-slow` | `400ms` |
+| `--duration-slower` | `600ms` |
+| `--ease-standard` | `cubic-bezier(0.4, 0, 0.2, 1)` |
+| `--ease-expressive` | `cubic-bezier(0.34, 1.56, 0.64, 1)` |
+| `--ease-spring` | `cubic-bezier(0.175, 0.885, 0.32, 1.275)` |
+
+---
+
+## 10. COMPONENT INVENTORY
+
+> **This section is EMPTY in the template.** The orchestrator fills it in
+> during the Design Thinking phase.
+
+| Component | Status | CSS File | JS Module | Tests |
+|-----------|--------|----------|-----------|-------|
+| Button | ☐ Planned | `button.css` | — | `button.spec.ts` |
+| Card | ☐ Planned | `card.css` | — | `card.spec.ts` |
+| Navigation | ☐ Planned | `header.css` | `navigation.js` | `navigation.spec.ts` |
+| Hero | ☐ Planned | `main.css` | `scroll-reveal.js` | `hero.spec.ts` |
+
+---
+
+## 11. PERFORMANCE BUDGETS (MANDATORY)
+
+| Metric | Budget | Tool |
+|--------|--------|------|
+| **Total CSS (gzipped)** | < 50 KB | Vite build report |
+| **Total JS (gzipped)** | < 80 KB | Vite build report |
+| **LCP** | < 2.5s | Lighthouse |
+| **INP** | < 200ms | Lighthouse |
+| **CLS** | < 0.1 | Lighthouse |
+| **Lighthouse Performance** | ≥ 90 | Lighthouse CI |
+| **Lighthouse Accessibility** | 100 | Lighthouse CI |
+| **Lighthouse SEO** | ≥ 90 | Lighthouse CI |
+
+---
+
+## 12. BROWSER SUPPORT MATRIX
+
+| Browser | Version | Support Level |
+|---------|---------|---------------|
+| Chrome | Last 2 | Full |
+| Firefox | Last 2 | Full |
+| Safari | Last 2 | Full |
+| Edge | Last 2 | Full |
+| Mobile Safari | iOS 16+ | Full |
+| Chrome Android | Last 2 | Full |
+
+**Polyfills:** None required — native CSS nesting, custom properties, ES modules, IntersectionObserver, scroll-snap all supported.
+
+---
+
+## 13. AGENT RESPONSIBILITY MATRIX
+
+| Agent | Responsible For | Must Read |
+|-------|-----------------|-----------|
+| `@orchestrator` | Planning, delegation, gates, docs, releases | **ALL sections** |
+| `@frontend-dev` | Implementation (HTML, CSS, JS) | §2, §3, §4, §5, §6, §9, §10 |
+| `@code-review` | Compliance audit | **ALL sections** |
+| `@playwright-test-planner` | Test scenarios | §3, §4, §10 |
+| `@playwright-test-generator` | Test code | §4, §10 |
+| `@playwright-test-healer` | Test execution/fix | §4, §8 |
+| `@release-manager` | Git ops, PRs, tags | §7, §8 |
+
+---
+
+## 14. CHANGE LOG
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 1.0 | {{DATE}} | @orchestrator | Initial contract from template |
+
+---
+
+## 15. ENFORCEMENT
+
+> **This document is a binding contract.** Any agent violating these rules will have their output rejected by `@code-review` and the pipeline will halt. No exceptions, no "pragmatic" deviations.
+
+**To propose a change:** `@orchestrator` presents the change to the user, receives explicit approval ("Approved" or "Aprobado"), then updates this document and notifies all agents.
+
+---
+
+*End of DESIGN.md.template — This file lives in the template repo. The orchestrator copies this to `DESIGN.md` and populates all placeholders during the Design Thinking phase.*

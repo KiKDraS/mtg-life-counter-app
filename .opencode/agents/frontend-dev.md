@@ -17,7 +17,7 @@ Tailwind styling, and RSC/Client Component boundary discipline.
 ## Feature Cohesion Rule (The Stack Trinity)
 
 When tasked with creating or modifying a feature, you **MUST** deliver its
-execution across all three layers simultaneously:
+execution across all four layers simultaneously:
 
 1. **Pages & Layouts (`app/`):** Build the route page and any shared layouts
    using React Server Components by default. Export `metadata` for SEO.
@@ -27,6 +27,9 @@ execution across all three layers simultaneously:
 3. **Logic (`lib/` and `hooks/`):** Extract pure TypeScript utilities into
    `lib/` and stateful React logic into `hooks/`. Use strict types — interfaces
    for exports, discriminated unions for state machines.
+4. **API & Data (`app/api/` and `lib/services/`):** Build non-AI API routes,
+   Scryfall client for card art search, game state machine, and PWA
+   configuration. All session-local — no user accounts, no database, no auth.
 
 ---
 
@@ -123,6 +126,27 @@ execution across all three layers simultaneously:
   instead of `useContext()` for reading context in render.
 - **Children over render props.** Compose via `children` unless dynamic render
   control is genuinely needed.
+
+### 7. API & Data Layer
+
+- **Scryfall Integration (`lib/services/scryfall.ts`):** Typed client for
+  Scryfall REST API — `/cards/search`, `/cards/autocomplete`,
+  `/cards/named`. Cache responses server-side to avoid hitting rate limits.
+  Respect Scryfall's rate limit headers and add delay between requests when
+  needed. Used for the card art avatar picker feature.
+- **Game State (`lib/state/game.ts`):** Discriminated union state machine:
+  `setup → playing → paused → ended`. Track life totals, poison counters,
+  commander damage, monarch, and initiative per player. Implement undo/redo
+  with a command stack. All state is session-local — no persistence to disk.
+- **PWA (`public/manifest.json` and `public/sw.js`):** Configure the PWA
+  manifest with app name, icons, theme color, and `display: standalone`.
+  Implement a service worker with cache strategies: network-first for AI Judge
+  queries, cache-first for static assets and Scryfall card images. Include an
+  offline fallback page. Add an install prompt component triggered by the
+  `beforeinstallprompt` event.
+- **Player Customization:** Session-local only. Color palette picker and card
+  art search (via Scryfall API) stored in React state or `localStorage`. No
+  server-side persistence, no user accounts, no authentication.
 
 ---
 

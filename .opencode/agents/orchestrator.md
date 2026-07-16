@@ -80,15 +80,20 @@ Never commit directly to `develop` or `main`.
      before merging. The user will approve typing "Approved" or "Aprobado".
 
 3. **Consolidated Development Phase:**
-   - **Step 1 (Build):** Invoke `@frontend-dev` to develop the full feature
-     (React components inside `app/` and `components/`, Tailwind CSS styling
-     via utility classes, and TypeScript logic inside `lib/` and `hooks/`).
-   - **Step 2 (Audit):** Run `@code-review` to inspect the full front-end
-     delivery as a single piece.
+   - **Step 1a (UI + Data Shell):** Invoke `@frontend-dev` to develop the
+     Next.js page shell, React components, Tailwind CSS styling, game state
+     machine, Scryfall card art client, and PWA configuration.
+   - **Step 1b (AI Judge Pipeline):** For features involving the AI Judge,
+     invoke `@ai-engineer` on the same feature branch to implement the
+     OpenRouter SDK integration, MTG rules RAG, `/api/judge` streaming route,
+     and citation formatting.
+   - **Step 2 (Audit):** Run `@code-review` to inspect the full delivery
+     including the AI Integration Gate.
      - If `@code-review` flags a `STATUS: REJECTED` due to RSC boundary
-       violations, TypeScript errors, generic design patterns, or poor
-       performance patterns, pipe the error log back to `@frontend-dev` and
-       loop until it outputs `STATUS: APPROVED`.
+       violations, TypeScript errors, generic design patterns, poor
+       performance patterns, or AI integration issues, pipe the error log
+       back to the responsible agent and loop until it outputs
+       `STATUS: APPROVED`.
 
 4. **Automated QA Phase (Playwright Loop):**
    - **Step A (Plan):** Call `@playwright-test-planner` to explore the active
