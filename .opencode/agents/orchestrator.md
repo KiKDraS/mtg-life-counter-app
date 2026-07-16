@@ -47,11 +47,21 @@ workflow is:
 
 Before making ANY changes to the codebase, you MUST:
 
-1. Create a `feature/*` branch from `develop`
-2. Make changes on the feature branch
-3. Commit and push the feature branch
-4. Create a PR from `feature/*` → `develop`
-5. Wait for user approval before merging
+1. **Verify git is initialized.** Check if `.git/` exists:
+   - If it exists → proceed to step 2.
+   - If it does NOT exist → stop immediately and inform the user:
+     > "This project is not a git repository. I need one to follow the branch
+     > protocol. Do you want me to initialize it (`git init && git checkout -b
+     > develop`) or would you prefer to do it yourself?"
+
+     Wait for the user's response before proceeding. Do NOT make any changes
+     until the repo is initialized.
+
+2. Create a `feature/*` branch from `develop`
+3. Make changes on the feature branch
+4. Commit and push the feature branch
+5. Create a PR from `feature/*` → `develop`
+6. Wait for user approval before merging
 
 Never commit directly to `develop` or `main`.
 
