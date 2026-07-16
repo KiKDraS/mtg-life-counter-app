@@ -24,6 +24,7 @@ total tracking and an AI-powered Judge to resolve rules questions. Built with
 - **UI:** React 19 (Server Components by default)
 - **Language:** TypeScript 5 (strict mode)
 - **Styling:** Tailwind CSS 4 (utility-first, CSS-first config)
+- **AI:** OpenRouter SDK (`@openrouter/sdk`) for the AI Judge
 - **Package Manager:** pnpm
 - **Linting:** ESLint (eslint-config-next)
 - **Testing:** Playwright
@@ -44,25 +45,30 @@ export default nextConfig;
 
 ## Project Structure
 
-The agent must strictly respect the following file architecture. No folders or
-files should be created outside of this schema without prior authorization.
+The agent must strictly respect the following file architecture:
 
 ```bash
 ├── app/                    # Next.js App Router (RSC by default)
+│   ├── api/                # API route handlers
+│   │   └── judge/          # AI Judge streaming endpoint
 │   ├── layout.tsx          # Root layout — metadata, fonts, global shell
 │   ├── page.tsx            # Home page (life counter UI)
-│   ├── globals.css         # Tailwind imports + global design tokens
-│   ├── favicon.ico         # App favicon
-│   └── (routes)/           # Route groups for additional pages
+│   └── globals.css         # Tailwind imports + global design tokens
 ├── components/             # Shared React components
 │   ├── ui/                 # Primitive UI components (Button, Card, Dialog)
 │   └── features/           # Feature-specific composed components
 ├── lib/                    # Pure TypeScript utilities
+│   ├── ai/                 # AI Judge — prompts, RAG, citations, history
+│   │   └── rag/            # MTG rules embedding & retrieval pipeline
+│   ├── services/           # External API clients (Scryfall)
+│   ├── state/              # Game state machine
 │   ├── utils.ts            # Shared helper functions
 │   └── types.ts            # Shared TypeScript interfaces & types
 ├── hooks/                  # Custom React hooks
 ├── public/                 # Static assets (served as-is)
 │   ├── favicon/            # Favicon bundle files
+│   ├── manifest.json       # PWA manifest
+│   ├── sw.js               # Service worker
 │   └── robots.txt          # Search engine crawl directives
 ├── tests/                  # Playwright Test Suite
 │   ├── e2e/                # End-to-End user flow tests
@@ -80,9 +86,6 @@ files should be created outside of this schema without prior authorization.
 
 ## Development Rules and Guidelines
 
-When generating code or modifying files, the AI must strictly follow these
-rules:
-
 ### 1. React & Next.js Components (`app/` and `components/`)
 
 - **Server Components by default.** Every component in `app/` is a React Server
@@ -90,16 +93,11 @@ rules:
   and heavy logic in server components.
 - **Client boundary discipline.** Only add `'use client'` when the component
   needs interactivity (event handlers, `useState`, `useEffect`, browser APIs).
-  Push the boundary as deep as possible — prefer wrapping a leaf component over
-  marking an entire page as client.
+  Push the boundary as deep as possible.
 - **Strictly forbidden in Client Components:** `async` functions, server-only
   imports (`fs`, `crypto` without browser API), direct database access.
 - **Route conventions:** Follow Next.js App Router file conventions:
-  - `page.tsx` — route UI
-  - `layout.tsx` — shared layout wrapper
-  - `loading.tsx` — Suspense fallback
-  - `error.tsx` — error boundary
-  - `not-found.tsx` — 404 UI
+  `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`.
 - **Metadata:** Export `metadata` or `generateMetadata` from `layout.tsx` and
   `page.tsx`. Never leave `title: "Create Next App"` placeholders.
 - **Images:** Always use `next/image` over native `<img>`. Provide explicit
@@ -107,74 +105,79 @@ rules:
 - **Fonts:** Use `next/font` with `localFont` for self-hosted typefaces.
   Reference them from CSS variables for Tailwind integration. No Google Fonts
   CDN, no Inter/Roboto/Arial.
-- **Composition patterns:** Per `composition-patterns` skill — avoid boolean
-  prop proliferation, use compound components, lift state into providers. In
-  React 19: no `forwardRef`, use `use()` over `useContext()`.
-- **Performance:** Per `react-best-practices` skill — eliminate data waterfalls
-  with `Promise.all`, wrap heavy sections in Suspense boundaries, use
-  `next/dynamic` for lazy-loaded components.
+- **Composition patterns (per `composition-patterns`):** Avoid boolean prop
+  proliferation, use compound components, lift state into providers. React 19:
+  no `forwardRef`, use `use()` over `useContext()`.
+- **Performance (per `react-best-practices`):** Eliminate data waterfalls with
+  `Promise.all`, wrap heavy sections in Suspense boundaries, use `next/dynamic`
+  for lazy-loaded components.
 
 ### 2. Styling with Tailwind CSS (`app/globals.css`)
 
 - **Utility-first.** Style components with Tailwind utility classes directly in
-  JSX `className`. Do not create separate CSS files per component unless
-  absolutely necessary for complex animations or third-party overrides.
+  JSX `className`. No separate CSS files per component unless for complex
+  keyframe animations or third-party overrides.
 - **Design tokens** live in `globals.css` via `@theme` directive or CSS custom
   properties. Every color, spacing, and typography value must reference these
-  tokens — never hardcode arbitrary values.
-- **`@apply` is forbidden** for component styles. The only permitted use is
-  within `globals.css` for base layer resets.
-- **Responsive:** Use Tailwind's mobile-first breakpoints (`sm:`, `md:`, `lg:`).
-  Test at every breakpoint.
-- **Dark mode:** Support `dark:` variant via Tailwind's class-based strategy.
-- **Anti-generic aesthetics:** Per `frontend-design` skill — no Inter, Roboto,
-  or system-ui font stacks. No purple gradients on white. Bold, intentional
+  tokens.
+- **`@apply` is forbidden** for component styles. Only permitted in
+  `globals.css` for base layer resets.
+- **Responsive:** Mobile-first breakpoints (`sm:`, `md:`, `lg:`).
+- **Dark mode:** Support `dark:` variant via class-based strategy.
+- **Anti-generic aesthetics (per `frontend-design`):** No Inter, Roboto, or
+  system-ui font stacks. No purple gradients on white. Bold, intentional
   design direction defined in `DESIGN.md`.
-- **Motion:** Prefer Tailwind's `animate-*` utilities and CSS keyframes for
-  micro-interactions. Staggered reveals via `animation-delay` loops.
+- **Motion:** Prefer Tailwind's `animate-*` utilities and CSS keyframes.
 
 ### 3. TypeScript
 
-- **Strict mode is mandatory.** The `tsconfig.json` has `"strict": true` — all
-  code must pass without errors.
-- **No `any`** without a comment justifying why (and those cases should be rare).
-  Use `unknown` and type narrowing instead.
-- **Explicit interfaces over inferred types** for exported functions, component
-  props, and API boundaries. Inline inference is acceptable for internal locals.
-- **Per `typescript-advanced-types` skill:** Use discriminated unions for state
-  machines, generics for reusable utilities, and `satisfies` for config objects.
-- **Barrel imports** are discouraged (per `react-best-practices`
-  `bundle-barrel-imports`). Import directly from module files.
+- **Strict mode mandatory** (`"strict": true`). No compile errors.
+- **No `any`** without a comment justifying why. Use `unknown` and type
+  narrowing instead.
+- **Explicit interfaces** for exported functions, component props, and API
+  boundaries.
+- **Per `typescript-advanced-types`:** Discriminated unions for state machines,
+  generics for reusable utilities, `satisfies` for config objects.
+- **No barrel imports** (per `bundle-barrel-imports`). Import directly from
+  module files.
 
-### 4. Asset Management (`public/` and `next/font`)
+### 4. Asset Management
 
-- **`public/`**: For assets served as-is at the root URL path — favicon bundles,
-  `robots.txt`, `site.webmanifest`, PWA icons.
-- **Fonts:** Self-hosted via `next/font/local`. Font files live in `public/` and
-  are loaded through `localFont()` in `layout.tsx`. Reference the CSS variable
-  in Tailwind's `@theme` for utility-class access.
-- **Images:** Processed by `next/image`. Source files in `public/` or imported
-  directly. Always provide `width`, `height`, and `alt`.
-- **PWA assets:** `manifest.json`, service worker, and app icons in `public/`.
+- **`public/`**: Assets served as-is — favicon, robots.txt, manifest.json,
+  service worker, PWA icons.
+- **Fonts:** Self-hosted via `next/font/local`. Font files in `public/`, loaded
+  through `localFont()` in `layout.tsx`.
+- **Images:** Processed by `next/image`. Always provide `width`, `height`,
+  and `alt`.
+- **PWA assets:** `manifest.json`, `sw.js`, app icons in `public/`.
 
 ### 5. Accessibility
 
-- **Per `accessibility` skill:** WCAG 2.2 Level AA compliance is mandatory.
-- Use semantic JSX elements (`<button>`, `<nav>`, `<main>`, `<dialog>`) — never
-  `<div>` + ARIA role as a substitute.
-- All interactive elements must be keyboard-navigable with visible focus states.
-- Forms must have proper `<label>` associations and error messaging.
-- Color contrast ratios must meet AA thresholds (4.5:1 for text, 3:1 for large
-  text).
+- **Per `accessibility` skill:** WCAG 2.2 Level AA mandatory.
+- Semantic JSX elements — never `<div>` + ARIA role as substitute.
+- All interactive elements keyboard-navigable with visible focus states.
+- Forms with proper `<label>` associations and error messaging.
+- Color contrast: 4.5:1 for text, 3:1 for large text.
 
 ### 6. SEO
 
-- **Per `seo` skill:** Export `metadata` from every `page.tsx` and `layout.tsx`.
-  Titles must be unique, <60 characters. Descriptions 150–160 characters.
-- JSON-LD structured data in `<script type="application/ld+json">` within
-  layout or page components.
-- `sitemap.xml` at project root listing all routes.
+- **Per `seo` skill:** Export `metadata` from every `page.tsx` and
+  `layout.tsx`. Titles <60 characters. Descriptions 150–160 characters.
+- JSON-LD structured data. `sitemap.xml` listing all routes.
 - All images have descriptive `alt` text.
+
+### 7. API Routes & AI Integration
+
+- **API routes** live in `app/api/`. Route handlers follow Next.js conventions
+  (`route.ts` with named exports for HTTP methods).
+- **AI Judge** (`app/api/judge/route.ts`) uses `@openrouter/sdk` exclusively.
+  ZDR enabled. Streaming via async iterator. `OPENROUTER_API_KEY` server-only.
+- **Scryfall integration** (`lib/services/scryfall.ts`) for card art search
+  and autocomplete. Server-side caching. Rate limit awareness.
+- **No user accounts or auth.** The app is session-only. No `/api/profiles`,
+  no database, no authentication layer.
+- **Game state** (`lib/state/`) is session-local. Discriminated union state
+  machine. Undo/redo stack. Life totals, poison counters, commander damage.
 
 ---
 
@@ -186,127 +189,88 @@ branching model. Making direct commits to the main stability branches is
 
 ### Main Branches
 
-- **`main` (Production):** Exclusively contains 100% stable code. Every update
-  to this branch triggers the automated deployment workflow to the public
-  repository. It only receives changes via merges from `release/*` or
+- **`main` (Production):** Only receives merges from `release/*` or
   `hotfix/*` branches.
-- **`develop` (Integration):** The daily workspace. All completed new features
-  are consolidated here to be tested together before moving to production.
+- **`develop` (Integration):** The daily workspace. All completed features are
+  consolidated here.
 
 ### Temporary and Working Branches
 
-1. **`feature/` (New features and enhancements):**
-   - **Origin:** `develop`
-   - **Merge Destination:** `develop`
-   - **Naming Convention:** `feature/improvement-name` (e.g.,
-     `feature/life-counter-ui`)
-   - **Rule:** All new logic, refactoring, or additions must start and finish
-     here.
-2. **`release/` (Preparing a deployment):**
-   - **Origin:** `develop`
-   - **Merge Destination:** `main` and `develop`
-   - **Naming Convention:** `release/vX.X.X` (e.g., `release/v1.0.0`)
-   - **Rule:** Generated when `develop` has accumulated enough changes for a new
-     public version. Only minor bug fixes during preparation are allowed.
-3. **`hotfix/` (Urgent production patches):**
-   - **Origin:** `main`
-   - **Merge Destination:** `main` and `develop`
-   - **Naming Convention:** `hotfix/error-name`
-   - **Rule:** Opened exclusively if a critical failure is reported directly on
-     the public website requiring an immediate fix.
+1. **`feature/`:** Origin: `develop`. Merge to: `develop`.
+2. **`release/`:** Origin: `develop`. Merge to: `main` and `develop`.
+3. **`hotfix/`:** Origin: `main`. Merge to: `main` and `develop`.
 
 ### Agent Protocol & Branch Permissions
 
-1. **Workspace Sync:** Before starting any assigned task, agents must run
-   `git fetch origin` to have an updated view of the repository.
-2. **@frontend-dev Exclusivity & Restrictions:**
-   - The frontend development agent is **SOLELY RESPONSIBLE** for creating and
-     writing code inside `feature/*` and `hotfix/*` branches.
-   - When a task is assigned, it must check out `develop`, pull the latest
-     changes, and spawn its working branch from there
-     (`git checkout -b feature/name`).
-   - After completing and committing a feature, `@frontend-dev` **MUST** push
-     the branch to GitHub (`git push -u origin feature/name`) so it is available
-     for Pull Request creation.
-   - It is completely forbidden for `@frontend-dev` to check out, commit to, or
-     merge into `main` or `develop`.
-3. **@release-manager Authority & Remote Sync:**
-   - The `@release-manager` is the **ONLY** entity authorized to execute git
-     operations that modify branch state on GitHub (pushes, PR creation, PR
-     merges, tagging, branch deletion).
-   - All branch operations (create, merge, delete) **MUST** be mirrored to
-     GitHub immediately — never leave a branch only on one side (local or
-     remote).
-   - **ALL merges MUST use Pull Requests** — no direct `git merge` to `main` or
-     `develop`. This applies to:
-     - `feature/*` → `develop`
-     - `release/*` → `main` and `release/*` → `develop` (back-merge)
-     - `hotfix/*` → `main` and `hotfix/*` → `develop` (back-merge)
-   - The `@release-manager` uses a hybrid approach for PR operations:
-     - **Primary:** `gh` CLI (GitHub's official command-line tool)
-     - **Fallback:** `curl` + GitHub REST API (when `gh` is not installed)
-   - Token resolution follows this priority:
-     1. `.opencode/secrets/github-token` file (explicit secret)
-     2. Git credential helper (zero config — works if `git push` works)
-     3. `GITHUB_TOKEN` environment variable
-   - **NEVER delete `main` or `develop` branches** — only temporary branches
-     (`feature/*`, `release/*`, `hotfix/*`, and their back-merge variants) are
-     deleted after merge.
-   - Release and hotfix merges into `main` include annotated tags pushed to
-     GitHub.
-4. **@orchestrator Exclusivity & Integration Powers:**
-   - The `@orchestrator` is the **ONLY** entity authorized to decide when to
-     initiate merges or releases. It delegates execution to `@release-manager`.
-   - **Merge Guardrail:** The orchestrator will only instruct `@release-manager`
-     to merge a `feature/*` or `hotfix/*` branch into `develop` once
-     `@code-review` returns `STATUS: APPROVED` and the QA pipeline passes.
-   - **Mandatory User Checkpoint:** The orchestrator is strictly prohibited from
-     creating a `release/*` branch or merging into `main` automatically. It must
-     explicitly explain the release scope to the user and halt operations until
-     the user provides a verbatim text confirmation (e.g., "Approved" or
-     "Aprobar release").
+1. **Workspace Sync:** `git fetch origin` before any task.
+2. **@frontend-dev Exclusivity:**
+   - Solely responsible for writing feature code inside `feature/*` and
+     `hotfix/*` branches.
+   - Checks out `develop`, pulls latest, spawns `feature/name`.
+   - After committing: `git push -u origin feature/name`.
+   - Forbidden from touching `main` or `develop`.
+3. **@ai-engineer Responsibilities:**
+   - Owns OpenRouter SDK integration, MTG rules RAG, prompt engineering,
+     `/api/judge` streaming route, and citation formatting.
+   - Uses `@openrouter/sdk` exclusively — ZDR enabled, provider routing,
+     built-in streaming.
+   - Works on the shared `feature/*` branch created by `@frontend-dev`.
+     Does NOT create its own branch.
+   - Invoked after `@frontend-dev` completes the UI shell.
+   - Forbidden from touching React components or styling. Domain:
+     `app/api/`, `lib/services/`, `lib/ai/`.
+4. **@release-manager Authority:**
+   - Only entity authorized to modify branch state on GitHub (PRs, merges,
+     tags, branch deletion).
+   - All operations mirrored to GitHub immediately.
+   - All merges via Pull Requests — no direct merges to `main`/`develop`.
+   - Hybrid approach: `gh` CLI primary, `curl` + REST API fallback.
+   - Token: `.opencode/secrets/github-token` → git credential → `GITHUB_TOKEN`.
+   - Never delete `main` or `develop`.
+5. **@orchestrator Integration Powers:**
+   - Only entity authorized to initiate merges or releases.
+   - Only instructs merge when `@code-review` returns `STATUS: APPROVED` and
+     QA pipeline passes.
+   - Must get explicit user confirmation before creating `release/*` or
+     merging to `main`.
 
 ---
 
 ## Mandatory Skills (Skills Compliance)
 
 The agent is prohibited from generating code based on general assumptions. It
-must strictly comply with the rules defined in the installed skill files located
-in the `.opencode/skills/` folder:
+must strictly comply with the rules defined in the installed skill files:
 
 - **Next.js Best Practices (`next-best-practices`):** File conventions, RSC
   boundaries, async patterns, route handlers, metadata, image/font optimization,
-  hydration errors, Suspense boundaries, and bundling.
-- **React Best Practices (`react-best-practices`):** 70 performance rules across
-  8 categories — eliminating waterfalls, bundle size, server-side perf,
-  client-side data fetching, re-render optimization, rendering performance,
-  JavaScript performance, and advanced patterns.
+  hydration errors, Suspense boundaries, bundling.
+- **React Best Practices (`react-best-practices`):** 70 performance rules —
+  eliminating waterfalls, bundle size, server-side perf, client-side data
+  fetching, re-render optimization, rendering, JS performance, advanced
+  patterns.
 - **Composition Patterns (`composition-patterns`):** Avoid boolean prop
-  proliferation, use compound components, lift state, explicit variants,
-  children over render props. React 19: no `forwardRef`, `use()` over
-  `useContext()`.
+  proliferation, compound components, lift state, explicit variants, children
+  over render props. React 19: no `forwardRef`, `use()` over `useContext()`.
 - **Next.js Cache Components (`next-cache-components`):** PPR, `use cache`
   directive, `cacheLife`, `cacheTag`, `updateTag` for Next.js 16+.
 - **Frontend Design (`frontend-design`):** BOLD, anti-generic aesthetics.
   Distinctive typography, asymmetric layouts, creative color palettes,
-  high-impact motion choreography. No Inter/Roboto/Arial. No purple gradients
-  on white.
+  high-impact motion. No Inter/Roboto/Arial. No purple gradients on white.
 - **Tailwind CSS Patterns (`tailwind-css-patterns`):** Utility-first v4.1+
-  patterns — responsive design, dark mode, component composition, performance
-  optimization.
+  patterns — responsive design, dark mode, component composition, performance.
 - **TypeScript Advanced Types (`typescript-advanced-types`):** Generics,
   conditional types, mapped types, template literal types, discriminated
   unions, type guards, assertion functions.
-- **Accessibility (`accessibility`):** WCAG 2.2 Level AA compliance — POUR
-  principles, semantic HTML/JSX, keyboard navigation, ARIA, color contrast,
-  form validation.
+- **Accessibility (`accessibility`):** WCAG 2.2 Level AA — POUR principles,
+  semantic JSX, keyboard navigation, ARIA, color contrast, form validation.
 - **SEO Optimization (`seo`):** Technical crawling, metadata, JSON-LD, sitemap,
   content optimization, tap targets.
 - **Playwright Best Practices (`playwright-best-practices`):** Execution
-  constraints, selector reliability, trace review loops, Page Object Model,
-  testing isolation.
-- **Context7 MCP (`context7-mcp`):** Fetches current documentation for
-  libraries, frameworks, SDKs, and API references via Context7 MCP.
+  constraints, selector reliability, trace review, Page Object Model, testing
+  isolation.
+- **Context7 MCP (`context7-mcp`):** Primary tool for OpenRouter SDK docs, LLM
+  model catalogs, and embedding model references. Used by `@ai-engineer` and
+  all agents.
 
 ---
 
@@ -317,29 +281,15 @@ library, framework, SDK, API, CLI tool, or cloud service — even well-known one
 like React, Next.js, Prisma, Express, Tailwind, Django, or Spring Boot. This
 includes API syntax, configuration, version migration, library-specific
 debugging, setup instructions, and CLI tool usage. Use even when you think you
-know the answer — your training data may not reflect recent changes. Prefer this
-over web search for library docs.
-
-Do not use for: refactoring, writing scripts from scratch, debugging business
-logic, code review, or general programming concepts.
+know the answer — your training data may not reflect recent changes.
 
 ## Steps
 
 1. Always start with `resolve-library-id` using the library name and the user's
-   question, unless the user provides an exact library ID in `/org/project`
-   format
-2. Pick the best match (ID format: `/org/project`) by: exact name match,
-   description relevance, code snippet count, source reputation (High/Medium
-   preferred), and benchmark score (higher is better). If results don't look
-   right, try alternate names or queries (e.g., "next.js" not "nextjs", or
-   rephrase the question). Use version-specific IDs when the user mentions a
-   version
-3. `query-docs` with the selected library ID and the user's full question (not
-   single words), scoped to a single concept. If the question spans multiple
-   distinct concepts (e.g. routing and auth and caching), make a separate
-   `query-docs` call per concept with the same library ID, unless the question
-   is about how the concepts interact — combined queries dilute ranking and
-   return shallow results for each topic
+   question, unless the user provides an exact library ID
+2. Pick the best match (ID format: `/org/project`) by name match, description
+   relevance, code snippet count, source reputation, and benchmark score
+3. `query-docs` with the selected library ID and the user's full question
 4. Answer using the fetched docs
 
 ---

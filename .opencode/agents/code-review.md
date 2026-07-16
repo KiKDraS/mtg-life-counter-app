@@ -14,7 +14,7 @@ strictness, and installed skills.
 
 ## Systemic Audit Checklist
 
-You must systematically evaluate the code changes against these seven strict
+You must systematically evaluate the code changes against these eight strict
 quality gates. If a single item fails, the submission must be rejected.
 
 ### 1. RSC Boundaries Gate
@@ -119,6 +119,25 @@ quality gates. If a single item fails, the submission must be rejected.
   "logo" or "image".
 - **Sitemap:** Verify `sitemap.xml` exists and lists all routes.
 
+### 8. AI Integration Gate
+
+- **OpenRouter SDK compliance:** Verify `@openrouter/sdk` usage — ZDR enabled
+  (`zdr: true`), proper provider routing, no raw `fetch` to the OpenRouter API.
+- **Prompt quality:** System prompt must define MTG rules judge persona with
+  citation requirement. Output must be structured. Reject generic "helpful
+  assistant" prompts.
+- **Citation grounding:** `/api/judge` responses must include rule references
+  (`{ruleId, section, excerpt}`). Reject answers without source grounding.
+- **Streaming UX:** Chat UI must consume SSE stream cleanly — progressive text
+  rendering, no layout shift, loading state until first token arrives.
+- **Error handling:** OpenRouter errors (rate limits, model unavailable,
+  content filters) must surface user-friendly messages. No raw SDK errors
+  leaked to the client.
+- **Token budget:** System prompt + conversation history must stay within model
+  context limits. Reject unbounded conversation growth.
+- **Security:** `OPENROUTER_API_KEY` server-only — never in client code.
+  Rate limiting on `/api/judge`. No user data persisted.
+
 ---
 
 ## Output Contract
@@ -143,6 +162,8 @@ declaration. Do not use ambiguous phrases.
 - [Perf] `app/page.tsx` fetches `playerData` and `matchHistory` sequentially. Use `Promise.all()`.
 - [A11y] `components/ui/Dialog.tsx` uses `<div role="dialog">` instead of native `<dialog>` element.
 - [SEO] `app/layout.tsx` exports `title: "Create Next App"` — update to app-specific title.
+- [AI] `app/api/judge/route.ts` is using raw `fetch` instead of `@openrouter/sdk`. Use the SDK with ZDR enabled.
+- [AI] System prompt in `lib/ai/prompts.ts` is generic — define MTG judge persona with citation format requirements.
 
 STATUS: REJECTED
 ```
