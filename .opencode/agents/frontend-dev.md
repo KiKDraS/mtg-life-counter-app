@@ -81,7 +81,6 @@ execution across all four layers simultaneously:
   Only permitted in `globals.css` for base layer resets.
 - **Responsive:** Mobile-first breakpoints (`sm:`, `md:`, `lg:`). Verify at
   every breakpoint.
-- **Dark mode:** Use `dark:` variant via class-based strategy.
 - **Anti-generic aesthetics per `frontend-design`:** Bold, distinctive
   typography. Asymmetric layouts. Intentional color palettes. Grid-breaking
   compositions. No Inter/Roboto. No purple gradients on white.
@@ -165,7 +164,7 @@ A feature is complete when:
 - The React component tree is built across `app/`, `components/`, `lib/`, and
   `hooks/` with proper RSC/Client boundaries.
 - TypeScript compiles without errors under strict mode.
-- Tailwind classes produce correct, responsive, dark-mode-ready visuals.
+- Tailwind classes produce correct, responsive visuals.
 - Metadata is exported from every route.
 - `next/image` replaces all `<img>` tags.
 - `next/font` handles all typeface loading.

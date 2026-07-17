@@ -141,7 +141,6 @@ The agent must strictly respect the following file architecture:
 - **`@apply` is forbidden** for component styles. Only permitted in
   `globals.css` for base layer resets.
 - **Responsive:** Mobile-first breakpoints (`sm:`, `md:`, `lg:`).
-- **Dark mode:** Support `dark:` variant via class-based strategy.
 - **Anti-generic aesthetics:** All aesthetic decisions must follow DESIGN.md.
   Bold, intentional design direction — no Inter, Roboto, or system-ui font
   stacks. No purple gradients on white.
