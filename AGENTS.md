@@ -133,6 +133,10 @@ The agent must strictly respect the following file architecture:
 - **Anti-generic aesthetics:** All aesthetic decisions must follow DESIGN.md.
   Bold, intentional design direction — no Inter, Roboto, or system-ui font
   stacks. No purple gradients on white.
+- **No hardcoded hex values:** Always reference CSS custom properties from
+  `globals.css` via `var(--color-*)`. Design tokens are the only valid color
+  source. If a color isn't tokenized yet, add it to `lib/constants/colors.ts`
+  first, then mirror to `globals.css`.
 - **Motion:** Prefer Tailwind's `animate-*` utilities and CSS keyframes.
 
 ### DESIGN.md as Authoritative Source
@@ -152,6 +156,10 @@ specific constraints, not generic rules.
   boundaries.
 - **Per `typescript-advanced-types`:** Discriminated unions for state machines,
   generics for reusable utilities, `satisfies` for config objects.
+- **No magic strings for shared values:** Import from `lib/constants/` for
+  colors, labels, and any future shared constants. The TS constant file is the
+  single source of truth — when DESIGN.md §2 changes, update
+  `lib/constants/colors.ts` first, then mirror to `globals.css`.
 - **No barrel imports** (per `bundle-barrel-imports`). Import directly from
   module files.
 

@@ -40,6 +40,9 @@ quality gates. If a single item fails, the submission must be rejected.
 - **Discriminated unions over optional properties:** For state machines
   (loading/success/error), demand discriminated unions with a `status` or `type`
   discriminant property.
+- **Constant enforcement:** Flag any hardcoded color strings or labels that
+  duplicate values in `lib/constants/colors`. Must import from
+  `lib/constants/colors`.
 - **No barrel imports:** Flag imports from barrel files (`index.ts` re-exports).
   Demand direct module imports per `bundle-barrel-imports`.
 
@@ -62,6 +65,9 @@ quality gates. If a single item fails, the submission must be rejected.
   code. Tailwind classes must appear in `className`. Exception: `@apply`
   in `globals.css` for base layer resets only.
 - **Responsive breakpoints:** Verify `sm:`, `md:`, `lg:` prefixes.
+- **Design token enforcement:** Flag any hardcoded hex color values in
+  `className` or `style` props. All colors must use `var(--color-*)` from
+  `globals.css`.
 - **Anti-patterns (per DESIGN.md §1.5):** Reject player names, purple
   gradients on white, Inter/Roboto/Arial font stacks, centered hero cards,
   gray-on-gray text, rounded cards with soft shadows.

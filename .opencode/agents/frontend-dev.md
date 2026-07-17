@@ -66,8 +66,10 @@ execution across all four layers simultaneously:
 - **Explicit interfaces** for exported functions, component props, and API
   boundaries. Use discriminated unions for state machines per
   `typescript-advanced-types`.
-- **Component props:** Always type with `interface`, not `type`, for better
-  error messages.
+- **No magic strings.** Import color values and labels from
+  `lib/constants/colors`. Never hardcode color hexes or labels like
+  `"#D50000"` or `"White mana"` directly in components.
+  `lib/constants/colors.ts` is the single source of truth.
 - Use `satisfies` for config objects. Use generics for reusable utilities.
 
 ### 3. Tailwind CSS Styling
@@ -77,6 +79,10 @@ execution across all four layers simultaneously:
   keyframe animations.
 - **Design tokens** in `globals.css` via `@theme` directive and CSS custom
   properties. Every color, spacing, and type value must reference these tokens.
+- **No hardcoded color hex values.** Always reference `var(--color-*)` from
+  `globals.css`. The design tokens in `@theme` are the only valid color source.
+  If a color isn't tokenized yet, add it to `lib/constants/colors.ts` first,
+  then mirror to `globals.css`.
 - **`@apply` is forbidden** for component styles — it defeats utility-first.
   Only permitted in `globals.css` for base layer resets.
 - **Responsive:** Mobile-first breakpoints (`sm:`, `md:`, `lg:`). Verify at
