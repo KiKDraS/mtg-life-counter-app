@@ -92,7 +92,8 @@ Never commit directly to `develop` or `main`.
 3. **Consolidated Development Phase:**
    - **Step 1a (UI + Data Shell):** Invoke `@frontend-dev` to develop the
      Next.js page shell, React components, Tailwind CSS styling, game state
-     machine, Scryfall card art client, and PWA configuration.
+     machine, Scryfall client (card text/oracle lookup — card art is Phase 2
+     per DESIGN.md §10), and PWA configuration.
    - **Step 1b (AI Judge Pipeline):** For features involving the AI Judge,
      invoke `@ai-engineer` on the same feature branch to implement the
      OpenRouter SDK integration, MTG rules RAG, `/api/judge` streaming route,

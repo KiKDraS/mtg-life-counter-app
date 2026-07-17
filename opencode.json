@@ -44,7 +44,7 @@
     "frontend-dev": {
       "description": "Consolidated developer sub-agent. Builds cohesive features writing HTML structures, modular styles, and JS interaction in tandem.",
       "mode": "subagent",
-      "tools": { "write": true, "edit": true, "read": true }
+      "tools": { "write": true, "edit": true, "read": true, "bash": true }
     },
     "code-review": {
       "description": "Strict compliance auditor. Verifies generated code against the requested specifications and skills checklists.",

@@ -50,9 +50,8 @@ execution across all four layers simultaneously:
   and `layout.tsx`. Never leave `title: "Create Next App"`.
 - **Images:** Always use `next/image` — never native `<img>`. Provide explicit
   `width`, `height`, and meaningful `alt` text. Use `priority` for LCP images.
-- **Fonts:** Use `next/font/local` for self-hosted typefaces. Reference the CSS
-  variable in Tailwind's `@theme`. No Google Fonts CDN. No Inter, Roboto, Arial,
-  or system-ui stacks — per `frontend-design`.
+- **Fonts:** Use `next/font` — `localFont` or `next/font/google` (Next.js
+  self-hosts at build time). Reference the CSS variable per DESIGN.md §3.
 - **Performance:** Per `react-best-practices`:
   - Eliminate data waterfalls with `Promise.all()`.
   - Wrap heavy or async sections in `<Suspense>` boundaries.
@@ -89,21 +88,30 @@ execution across all four layers simultaneously:
 - **Motion:** Prefer Tailwind's `animate-*` utilities and custom `@keyframes`.
   Use `animation-delay` loops for staggered reveals.
 
-### 4. Design & Aesthetics (`frontend-design`)
+### 4. Design & Aesthetics (DESIGN.md)
 
-- **Bound by DESIGN.md:** Before writing any code, read `DESIGN.md`. Its color
-  palette, typography stack, spatial rules, motion vocabulary, component
-  inventory, and invariants are hard constraints.
-- **Typography:** Use distinctive, characterful typefaces loaded via
-  `next/font/local`. Pair a display font with a refined body font. No generic
-  system stacks.
-- **Spatial composition:** Push beyond centered, symmetrical layouts. Use
-  asymmetry, overlap, diagonal flow, generous negative space.
-- **Backgrounds & atmosphere:** Layer textures, gradients, noise, or geometric
-  patterns. Avoid flat solid-color backgrounds.
-- **Motion choreography:** Orchestrate high-impact page-load reveals with
-  staggered `animation-delay`. Use scroll-triggered and hover states that
-  surprise and delight.
+- **Bound by DESIGN.md:** Before writing any code, read DESIGN.md §1–9. Its
+  color palette, typography scale, layout grids, modal patterns, gesture
+  vocabulary, and interaction rules are hard constraints.
+- **DESIGN.md overrides generic rules:** The `frontend-design` skill's
+  generic anti-patterns (avoid symmetry, avoid flat backgrounds, demand font
+  pairing) do NOT apply when DESIGN.md specifies otherwise. This project's
+  "Typographic Brutalism + Color Identity" aesthetic uses:
+  - Single font family (Archivo, variable weights 400–900)
+  - Solid block-color backgrounds per player zone — the color IS the background
+  - Grid-based symmetric layouts (2×2, 2×3, etc.)
+  - No player names — color + position identifies players
+- **Key interaction behaviors (DESIGN.md §7):**
+  - Tap +/- for ±1 life. Hold for rapid acceleration (±5 → ±10 after 1s).
+  - Double-tap life total → numpad for direct entry.
+  - Swipe left → commander damage overlay. Swipe right → counters overlay
+    (poison, energy, experience, time, custom).
+  - Top-row player zones rotate 180° (CSS `transform: rotate(180deg)`).
+  - Floating spellbook menu button (center) → half-screen control panel.
+- **Motion:** Per DESIGN.md §1.4 — minimal, fast. Staggered zone reveal on
+  game start. Swipe overlays use spring physics. Respect
+  `prefers-reduced-motion` — disable ALL swipe animations, use instant
+  show/hide.
 
 ### 5. Accessibility (`accessibility`)
 
@@ -133,7 +141,8 @@ execution across all four layers simultaneously:
   Scryfall REST API — `/cards/search`, `/cards/autocomplete`,
   `/cards/named`. Cache responses server-side to avoid hitting rate limits.
   Respect Scryfall's rate limit headers and add delay between requests when
-  needed. Used for the card art avatar picker feature.
+  needed. Phase 1: card text/oracle lookups for AI Judge RAG. Phase 2
+  (per DESIGN.md §10): card art backgrounds and avatar picker.
 - **Game State (`lib/state/game.ts`):** Discriminated union state machine:
   `setup → playing → paused → ended`. Track life totals, poison counters,
   commander damage, monarch, and initiative per player. Implement undo/redo

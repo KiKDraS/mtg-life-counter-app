@@ -45,23 +45,27 @@ quality gates. If a single item fails, the submission must be rejected.
 
 ### 3. Tailwind & Design Gate
 
-- **DESIGN.md compliance:** Read `DESIGN.md` at the project root. Verify
-  generated code conforms to its palette, typography, motion rules, spatial
-  language, and invariants. Any deviation is a hard reject.
-- **Utility-first enforcement:** Flag any `@apply` usage in component-level CSS
-  or inline `<style>` blocks. Tailwind classes must appear in `className`. The
-  only exception is `@apply` inside `globals.css` for base layer resets.
-- **Anti-generic aesthetics per `frontend-design`:** Reject:
-  - Inter, Roboto, Arial, system-ui, or Geist font stacks
-  - Purple gradients on white backgrounds
-  - Perfectly centered, symmetrical, boring layouts
-  - Flat solid-color backgrounds with no texture or depth
-- **Typography gate:** Verify `next/font/local` is used (not Google Fonts CDN).
-  Fonts must be distinctive and characterful. Demand a bold display font +
-  refined body font pairing.
-- **Responsive breakpoints:** Verify `sm:`, `md:`, `lg:` prefixes are applied
-  appropriately. Flag mobile-broken layouts.
-- **Dark mode:** Check that `dark:` variants are applied where needed.
+- **DESIGN.md compliance (PRIMARY):** Read `DESIGN.md` at the project root.
+  Verify generated code conforms to its specific constraints — DESIGN.md
+  overrides any conflicting generic `frontend-design` rules.
+  - **Typography:** Archivo via `next/font/google` or `localFont`. Single
+    font family with variable weights per DESIGN.md §3.
+  - **Colors:** MTG mana colors per DESIGN.md §2. Text auto-contrast
+    (white/black on colored backgrounds) based on luminance.
+  - **Layout:** Grid-based player zones per DESIGN.md §4. 180° rotation
+    for top-row zones. No player names — color + position identifies.
+  - **Background:** Solid block color per player zone. Flat backgrounds
+    are intentional — reject texture/gradient additions.
+  - **Motion:** Minimal, fast per DESIGN.md §1.4. Respect
+    `prefers-reduced-motion` → instant show/hide.
+- **Utility-first enforcement:** Flag any `@apply` usage in component-level
+  code. Tailwind classes must appear in `className`. Exception: `@apply`
+  in `globals.css` for base layer resets only.
+- **Responsive breakpoints:** Verify `sm:`, `md:`, `lg:` prefixes.
+- **Dark mode:** Check `dark:` variants.
+- **Anti-patterns (per DESIGN.md §1.5):** Reject player names, purple
+  gradients on white, Inter/Roboto/Arial font stacks, centered hero cards,
+  gray-on-gray text, rounded cards with soft shadows.
 
 ### 4. React Patterns Gate
 
@@ -105,7 +109,12 @@ quality gates. If a single item fails, the submission must be rejected.
 - **Color contrast:** Text must meet 4.5:1, large text 3:1. Flag insufficient
   contrast combinations.
 - **`prefers-reduced-motion`:** Animations must respect the user's motion
-  preference.
+  preference. Per DESIGN.md §9: disable ALL swipe animations, use instant
+  show/hide for overlays.
+- **DESIGN.md §9 specifics:**
+  - Screen reader: Player zones must announce "Player [N]: [X] life" on
+    focus. Buttons announce "+1 life", "-1 life".
+  - Swipe gestures: Must have button alternatives for keyboard users.
 
 ### 7. SEO Gate
 
