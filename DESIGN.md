@@ -44,9 +44,9 @@ The app should be _faster than dice._
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Aesthetic Direction**  | Typographic Brutalism + MTG Color Identity                                                                                                                                                                      |
 | **Typography**           | **Archivo** (geometric sans-serif) — Black 900 for life totals, Medium 500 for UI, variable weight                                                                                                              |
-| **Color Strategy**       | Warm parchment base (light) / near-black felt (dark). Player identity via MTG mana colors. Light + dark mode.                                                                                                   |
+| **Color Strategy**       | Warm parchment base. Player identity via MTG mana colors.                                                                                                                   |
 | **Layout Approach**      | Grid-based player zones. 2p (vertical split), 4p (2×2), 6p (2×3). Top/left rows rotated 180°. Responsive to orientation.                                                                                        |
-| **Background Treatment** | Solid block color per player zone — the color IS the background. Base shell is neutral parchment/dark.                                                                                                          |
+| **Background Treatment** | Solid block color per player zone — the color IS the background. Base shell is warm parchment.                                                                                                              |
 | **Motion Choreography**  | Minimal. Fast opacity/scale transitions for modals. Staggered reveal of player zones on game start. Gesture-driven swipe overlays with spring physics.                                                          |
 | **Differentiation**      | **Massive typography + MTG mana color identity** — every player's zone is an uncompromising block of their chosen color with a life total you can read from across the room. The AI Judge is the secret weapon. |
 
@@ -69,14 +69,14 @@ The app should be _faster than dice._
 Each player selects a mana color. The color FILLS their zone background. No
 player name — the color is their identity.
 
-| Mana         | Hex (Light Mode) | Hex (Dark Mode) | Role                   |
-| ------------ | ---------------- | --------------- | ---------------------- |
-| 🟡 White (W) | `#F8E7B0`        | `#D4C08A`       | Warm, sheltering       |
-| 🔵 Blue (U)  | `#3B8EFF`        | `#1E6FD9`       | Electric, intellectual |
-| ⚫ Black (B) | `#5C4E4E`        | `#8B7D7D`       | Ambitious, dark        |
-| 🔴 Red (R)   | `#E53935`        | `#C62828`       | Passionate, aggressive |
-| 🟢 Green (G) | `#43A047`        | `#2E7D32`       | Natural, wild          |
-| ✦ Colorless  | `#9E9E9E`        | `#757575`       | Neutral/eldrazi        |
+| Mana         | Hex        | Role                   |
+| ------------ | ---------- | ---------------------- |
+| 🟡 White (W) | `#F8E7B0`  | Warm, sheltering       |
+| 🔵 Blue (U)  | `#3B8EFF`  | Electric, intellectual |
+| ⚫ Black (B) | `#5C4E4E`  | Ambitious, dark        |
+| 🔴 Red (R)   | `#E53935`  | Passionate, aggressive |
+| 🟢 Green (G) | `#43A047`  | Natural, wild          |
+| ✦ Colorless  | `#9E9E9E`  | Neutral/eldrazi        |
 
 Text on these backgrounds uses high-contrast white or black depending on
 luminance (WCAG 4.5:1).
@@ -224,8 +224,7 @@ Each player zone contains:
 - **Swipe left:** Overlays commander damage grid — per-opponent damage trackers,
   compact.
 - **Swipe right:** Overlays counters — poison, energy, experience, etc.
-- **Gear icon:** Opens modal color picker with mana symbols, light/dark
-  variants.
+- **Gear icon:** Opens modal color picker with mana symbols.
 - **Double-tap life total:** Opens numpad for direct input.
 
 ### 4.3 Zone Rotation

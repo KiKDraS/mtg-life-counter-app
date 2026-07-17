@@ -62,7 +62,6 @@ quality gates. If a single item fails, the submission must be rejected.
   code. Tailwind classes must appear in `className`. Exception: `@apply`
   in `globals.css` for base layer resets only.
 - **Responsive breakpoints:** Verify `sm:`, `md:`, `lg:` prefixes.
-- **Dark mode:** Check `dark:` variants.
 - **Anti-patterns (per DESIGN.md §1.5):** Reject player names, purple
   gradients on white, Inter/Roboto/Arial font stacks, centered hero cards,
   gray-on-gray text, rounded cards with soft shadows.
