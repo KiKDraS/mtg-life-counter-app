@@ -77,19 +77,19 @@ player name — the color is their identity.
 | 🟢 Green (G) | `#43A047` | Natural, wild          |
 | ✦ Colorless  | `#9E9E9E` | Neutral/eldrazi        |
 
-Text on these backgrounds auto-selects warm white (`#FAF8F5`) or warm
-near-black (`#1A1A1A`) based on luminance, maintaining WCAG 4.5:1 contrast.
+Text on these backgrounds auto-selects warm white (`#FAF8F5`) or warm near-black
+(`#1A1A1A`) based on luminance, maintaining WCAG 4.5:1 contrast.
 
 ### 2.2 UI & Shell Colors
 
-| Token | Hex | Usage |
-|---|---|---|
-| Background overlay | `#1a1a1a` | Commander damage and counters overlay backgrounds |
-| Belt / AI Judge | `#000000` | Spellbook belt, AI Judge modal backdrop |
-| Modal backdrop | `rgba(0,0,0,0.35)` | Config modals (life, players, color picker) |
-| Danger red | `#D50000` | Life total ≤ 0, commander damage ≥ 21 |
-| Warm white (text) | `#FAF8F5` | Life / UI text on dark mana backgrounds |
-| Warm near-black (text) | `#1A1A1A` | Life / UI text on light mana backgrounds |
+| Token                  | Hex                | Usage                                             |
+| ---------------------- | ------------------ | ------------------------------------------------- |
+| Background overlay     | `#1a1a1a`          | Commander damage and counters overlay backgrounds |
+| Belt / AI Judge        | `#000000`          | Spellbook belt, AI Judge modal backdrop           |
+| Modal backdrop         | `rgba(0,0,0,0.35)` | Config modals (life, players, color picker)       |
+| Danger red             | `#D50000`          | Life total ≤ 0, commander damage ≥ 21             |
+| Warm white (text)      | `#FAF8F5`          | Life / UI text on dark mana backgrounds           |
+| Warm near-black (text) | `#1A1A1A`          | Life / UI text on light mana backgrounds          |
 
 ### 2.3 Guild Color Combos (future scope — §10)
 
@@ -329,10 +329,10 @@ modal library.
 
 **Backdrop:**
 
-| Modal | Backdrop |
-|---|---|
-| Initial Life, Player Selector, Color Picker | Black at 35% opacity (`rgba(0,0,0,0.35)`) |
-| AI Judge | Solid black (`#000000`) — full focus, no game visible |
+| Modal                                       | Backdrop                                              |
+| ------------------------------------------- | ----------------------------------------------------- |
+| Initial Life, Player Selector, Color Picker | Black at 35% opacity (`rgba(0,0,0,0.35)`)             |
+| AI Judge                                    | Solid black (`#000000`) — full focus, no game visible |
 
 ```html
 <dialog aria-modal="true" aria-labelledby="dialog-title">
@@ -388,10 +388,10 @@ modal library.
 
 ### 7.2 Swipe Gestures
 
-| Gesture                  | Result                                            |
-| ------------------------ | ------------------------------------------------- |
-| Swipe left on zone       | Reveals commander damage overlay                  |
-| Swipe right on zone      | Reveals counters overlay (poison, energy, etc.)   |
+| Gesture                       | Result                                                           |
+| ----------------------------- | ---------------------------------------------------------------- |
+| Swipe left on zone            | Reveals commander damage overlay                                 |
+| Swipe right on zone           | Reveals counters overlay (poison, energy, etc.)                  |
 | Swipe along X-axis on overlay | Closes the overlay (returns to life) — works in either direction |
 
 ### 7.3 Commander Damage Overlay
@@ -407,17 +407,17 @@ Each column:
 ```
 ┌──────────────────────┐
 │   ┌──────┐           │
-│   │  ⚔️   │  12  [+]  │  ← Pill (opponent's color), symbol, total, + button
+│   │  ⚔️  │  12  [+]  │  ← Pill (opponent's color), symbol, total, + button
 │   └──────┘           │
 └──────────────────────┘
 ```
 
-- **Pill:** Rounded pill. Background = opponent's mana color. Center =
-  commander symbol (⚔️).
+- **Pill:** Rounded pill. Background = opponent's mana color. Center = commander
+  symbol (⚔️).
 - **Damage total:** Alongside the pill. Archivo Bold. Text color auto-selects
   warm white (`#FAF8F5`) or warm near-black (`#1A1A1A`) per luminance.
-- **+ button:** Tap = +1 commander damage. Hold = accelerate (±5 → +10
-  after 1s) — same criteria as §7.1 life adjustment.
+- **+ button:** Tap = +1 commander damage. Hold = accelerate (±5 → +10 after 1s)
+  — same criteria as §7.1 life adjustment.
 - **Lethal indicator:** When any opponent's commander damage reaches 21+, the
   current player loses the game — both the commander damage value and the
   current player's life total turn lethal red (`#D50000`).
