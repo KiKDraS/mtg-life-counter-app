@@ -211,6 +211,8 @@ specific constraints, not generic rules.
 - **State boundaries:** Judge chat is ephemeral (session state only). Game
   state in `lib/state/` is session-local. No persistence.
 - **Voice assistant:** Phase 2 per DESIGN.md §10. Uses Web Speech API.
+- **PWA:** `manifest.json` sets `"orientation": "portrait"`. Service worker
+  caches static assets.
 
 ### 8. Performance Budgets
 

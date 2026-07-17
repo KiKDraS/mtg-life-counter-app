@@ -172,17 +172,36 @@ The layout auto-adapts to player count and screen orientation.
 **3 Players (Portrait — asymmetric)**
 
 ```
-┌──────────────────┐
-│     Player 1     │  180° rotation
-│      40 ★        │
-├────────┬─────────┤
-│Player2 │ Player3 │
-│  37 ★  │  41 ★   │
-└────────┴─────────┘
+┌───────────────────────────────────┐
+│                                   │
+│            Player 1               │  180° rotation
+│              40 ★                 │  → text faces TOP
+│           [+]  [-]                │
+│                                   │
+├────────────────┬──────────────────┤
+│   Player 2     │   Player 3       │
+│   37 ★         │   41 ★           │  P2: −90° rotation → faces LEFT
+│  [+]  [-]      │  [+]  [-]        │  P3: 90° rotation → faces RIGHT
+└────────────────┴──────────────────┘
 ```
 
-**5 Players** — 3×2 with a centered singleton, or 3+2 split depending on
-orientation.
+**5 Players (Portrait — 1 full-width + 2×2 grid)**
+
+```
+┌──────────────────────────────────────┐
+│                                      │
+│              Player 5                │  180° rotation
+│                40 ★                  │  → text faces TOP
+│             [+]  [-]                 │
+│                                      │
+├──────────┬──────────┤
+│ Player 1 │ Player 2 │  P1: −90° rotation → faces LEFT
+│   40 ★   │   38 ★   │  P2: 90° rotation → faces RIGHT
+├──────────┼──────────┤
+│ Player 3 │ Player 4 │  P3: −90° rotation → faces LEFT
+│   32 ★   │   41 ★   │  P4: 90° rotation → faces RIGHT
+└──────────┴──────────┘
+```
 
 ### 4.2 Player Zone Anatomy
 
@@ -209,18 +228,20 @@ Each player zone contains:
   variants.
 - **Double-tap life total:** Opens numpad for direct input.
 
-### 4.3 180° Rotation
+### 4.3 Zone Rotation
 
-Zones that face an opposite-side player are rotated 180° via CSS
-`transform: rotate(180deg)`. This applies to:
+Player zones are rotated so text is readable from the table side each player
+occupies. Three rotation values are used:
 
-- **2 players:** Top panel
-- **4 players:** Both top panels
-- **6 players:** Top row
-- **3 players:** The single top panel
+| Rotation | Angle | CSS | Applies to |
+|---|---|---|---|
+| 180° | Full flip | `rotate(180deg)` | Top-side players: P1 (2p, 3p), P1/P2 (4p), top row (6p), P5 (5p) |
+| −90° | Quarter turn left | `rotate(-90deg)` | Left-side players: P2 (3p), P1/P3 (5p) |
+| 90° | Quarter turn right | `rotate(90deg)` | Right-side players: P3 (3p), P2/P4 (5p) |
+| None | — | — | Bottom-side players facing the user |
 
-The rotation is applied to the zone container's wrapper — the interior layout is
-identical, just flipped.
+Rotation is applied to the zone container's wrapper — the interior layout
+is identical, just oriented for the player's side of the table.
 
 ---
 
@@ -359,15 +380,19 @@ Each counter has +/- and a value display.
 | ---------- | -------- | ----------------------------------------- |
 | Default    | < 480px  | Single-column stack, portrait-only        |
 | `sm:`      | ≥ 480px  | 2-column grid possible                    |
-| `md:`      | ≥ 768px  | 2×2 grid, landscape mode activates        |
+| `md:`      | ≥ 768px  | 2-column layouts, 2×2 grid for landscape        |
 | `lg:`      | ≥ 1024px | Full 2×3 grid for 6 players               |
 | `xl:`      | ≥ 1440px | Larger life totals, more generous spacing |
 
 ### 8.2 Orientation
 
-- **Portrait (< md):** 2 players (stacked) or 3 players (asymmetric)
-- **Landscape (≥ md):** 4-6 players (grid)
-- **Auto-rotate:** The layout adapts to orientation changes live
+- **Portrait (2, 3, and 5 players):** Stacked and asymmetric split layouts.
+  Text rotated per player position using −90°, 90°, or 180° transforms.
+- **Landscape (4 and 6 players):** Grid layouts. Top row rotated 180°.
+- **Orientation lock:** The accelerometer is disabled — the app locks to
+  portrait via the PWA manifest (`"orientation": "portrait"`) and
+  `screen.orientation.lock()`. Player count determines whether the layout
+  renders as portrait or landscape within that locked viewport.
 
 ### 8.3 Minimum Touch Targets
 
