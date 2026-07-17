@@ -447,7 +447,7 @@ Always a 2-column grid. Each column is a counter type with a pill, value, +/- co
 - **Pill:** Rounded pill. Background = colorless (`#9E9E9E`). Center = counter icon (☠️/⚡/✦/⏳ for defaults, first letter of name for custom counters).
 - **Value:** Alongside the pill. Archivo Bold. Text color auto-selects warm white (`#FAF8F5`) or warm near-black (`#1A1A1A`) per luminance.
 - **[-] [+] buttons:** Tap = ±1. Hold = accelerate (±5 → ±10 after 1s) — same criteria as §7.1 life adjustment.
-- **[✕] delete button:** Removes the counter column. Not shown on the 4 default counters (they are permanent placeholders).
+- **[✕] delete button:** Removes the counter column. Shown on every counter — defaults and custom alike.
 - **+ button (bottom-right):** Opens a prompt to add a custom counter (name + initial value). Custom counters use the first letter of their name as the pill icon instead of a symbol.
 - **Lethal indicator:** Poison at 10+ turns both the poison counter value **and** the player's life total lethal red (`#D50000`).
 
