@@ -132,8 +132,8 @@ The life total is the hero. Everything else is secondary.
 ### 4.1 Player Zone Grids
 
 The layout auto-adapts to player count and screen orientation. In all
-configurations, the spellbook belt (§5) divides the screen: top-row players
-sit above the line, bottom-row players sit below it.
+configurations, the spellbook belt (§5) divides the screen: top-row players sit
+above the line, bottom-row players sit below it.
 
 **2 Players (Portrait)**
 
@@ -252,10 +252,10 @@ identical, just oriented for the player's side of the table.
 
 ```
 ┌──────────────────────────────────────────┐
-│                                          │
+│             Player zones above           │
 │  ══════════════════●══════════════════   │  ← Horizontal line, full width
 │                     M                    │  ← M logo, 56×56px, centered
-│                                          │
+│             Player zones below           │
 └──────────────────────────────────────────┘
 ```
 
@@ -279,6 +279,7 @@ two to the right. The visual metaphor is a championship belt: an opaque black
 band creating stark contrast against the colored player zones behind it.
 
 ```
+│            (Player zones above)          │
 ┌──────────────────────────────────────────┐
 │  ██████████████████████████████████████  │  ← Black belt, full width (~72px)
 │  █  ⚙️    ⟳    ● M ●    ⚖️    👥  █   │  ← Icons flanking M
