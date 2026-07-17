@@ -246,43 +246,63 @@ is identical, just oriented for the player's side of the table.
 
 ## 5. CENTRAL SPELLBOOK MENU
 
-### 5.1 Trigger
-
-A floating circular button in the screen center. Shows stylized "M"
-(planeswalker symbol silhouette or abstract geometric M).
-
-**Size:** 56×56px (≥44px minimum touch target)  
-**Position:** Fixed center of screen, above all player zones  
-**Z-index:** 50 (above game board, below modals)
-
-### 5.2 Interaction
-
-Tap → splits the screen vertically, revealing a half-screen control panel. The
-player zones compress to the left half; the spellbook menu fills the right half.
+### 5.1 Visual — The Stretched Rope
 
 ```
-┌──────────┬──────────────────┐
-│          │    ⟳ Restart     │  ← Instant action, no modal
-│  Player  │                  │
-│  Zones   │  ⚙️ Initial Life │  → Modal: 20/30/40/60/custom
-│  (scaled │                  │
-│   down)  │   👥 Players     │  → Modal: select 2-6 players
-│          │                  │
-│          │   ⚖️ AI Judge    │  → Modal: chat with rules engine
-│          │                  │
-└──────────┴──────────────────┘
+┌──────────────────────────────────────────┐
+│                                          │
+│  ══════════════════●══════════════════    │  ← Horizontal line, full width
+│                     M                     │  ← M logo, 56×56px, centered
+│                                          │
+└──────────────────────────────────────────┘
 ```
+
+A horizontal line spans the full screen width, broken at the center by a
+circular button displaying the stylized "M" (planeswalker symbol silhouette
+or abstract geometric M). The visual metaphor is a stretched rope with an
+insignia at its midpoint — a subtle divider between top and bottom player
+zones.
+
+**Line:** Dark stroke, low opacity. Extends edge-to-edge, serving as a
+compositional anchor for the player grid.
+
+**M Logo:** 56×56px (≥44px minimum touch target). Fixed at screen center.
+Z-index: 50 (above game board, below modals).
+
+### 5.2 Interaction — The Boxer Belt
+
+Tap M → a black horizontal band expands across the full screen width. The M
+stays anchored at center. Four action icons spread outward — two to the left,
+two to the right. The visual metaphor is a championship belt: an opaque black
+band creating stark contrast against the colored player zones behind it.
+
+```
+┌──────────────────────────────────────────┐
+│  ██████████████████████████████████████   │  ← Black belt, full width (~72px)
+│  █  ⚙️    ⟳    ● M ●    ⚖️    👥  █   │  ← Icons flanking M
+│  ██████████████████████████████████████   │
+├──────────────────────────────────────────┤
+│            (Player zones below)           │
+```
+
+- **Belt height:** ~72px. Opaque black (`#000000` or near-black).
+- **M stays centered.** Does not move — it anchors the composition.
+- **Left side (near → far):** ⟳ Restart Life, ⚙️ Initial Life
+- **Right side (near → far):** ⚖️ AI Judge, 👥 Players
+- **Close:** Tap M again or tap outside the belt → icons collapse back to
+  center, belt retracts.
 
 ### 5.3 Menu Items
 
-| Button          | Action                              | Modal?       |
-| --------------- | ----------------------------------- | ------------ |
-| ⟳ Restart Life  | Resets all life to initial value    | No — instant |
-| ⚙️ Initial Life | Opens numeric selector              | Yes — modal  |
-| 👥 Players      | Opens player count/color assignment | Yes — modal  |
-| ⚖️ AI Judge     | Opens judge chat interface          | Yes — modal  |
+| Icon | Action | Side | Modal? |
+|------|--------|------|--------|
+| ⟳ | Restart Life | Left, near M | No — instant |
+| ⚙️ | Initial Life | Left, far | Yes — modal |
+| ⚖️ | AI Judge | Right, near M | Yes — modal |
+| 👥 | Players | Right, far | Yes — modal |
 
-Tap the center button again or tap outside the menu to close.
+Gameplay actions (⟳ restart, ⚖️ judge) sit closer to center for quick thumb
+access. Setup actions (⚙️ life, 👥 players) sit on the outer edges.
 
 ---
 
