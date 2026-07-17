@@ -55,22 +55,12 @@ The agent must strictly respect the following file architecture:
 │   ├── page.tsx            # Home page (life counter UI)
 │   └── globals.css         # Tailwind imports + global design tokens
 ├── components/             # Shared React components
-│   ├── ui/                 # Primitive UI components
-│   │   ├── button.tsx      # Variants: primary, icon, pill
-│   │   └── dialog.tsx      # Modal wrapper (native <dialog>)
-│   └── features/           # Feature-specific composed components
-│       ├── game-board.tsx       # Layout grid orchestrator (2-6 players)
-│       ├── player-zone.tsx      # Single player's life/controls/swipe zone
-│       ├── spellbook-menu.tsx   # Central floating button + half-screen menu
-│       ├── life-display.tsx     # Life total number (Archivo Black, massive)
-│       ├── life-buttons.tsx     # +/- controls with hold acceleration
-│       ├── commander-damage.tsx # Swipe overlay for commander damage tracking
-│       ├── counters-overlay.tsx # Swipe overlay for poison/energy/etc.
-│       ├── color-picker.tsx     # Mana color/guild selector modal
-│       ├── initial-life-modal.tsx
-│       ├── player-selector-modal.tsx
-│       ├── judge-chat.tsx       # AI Judge chat interface
-│       └── dice-roller.tsx      # D6/D20/D10 roller (Phase 2 per DESIGN.md §10)
+│   ├── ui/                 # Primitive UI components (button, dialog)
+│   │   └── icons/          # SVG icon components (mana symbols, logo, etc.)
+│   ├── game/               # Core game board — layout grid, player zones, life display, life buttons
+│   ├── overlays/           # Swipe gesture overlays — commander damage, counters
+│   ├── modals/             # Modal dialogs — color picker, initial life, player selector, AI Judge
+│   └── menu/               # Spellbook menu — central floating button + action belt
 ├── lib/                    # Pure TypeScript utilities
 │   ├── ai/                 # AI Judge — prompts, RAG, citations, history
 │   │   └── rag/            # MTG rules embedding & retrieval pipeline
