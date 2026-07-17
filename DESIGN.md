@@ -315,6 +315,13 @@ access. Setup actions (⚙️ life, 👥 players) sit on the outer edges.
 All modals use the native `<dialog>` element with `aria-modal="true"`. No custom
 modal library.
 
+**Backdrop:**
+
+| Modal | Backdrop |
+|---|---|
+| Initial Life, Player Selector, Color Picker | Black at 35% opacity (`rgba(0,0,0,0.35)`) |
+| AI Judge | Solid black (`#000000`) — full focus, no game visible |
+
 ```html
 <dialog aria-modal="true" aria-labelledby="dialog-title">
   <h2 id="dialog-title">Initial Life</h2>
@@ -343,6 +350,7 @@ modal library.
 - Streaming response display
 - "Ask about a card or rule…" placeholder
 - Maximized modal — takes almost full screen for readability
+- Backdrop: solid black (`#000000`) — total focus on the Judge
 
 ### 6.5 Modal: Color Picker (per player)
 
@@ -368,16 +376,18 @@ modal library.
 
 ### 7.2 Swipe Gestures
 
-| Gesture                | Result                                            |
-| ---------------------- | ------------------------------------------------- |
-| Swipe left on zone     | Reveals commander damage overlay                  |
-| Swipe right on zone    | Reveals counters overlay (poison, energy, etc.)   |
-| Swipe down from center | Clears commander damage overlay (returns to life) |
+| Gesture                  | Result                                            |
+| ------------------------ | ------------------------------------------------- |
+| Swipe left on zone       | Reveals commander damage overlay                  |
+| Swipe right on zone      | Reveals counters overlay (poison, energy, etc.)   |
+| Swipe along X-axis on overlay | Closes the overlay (returns to life) — works in either direction |
 
 ### 7.3 Commander Damage Overlay
 
 Compact grid showing opponents' names (by color) and damage dealt. Tap + on any
 row to add commander damage. Auto-tracks lethal (21 for Commander).
+
+**Background:** Solid `#1a1a1a` (near-black, warm undertone).
 
 ### 7.4 Counters Overlay
 
@@ -390,6 +400,8 @@ Scrollable list of counter types:
 - Custom counter (name your own)
 
 Each counter has +/- and a value display.
+
+**Background:** Solid `#1a1a1a` (near-black, warm undertone).
 
 ---
 
