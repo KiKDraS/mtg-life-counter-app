@@ -1,20 +1,11 @@
 import type { SVGAttributes } from "react";
-import { MANA, type ManaColor } from "@/lib/constants/colors";
+import { MANA, MANA_LABELS, type ManaColor } from "@/lib/constants/colors";
 
 type ManaSymbolProps = {
   color: ManaColor;
   size?: number;
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
-
-const MANA_LABELS: Record<ManaColor, string> = {
-  w: "White mana",
-  u: "Blue mana",
-  b: "Black mana",
-  r: "Red mana",
-  g: "Green mana",
-  c: "Colorless mana",
-};
 
 function ManaSymbol({ color, size = 48, className, ...props }: ManaSymbolProps) {
   const fill = MANA[color];
@@ -97,5 +88,4 @@ function ManaSymbol({ color, size = 48, className, ...props }: ManaSymbolProps) 
   );
 }
 
-export { MANA_LABELS };
 export default ManaSymbol;

@@ -24,3 +24,13 @@ export const UI = {
   textLight: "#FAF8F5" as const, // Text on dark backgrounds
   textDark:  "#1A1A1A" as const, // Text on light backgrounds
 } as const;
+
+/* ── Mana symbol labels ── */
+export const MANA_LABELS: Record<ManaColor, string> = {
+  w: "White mana",
+  u: "Blue mana",
+  b: "Black mana",
+  r: "Red mana",
+  g: "Green mana",
+  c: "Colorless mana",
+} as const;
