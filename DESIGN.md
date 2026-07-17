@@ -68,14 +68,14 @@ The app should be _faster than dice._
 Each player selects a mana color. The color FILLS their zone background. No
 player name — the color is their identity.
 
-| Mana         | Hex       | Role                   |
-| ------------ | --------- | ---------------------- |
-| 🟡 White (W) | `#F8E7B0` | Warm, sheltering       |
-| 🔵 Blue (U)  | `#3B8EFF` | Electric, intellectual |
-| ⚫ Black (B) | `#5C4E4E` | Ambitious, dark        |
-| 🔴 Red (R)   | `#E53935` | Passionate, aggressive |
-| 🟢 Green (G) | `#43A047` | Natural, wild          |
-| ✦ Colorless  | `#9E9E9E` | Neutral/eldrazi        |
+| Mana         | Hex        | Role                   |
+| ------------ | ---------- | ---------------------- |
+| 🟡 White (W) | `##F8F6D8` | Warm, sheltering       |
+| 🔵 Blue (U)  | `#C1D7E9`  | Electric, intellectual |
+| ⚫ Black (B) | `#CAC5C0`  | Ambitious, dark        |
+| 🔴 Red (R)   | `#E49977`  | Passionate, aggressive |
+| 🟢 Green (G) | `#A3C095`  | Natural, wild          |
+| ✦ Colorless  | `#CAC5C0`  | Neutral/eldrazi        |
 
 Text on these backgrounds auto-selects warm white (`#FAF8F5`) or warm near-black
 (`#1A1A1A`) based on luminance, maintaining WCAG 4.5:1 contrast.
