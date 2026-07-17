@@ -7,8 +7,7 @@
 
 > **Scope:** This document defines the visual and interaction design contract.
 > For project structure, configuration, workflows, and agent protocols, see
-> `AGENTS.md`. For the original Design Thinking template, see
-> `DESIGN.md.template`.
+> `AGENTS.md`.
 
 ---
 
