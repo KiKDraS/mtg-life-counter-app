@@ -70,9 +70,9 @@ player name — the color is their identity.
 
 | Mana         | Hex        | Role                   |
 | ------------ | ---------- | ---------------------- |
-| 🟡 White (W) | `##F8F6D8` | Warm, sheltering       |
+| 🟡 White (W) | `#F8F6D8`  | Warm, sheltering       |
 | 🔵 Blue (U)  | `#C1D7E9`  | Electric, intellectual |
-| ⚫ Black (B) | `#CAC5C0`  | Ambitious, dark        |
+| ⚫ Black (B) | `#B8B0A8`  | Ambitious, dark        |
 | 🔴 Red (R)   | `#E49977`  | Passionate, aggressive |
 | 🟢 Green (G) | `#A3C095`  | Natural, wild          |
 | ✦ Colorless  | `#CAC5C0`  | Neutral/eldrazi        |
@@ -88,7 +88,7 @@ Text on these backgrounds auto-selects warm white (`#FAF8F5`) or warm near-black
 | Belt / AI Judge        | `#000000`          | Spellbook belt, AI Judge modal backdrop           |
 | Modal backdrop         | `rgba(0,0,0,0.35)` | Config modals (life, players, color picker)       |
 | Danger red             | `#D50000`          | Life total ≤ 0, commander damage ≥ 21             |
-| Warm white (text)      | `#FAF8F5`          | Life / UI text on dark mana backgrounds           |
+| Warm white (text)      | `#FAF8F5`          | Life / UI text on overlay & belt backgrounds      |
 | Warm near-black (text) | `#1A1A1A`          | Life / UI text on light mana backgrounds          |
 
 ### 2.3 Guild Color Combos (future scope — §10)
@@ -446,7 +446,7 @@ controls, and a delete button.
 └──────────────────────────────────────┘
 ```
 
-- **Pill:** Rounded pill. Background = colorless (`#9E9E9E`). Center = counter
+- **Pill:** Rounded pill. Background = colorless (`#CAC5C0`). Center = counter
   icon (☠️/⚡/✦/⏳ for defaults, first letter of name for custom counters).
 - **Value:** Alongside the pill. Archivo Bold. Text color auto-selects warm
   white (`#FAF8F5`) or warm near-black (`#1A1A1A`) per luminance.
