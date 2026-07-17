@@ -7,8 +7,7 @@
 
 > **Scope:** This document defines the visual and interaction design contract.
 > For project structure, configuration, workflows, and agent protocols, see
-> `AGENTS.md`. For the original Design Thinking template, see
-> `DESIGN.md.template`.
+> `AGENTS.md`.
 
 ---
 
@@ -44,9 +43,9 @@ The app should be _faster than dice._
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Aesthetic Direction**  | Typographic Brutalism + MTG Color Identity                                                                                                                                                                      |
 | **Typography**           | **Archivo** (geometric sans-serif) — Black 900 for life totals, Medium 500 for UI, variable weight                                                                                                              |
-| **Color Strategy**       | Warm parchment base. Player identity via MTG mana colors.                                                                                                                   |
+| **Color Strategy**       | Warm parchment base. Player identity via MTG mana colors.                                                                                                                                                       |
 | **Layout Approach**      | Grid-based player zones. 2p (vertical split), 4p (2×2), 6p (2×3). Top/left rows rotated 180°. Responsive to orientation.                                                                                        |
-| **Background Treatment** | Solid block color per player zone — the color IS the background. Base shell is warm parchment.                                                                                                              |
+| **Background Treatment** | Solid block color per player zone — the color IS the background. Base shell is warm parchment.                                                                                                                  |
 | **Motion Choreography**  | Minimal. Fast opacity/scale transitions for modals. Staggered reveal of player zones on game start. Gesture-driven swipe overlays with spring physics.                                                          |
 | **Differentiation**      | **Massive typography + MTG mana color identity** — every player's zone is an uncompromising block of their chosen color with a life total you can read from across the room. The AI Judge is the secret weapon. |
 
@@ -69,14 +68,14 @@ The app should be _faster than dice._
 Each player selects a mana color. The color FILLS their zone background. No
 player name — the color is their identity.
 
-| Mana         | Hex        | Role                   |
-| ------------ | ---------- | ---------------------- |
-| 🟡 White (W) | `#F8E7B0`  | Warm, sheltering       |
-| 🔵 Blue (U)  | `#3B8EFF`  | Electric, intellectual |
-| ⚫ Black (B) | `#5C4E4E`  | Ambitious, dark        |
-| 🔴 Red (R)   | `#E53935`  | Passionate, aggressive |
-| 🟢 Green (G) | `#43A047`  | Natural, wild          |
-| ✦ Colorless  | `#9E9E9E`  | Neutral/eldrazi        |
+| Mana         | Hex       | Role                   |
+| ------------ | --------- | ---------------------- |
+| 🟡 White (W) | `#F8E7B0` | Warm, sheltering       |
+| 🔵 Blue (U)  | `#3B8EFF` | Electric, intellectual |
+| ⚫ Black (B) | `#5C4E4E` | Ambitious, dark        |
+| 🔴 Red (R)   | `#E53935` | Passionate, aggressive |
+| 🟢 Green (G) | `#43A047` | Natural, wild          |
+| ✦ Colorless  | `#9E9E9E` | Neutral/eldrazi        |
 
 Text on these backgrounds uses high-contrast white or black depending on
 luminance (WCAG 4.5:1).
@@ -131,7 +130,9 @@ The life total is the hero. Everything else is secondary.
 
 ### 4.1 Player Zone Grids
 
-The layout auto-adapts to player count and screen orientation.
+The layout auto-adapts to player count and screen orientation. In all
+configurations, the spellbook belt (§5) divides the screen: top-row players sit
+above the line, bottom-row players sit below it.
 
 **2 Players (Portrait)**
 
@@ -232,57 +233,78 @@ Each player zone contains:
 Player zones are rotated so text is readable from the table side each player
 occupies. Three rotation values are used:
 
-| Rotation | Angle | CSS | Applies to |
-|---|---|---|---|
-| 180° | Full flip | `rotate(180deg)` | Top-side players: P1 (2p, 3p), P1/P2 (4p), top row (6p), P5 (5p) |
-| −90° | Quarter turn left | `rotate(-90deg)` | Left-side players: P2 (3p), P1/P3 (5p) |
-| 90° | Quarter turn right | `rotate(90deg)` | Right-side players: P3 (3p), P2/P4 (5p) |
-| None | — | — | Bottom-side players facing the user |
+| Rotation | Angle              | CSS              | Applies to                                                       |
+| -------- | ------------------ | ---------------- | ---------------------------------------------------------------- |
+| 180°     | Full flip          | `rotate(180deg)` | Top-side players: P1 (2p, 3p), P1/P2 (4p), top row (6p), P5 (5p) |
+| −90°     | Quarter turn left  | `rotate(-90deg)` | Left-side players: P2 (3p), P1/P3 (5p)                           |
+| 90°      | Quarter turn right | `rotate(90deg)`  | Right-side players: P3 (3p), P2/P4 (5p)                          |
+| None     | —                  | —                | Bottom-side players facing the user                              |
 
-Rotation is applied to the zone container's wrapper — the interior layout
-is identical, just oriented for the player's side of the table.
+Rotation is applied to the zone container's wrapper — the interior layout is
+identical, just oriented for the player's side of the table.
 
 ---
 
 ## 5. CENTRAL SPELLBOOK MENU
 
-### 5.1 Trigger
-
-A floating circular button in the screen center. Shows stylized "M"
-(planeswalker symbol silhouette or abstract geometric M).
-
-**Size:** 56×56px (≥44px minimum touch target)  
-**Position:** Fixed center of screen, above all player zones  
-**Z-index:** 50 (above game board, below modals)
-
-### 5.2 Interaction
-
-Tap → splits the screen vertically, revealing a half-screen control panel. The
-player zones compress to the left half; the spellbook menu fills the right half.
+### 5.1 Visual — The Stretched Rope
 
 ```
-┌──────────┬──────────────────┐
-│          │    ⟳ Restart     │  ← Instant action, no modal
-│  Player  │                  │
-│  Zones   │  ⚙️ Initial Life │  → Modal: 20/30/40/60/custom
-│  (scaled │                  │
-│   down)  │   👥 Players     │  → Modal: select 2-6 players
-│          │                  │
-│          │   ⚖️ AI Judge    │  → Modal: chat with rules engine
-│          │                  │
-└──────────┴──────────────────┘
+┌──────────────────────────────────────────┐
+│             Player zones above           │
+│  ══════════════════●══════════════════   │  ← Horizontal line, full width
+│                     M                    │  ← M logo, 56×56px, centered
+│             Player zones below           │
+└──────────────────────────────────────────┘
 ```
+
+A horizontal line spans the full screen width, broken at the center by a
+circular button displaying the stylized "M" (planeswalker symbol silhouette or
+abstract geometric M). The visual metaphor is a stretched rope with an insignia
+at its midpoint — a subtle divider between top and bottom player zones.
+
+**Line:** Dark stroke, low opacity. Extends edge-to-edge. The belt line is the
+permanent dividing boundary between top and bottom player zones — player zones
+never cross it, whether the belt is open or closed.
+
+**M Logo:** 56×56px (≥44px minimum touch target). Fixed at screen center.
+Z-index: 50 (above game board, below modals).
+
+### 5.2 Interaction — The Boxer Belt
+
+Tap M → a black horizontal band expands across the full screen width. The M
+stays anchored at center. Four action icons spread outward — two to the left,
+two to the right. The visual metaphor is a championship belt: an opaque black
+band creating stark contrast against the colored player zones behind it.
+
+```
+│            (Player zones above)          │
+┌──────────────────────────────────────────┐
+│  ██████████████████████████████████████  │  ← Black belt, full width (~72px)
+│  █  ⚙️    ⟳    ● M ●    ⚖️    👥  █   │  ← Icons flanking M
+│  ██████████████████████████████████████  │
+├──────────────────────────────────────────┤
+│            (Player zones below)          │
+```
+
+- **Belt height:** ~72px. Opaque black (`#000000` or near-black).
+- **M stays centered.** Does not move — it anchors the composition.
+- **Left side (near → far):** ⟳ Restart Life, ⚙️ Initial Life
+- **Right side (near → far):** ⚖️ AI Judge, 👥 Players
+- **Close:** Tap M again or tap outside the belt → icons collapse back to
+  center, belt retracts.
 
 ### 5.3 Menu Items
 
-| Button          | Action                              | Modal?       |
-| --------------- | ----------------------------------- | ------------ |
-| ⟳ Restart Life  | Resets all life to initial value    | No — instant |
-| ⚙️ Initial Life | Opens numeric selector              | Yes — modal  |
-| 👥 Players      | Opens player count/color assignment | Yes — modal  |
-| ⚖️ AI Judge     | Opens judge chat interface          | Yes — modal  |
+| Icon | Action       | Side          | Modal?       |
+| ---- | ------------ | ------------- | ------------ |
+| ⟳    | Restart Life | Left, near M  | No — instant |
+| ⚙️   | Initial Life | Left, far     | Yes — modal  |
+| ⚖️   | AI Judge     | Right, near M | Yes — modal  |
+| 👥   | Players      | Right, far    | Yes — modal  |
 
-Tap the center button again or tap outside the menu to close.
+Gameplay actions (⟳ restart, ⚖️ judge) sit closer to center for quick thumb
+access. Setup actions (⚙️ life, 👥 players) sit on the outer edges.
 
 ---
 
@@ -379,14 +401,14 @@ Each counter has +/- and a value display.
 | ---------- | -------- | ----------------------------------------- |
 | Default    | < 480px  | Single-column stack, portrait-only        |
 | `sm:`      | ≥ 480px  | 2-column grid possible                    |
-| `md:`      | ≥ 768px  | 2-column layouts, 2×2 grid for landscape        |
+| `md:`      | ≥ 768px  | 2-column layouts, 2×2 grid for landscape  |
 | `lg:`      | ≥ 1024px | Full 2×3 grid for 6 players               |
 | `xl:`      | ≥ 1440px | Larger life totals, more generous spacing |
 
 ### 8.2 Orientation
 
-- **Portrait (2, 3, and 5 players):** Stacked and asymmetric split layouts.
-  Text rotated per player position using −90°, 90°, or 180° transforms.
+- **Portrait (2, 3, and 5 players):** Stacked and asymmetric split layouts. Text
+  rotated per player position using −90°, 90°, or 180° transforms.
 - **Landscape (4 and 6 players):** Grid layouts. Top row rotated 180°.
 - **Orientation lock:** The accelerometer is disabled — the app locks to
   portrait via the PWA manifest (`"orientation": "portrait"`) and

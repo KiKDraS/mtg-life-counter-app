@@ -91,7 +91,6 @@ The agent must strictly respect the following file architecture:
 │   ├── e2e/                # End-to-End user flow tests
 │   └── components/         # Component isolation tests
 ├── DESIGN.md               # Project Design Contract
-├── DESIGN.md.template      # Design Thinking template (DO NOT EDIT)
 ├── playwright.config.ts    # Testing framework configuration
 ├── next.config.ts          # Next.js configuration
 ├── tsconfig.json           # TypeScript configuration

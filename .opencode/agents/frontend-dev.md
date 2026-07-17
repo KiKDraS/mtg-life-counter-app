@@ -106,7 +106,9 @@ execution across all four layers simultaneously:
   - Swipe left → commander damage overlay. Swipe right → counters overlay
     (poison, energy, experience, time, custom).
   - Top-row player zones rotate 180° (CSS `transform: rotate(180deg)`).
-  - Floating spellbook menu button (center) → half-screen control panel.
+  - Spellbook menu: M logo centered on horizontal line ("stretched rope").
+    Tap → black belt band expands, action icons spread left/right of M
+    ("boxer belt" dropdown). Tap again to collapse.
 - **Motion:** Per DESIGN.md §1.4 — minimal, fast. Staggered zone reveal on
   game start. Swipe overlays use spring physics. Respect
   `prefers-reduced-motion` — disable ALL swipe animations, use instant
