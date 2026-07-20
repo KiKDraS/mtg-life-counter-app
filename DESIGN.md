@@ -122,7 +122,7 @@ All 10 Ravnica guilds. Phase 2 (§10). Selected via `GuildSelector`.
 
 #### Clan Symbols (`components/ui/icons/clans/`)
 
-Abzan, Jeskai, Mardu, Sultai, Temur. Phase 2 (§10). No selector yet.
+Abzan, Jeskai, Mardu, Sultai, Temur. Phase 2 (§10). Selected via `ClanSelector`.
 
 ---
 
