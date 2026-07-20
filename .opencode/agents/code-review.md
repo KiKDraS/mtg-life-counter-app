@@ -99,7 +99,9 @@ quality gates. If a single item fails, the submission must be rejected.
 - **Font optimization:** All fonts must use `next/font/local`. Flag any CDN font
   links or `@font-face` with raw URLs.
 - **Bundle awareness:** Flag heavy third-party imports that could be
-  `next/dynamic` with `ssr: false`. Flag barrel imports that bloat bundles.
+  `next/dynamic` with `ssr: false`.
+- **No barrel imports:** Flag any import from an `index.ts` or `index.tsx`
+  that re-exports sibling modules. Demand direct module source imports.
 
 ### 6. Accessibility Gate
 
