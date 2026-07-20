@@ -68,14 +68,14 @@ The app should be _faster than dice._
 Each player selects a mana color. The color FILLS their zone background. No
 player name — the color is their identity.
 
-| Mana         | Hex        | Role                   |
-| ------------ | ---------- | ---------------------- |
-| 🟡 White (W) | `#F8F6D8`  | Warm, sheltering       |
-| 🔵 Blue (U)  | `#C1D7E9`  | Electric, intellectual |
-| ⚫ Black (B) | `#B8B0A8`  | Ambitious, dark        |
-| 🔴 Red (R)   | `#E49977`  | Passionate, aggressive |
-| 🟢 Green (G) | `#A3C095`  | Natural, wild          |
-| ✦ Colorless  | `#CAC5C0`  | Neutral/eldrazi        |
+| Mana         | Hex       | Role                   |
+| ------------ | --------- | ---------------------- |
+| 🟡 White (W) | `#F8F6D8` | Warm, sheltering       |
+| 🔵 Blue (U)  | `#C1D7E9` | Electric, intellectual |
+| ⚫ Black (B) | `#B8B0A8` | Ambitious, dark        |
+| 🔴 Red (R)   | `#E49977` | Passionate, aggressive |
+| 🟢 Green (G) | `#A3C095` | Natural, wild          |
+| ✦ Colorless  | `#CAC5C0` | Neutral/eldrazi        |
 
 Text on these backgrounds auto-selects warm white (`#FAF8F5`) or warm near-black
 (`#1A1A1A`) based on luminance, maintaining WCAG 4.5:1 contrast.
@@ -232,12 +232,12 @@ above the line, bottom-row players sit below it.
 **5 Players (Portrait — 1 full-width + 2×2 grid)**
 
 ```
-┌──────────────────────────────────────┐
-│                                      │
-│              Player 5                │  180° rotation
-│                40 ★                  │  → text faces TOP
-│             [+]  [-]                 │
-│                                      │
+┌─────────────────────┐
+│                     │
+│      Player 5       │  180° rotation
+│         40 ★        │  → text faces TOP
+│      [+]  [-]       │
+│                     │
 ├──────────┬──────────┤
 │ Player 1 │ Player 2 │  P1: −90° rotation → faces LEFT
 │   40 ★   │   38 ★   │  P2: 90° rotation → faces RIGHT
@@ -420,14 +420,14 @@ visible regardless of which wheel is shown above. The active filter is visually
 highlighted (filled background, inverted text) so the user always knows which
 wheel they are viewing.
 
-| Item         | Type   | Action                                                                   |
-| ------------ | ------ | ------------------------------------------------------------------------ |
-| **mana**     | Tab    | Shows the 5-color WUBRG mana wheel (default on open).                    |
-| **guild**    | Tab    | Shows two 5-symbol wheels side-by-side (10 Ravnica guilds).              |
-| **clan**     | Tab    | Shows a single 5-symbol wheel (5 Tarkir clans).                          |
-| **shard**    | Tab    | Shows a single 5-symbol wheel (5 Alara shards).                          |
-| **WUBRG**    | Action | Applies 5-color gradient background. Closes modal immediately.           |
-| **Colorless**| Action | Applies colorless solid background. Closes modal immediately.            |
+| Item          | Type   | Action                                                         |
+| ------------- | ------ | -------------------------------------------------------------- |
+| **mana**      | Tab    | Shows the 5-color WUBRG mana wheel (default on open).          |
+| **guild**     | Tab    | Shows two 5-symbol wheels side-by-side (10 Ravnica guilds).    |
+| **clan**      | Tab    | Shows a single 5-symbol wheel (5 Tarkir clans).                |
+| **shard**     | Tab    | Shows a single 5-symbol wheel (5 Alara shards).                |
+| **WUBRG**     | Action | Applies 5-color gradient background. Closes modal immediately. |
+| **Colorless** | Action | Applies colorless solid background. Closes modal immediately.  |
 
 #### Mana Tab (default)
 
@@ -467,14 +467,14 @@ in bottom‑right.
 
 #### Behavior Summary
 
-| Selection            | Closes modal? | Player zone result                                    |
-| -------------------- | ------------- | ----------------------------------------------------- |
-| Single mana color    | On tap        | Solid mana color                                      |
-| WUBRG                | Immediately   | 5-color `linear-gradient(to bottom right, W,U,B,R,G)` |
-| Colorless            | Immediately   | Solid `#CAC5C0`                                       |
-| Guild                | On tap        | 2-color gradient + guild badge (bottom‑right)         |
-| Clan                 | On tap        | 3-color gradient + clan badge (bottom‑right)          |
-| Shard                | On tap        | 3-color gradient + shard badge (bottom‑right)         |
+| Selection         | Closes modal? | Player zone result                                    |
+| ----------------- | ------------- | ----------------------------------------------------- |
+| Single mana color | On tap        | Solid mana color                                      |
+| WUBRG             | Immediately   | 5-color `linear-gradient(to bottom right, W,U,B,R,G)` |
+| Colorless         | Immediately   | Solid `#CAC5C0`                                       |
+| Guild             | On tap        | 2-color gradient + guild badge (bottom‑right)         |
+| Clan              | On tap        | 3-color gradient + clan badge (bottom‑right)          |
+| Shard             | On tap        | 3-color gradient + shard badge (bottom‑right)         |
 
 - No standalone "Apply" button — every selection confirms instantly.
 - The player zone previews the change in real-time inside the modal.
