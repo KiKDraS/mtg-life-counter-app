@@ -1,5 +1,5 @@
 import type { SVGAttributes } from "react";
-import { SHARD_COLORS } from "@/lib/constants/shards";
+import { SHARD_COLORS } from "@/lib/constants/colors";
 
 type BantSymbolProps = {
   size?: number;
