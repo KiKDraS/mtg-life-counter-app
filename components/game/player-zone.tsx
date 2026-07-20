@@ -15,6 +15,7 @@ interface PlayerZoneProps {
 const buttonClass =
   "flex h-full w-full items-center justify-center text-4xl font-bold leading-none " +
   "select-none touch-manipulation " +
+  "transition-shadow duration-150 active:shadow-[inset_0_0_0_9999px_rgba(0,0,0,0.08)] " +
   "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current";
 
 /**

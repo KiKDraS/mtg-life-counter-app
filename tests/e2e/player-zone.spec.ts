@@ -124,34 +124,31 @@ test.describe("Player Zone — Life Display & Tap Adjustment", () => {
   });
 });
 
-test.describe("Player Zone — Hold Acceleration", () => {
-  test("3.1. Short hold (~700–800ms) engages the ±5 repeat step", async ({ page }) => {
-    // 1. Navigate to `/`; hold P1 `+1 life` for 750ms
+test.describe("Player Zone — Hold Acceleration & Press Feedback", () => {
+  test("3.1. Short hold (<1s) fires only the ±1 tap; no repeats before 1s delay", async ({ page }) => {
+    // 1. Navigate to `/`; hold P1 `+1 life` for 750ms (under 1s hold delay)
     await page.goto("/");
 
     const p1 = zone(page, 1);
     await holdButton(page, p1.getByRole("button", { name: "+1 life" }), 750);
 
-    // Assert range [46, 60] (widen upper bound by +5 on slow CI); never an exact value
+    // Only the ±1 tap fires before the 1000ms hold delay
     const value = await lifeValue(p1);
-    expect(value).toBeGreaterThanOrEqual(46);
-    expect(value).toBeLessThanOrEqual(60);
+    expect(value).toBe(41);
   });
 
-  test("3.2. Long hold (~1.6–1.8s) accelerates to the ±10 step", async ({ page }) => {
+  test("3.2. Long hold (~1.6–1.8s) repeats at ±10 after the 1s delay", async ({ page }) => {
     // 1. Navigate to `/`; hold P1 `+1 life` for 1700ms
     await page.goto("/");
 
     const p1 = zone(page, 1);
     await holdButton(page, p1.getByRole("button", { name: "+1 life" }), 1700);
 
-    // ≥ 80 proves the +10 step engaged (pure ±5 caps at ~+26 here); ≤ 160 sanity bound.
-    // True theoretical max: tap +1, repeats at t≈500–900 = 5×+5, t≈1000–1700 = 8×+10
-    // → +106 (life 146). Plan's "≈126" undercounted interval ticks; 160 covers CI
-    // release-slip of one extra repeat while still catching runaway/double intervals.
+    // ±1 tap + ~7 ticks of ±10 = ~+71. Life ≈ 111.
+    // Range [100, 130] proves the ±10 step engaged and caps runaway repeats.
     const value = await lifeValue(p1);
-    expect(value).toBeGreaterThanOrEqual(80);
-    expect(value).toBeLessThanOrEqual(160);
+    expect(value).toBeGreaterThanOrEqual(100);
+    expect(value).toBeLessThanOrEqual(130);
   });
 
   test("3.3. Releasing the button stops adjustment immediately", async ({ page }) => {
@@ -165,8 +162,56 @@ test.describe("Player Zone — Hold Acceleration", () => {
     await page.waitForTimeout(400);
     expect(await lifeValue(p1)).toBe(v);
 
+    // With 1s delay, a 600ms hold fires only the ±1 tap
     expect(v).toBeGreaterThanOrEqual(41);
-    expect(v).toBeLessThanOrEqual(56);
+    expect(v).toBeLessThanOrEqual(44);
+  });
+
+  test("3.4. Press feedback overlays the column with 8% black on pointer down", async ({ page }) => {
+    // 1. Navigate to `/`
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    const button = p1.getByRole("button", { name: "+1 life" });
+
+    // Button has transition configured for the box-shadow overlay
+    await expect(button).toHaveCSS("transition-property", /box-shadow/);
+    await expect(button).toHaveCSS("transition-duration", "0.15s");
+
+    // At rest, no inset shadow overlay
+    const restShadow = await button.evaluate((el) =>
+      getComputedStyle(el).boxShadow,
+    );
+    expect(restShadow).toBe("none");
+
+    // Press down to trigger :active state
+    const box = await button.boundingBox();
+    if (!box) throw new Error("button not visible");
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+
+    // Wait for the 150ms fade-in transition to complete
+    await page.waitForTimeout(200);
+
+    // During :active, the box-shadow inset overlay is applied
+    const activeShadow = await button.evaluate((el) =>
+      getComputedStyle(el).boxShadow,
+    );
+    expect(activeShadow).toContain("inset");
+    expect(activeShadow).toContain("rgba(0, 0, 0, 0.08)");
+
+    await page.mouse.up();
+
+    // Wait for the 150ms fade-out transition to complete
+    await page.waitForTimeout(200);
+
+    // After release, box-shadow returns to none
+    const releasedShadow = await button.evaluate((el) =>
+      getComputedStyle(el).boxShadow,
+    );
+    expect(releasedShadow).toBe("none");
   });
 });
 

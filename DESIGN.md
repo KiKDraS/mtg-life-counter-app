@@ -519,8 +519,8 @@ in bottom‑right.
 | --------------------- | ------------------------------------------------ |
 | Tap [+]               | +1 life                                          |
 | Tap [-]               | -1 life                                          |
-| Hold [+]              | Rapid increment (accelerates: +5 → +10 after 1s) |
-| Hold [-]              | Rapid decrement (accelerates: -5 → -10 after 1s) |
+| Hold [+]              | Rapid increment (±10 after 1s)                    |
+| Hold [-]              | Rapid decrement (±10 after 1s)                    |
 | Double-tap life total | Opens numpad for exact entry                     |
 
 ### 7.2 Swipe Gestures
