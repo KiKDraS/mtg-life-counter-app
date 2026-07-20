@@ -56,7 +56,6 @@ execution across all four layers simultaneously:
   - Eliminate data waterfalls with `Promise.all()`.
   - Wrap heavy or async sections in `<Suspense>` boundaries.
   - Use `next/dynamic` for lazy-loaded, non-critical components.
-  - Import directly from module files — avoid barrel imports.
 
 ### 2. TypeScript
 
@@ -70,6 +69,11 @@ execution across all four layers simultaneously:
   `lib/constants/colors`. Never hardcode color hexes or labels like
   `"#D50000"` or `"White mana"` directly in components.
   `lib/constants/colors.ts` is the single source of truth.
+- **No barrel imports.** A barrel file is an `index.ts`/`index.tsx` that only
+  re-exports sibling modules (e.g., `export { Foo } from './foo'`). Import
+  directly from the source file: `import { Button } from './components/ui/button'`,
+  never `import { Button } from './components/ui'`. The only exception is an
+  explicit public library API.
 - Use `satisfies` for config objects. Use generics for reusable utilities.
 
 ### 3. Tailwind CSS Styling

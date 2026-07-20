@@ -120,12 +120,13 @@ The agent must strictly respect the following file architecture:
 - **Performance (per `react-best-practices`):** Eliminate data waterfalls with
   `Promise.all`, wrap heavy sections in Suspense boundaries, use `next/dynamic`
   for lazy-loaded components.
-- **No barrel imports:** A barrel file is an `index.ts`/`index.tsx` that only
-  re-exports from sibling modules (e.g., `export { Foo } from './foo'`). Import
-  directly from the source file instead — `import { Button } from
-  './components/ui/button'`, never `import { Button } from './components/ui'`.
-  This avoids loading unused modules, prevents circular dependencies, and
-  improves tree-shaking.
+- **No barrel imports (per `bundle-barrel-imports`):** A barrel file is an
+  `index.ts`/`index.tsx` that only re-exports sibling modules (e.g.,
+  `export { Foo } from './foo'`). Import directly from the source file instead:
+  `import { Button } from './components/ui/button'`, never
+  `import { Button } from './components/ui'`. Barrels load unused modules,
+  cause circular dependencies, and hurt tree-shaking. The only exception is a
+  public library API that explicitly needs a single entry point.
 
 ### 2. Styling with Tailwind CSS (`app/globals.css`)
 
@@ -170,8 +171,8 @@ not generic rules.
 - **Constants per domain:** `lib/constants/` is organized by domain — one file
   per concept. No catch-all `constants.ts`. A new constant goes in a new or
   existing domain file (e.g., `mana.ts`, `guilds.ts`, `labels.ts`).
-- **No barrel imports** (per `bundle-barrel-imports`). See §1 — same rule applies
-  to all imports, not just components.
+- **No barrel imports** (per `bundle-barrel-imports`). Import directly from
+  module files — never from an `index.ts` re-export barrel.
 
 ### 4. Asset Management
 
