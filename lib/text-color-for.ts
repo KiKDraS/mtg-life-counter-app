@@ -35,11 +35,3 @@ export function textColorFor(backgroundHex: string): ContrastCandidate {
   const withDark = contrastRatio(bg, relativeLuminance(UI.textDark));
   return withLight > withDark ? UI.textLight : UI.textDark;
 }
-
-/**
- * @deprecated Use {@link textColorFor}. Kept as an alias so existing callers
- * keep working.
- */
-export function contrastText(hex: string): ContrastCandidate {
-  return textColorFor(hex);
-}
