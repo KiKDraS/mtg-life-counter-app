@@ -29,7 +29,10 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  allowedDevOrigins: ["192.168.1.14"],
+  // dev-only: set NETWORK_CONNECTION=192.168.x.x to test on LAN devices
+  ...(process.env.NETWORK_CONNECTION && {
+    allowedDevOrigins: [process.env.NETWORK_CONNECTION],
+  }),
 };
 
 export default nextConfig;
