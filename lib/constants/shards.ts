@@ -11,5 +11,3 @@ export type Shard =
   | "grixis"
   | "jund"
   | "naya";
-
-export { SHARD_COLORS } from "./colors";
