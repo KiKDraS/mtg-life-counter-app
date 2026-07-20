@@ -279,6 +279,12 @@ column handles taps and holds, while the full area detects swipe gestures.
   hit area. Text color auto-selects warm white (`#FAF8F5`) or warm near-black
   (`#1A1A1A`) based on the player's mana color luminance, matching the life
   total.
+- **Press feedback:** On `pointerdown`, the touched column's background overlays
+  with `rgba(0, 0, 0, 0.08)` (8% black). The overlay fades in over 150ms and
+  fades out over 150ms on `pointerup`. Implemented as a CSS transition on the
+  column background — no additional DOM element, no `pointer-events`
+  interference. Hold and accelerate behaviors are unaffected since the overlay
+  is purely a visual property of the column itself, not a separate layer.
 - **Life adjustment:** Tap [-] or [+] → ±1. Hold → accelerate (±10 after 1s).
   Double-tap the life total → opens numpad for exact entry.
 - **Lethal state:** Life total turns danger red (`#D50000`) when at 0 or below.
