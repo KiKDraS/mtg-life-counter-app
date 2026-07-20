@@ -174,15 +174,15 @@ test.describe("Player Zone — Hold Acceleration & Press Feedback", () => {
     const p1 = zone(page, 1);
     const button = p1.getByRole("button", { name: "+1 life" });
 
-    // Button has `position: relative` to anchor the ::after overlay
-    await expect(button).toHaveCSS("position", "relative");
+    // Button has transition configured for the box-shadow overlay
+    await expect(button).toHaveCSS("transition-property", /box-shadow/);
+    await expect(button).toHaveCSS("transition-duration", "0.15s");
 
-    // The ::after pseudo-element starts with opacity 0 (invisible)
-    const beforeOpacity = await button.evaluate((el) => {
-      const style = getComputedStyle(el, "::after");
-      return style.opacity;
-    });
-    expect(beforeOpacity).toBe("0");
+    // At rest, no inset shadow overlay
+    const restShadow = await button.evaluate((el) =>
+      getComputedStyle(el).boxShadow,
+    );
+    expect(restShadow).toBe("none");
 
     // Press down to trigger :active state
     const box = await button.boundingBox();
@@ -195,24 +195,23 @@ test.describe("Player Zone — Hold Acceleration & Press Feedback", () => {
     // Wait for the 150ms fade-in transition to complete
     await page.waitForTimeout(200);
 
-    // During :active, the ::after overlay becomes visible (opacity 1)
-    const afterOpacity = await button.evaluate((el) => {
-      const style = getComputedStyle(el, "::after");
-      return style.opacity;
-    });
-    expect(afterOpacity).toBe("1");
+    // During :active, the box-shadow inset overlay is applied
+    const activeShadow = await button.evaluate((el) =>
+      getComputedStyle(el).boxShadow,
+    );
+    expect(activeShadow).toContain("inset");
+    expect(activeShadow).toContain("rgba(0, 0, 0, 0.08)");
 
     await page.mouse.up();
 
     // Wait for the 150ms fade-out transition to complete
     await page.waitForTimeout(200);
 
-    // After release, opacity returns to 0 (fade out)
-    const releasedOpacity = await button.evaluate((el) => {
-      const style = getComputedStyle(el, "::after");
-      return style.opacity;
-    });
-    expect(releasedOpacity).toBe("0");
+    // After release, box-shadow returns to none
+    const releasedShadow = await button.evaluate((el) =>
+      getComputedStyle(el).boxShadow,
+    );
+    expect(releasedShadow).toBe("none");
   });
 });
 
