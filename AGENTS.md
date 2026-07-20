@@ -73,8 +73,6 @@ The agent must strictly respect the following file architecture:
 │   ├── use-swipe.ts            # Swipe gesture detection
 │   └── use-game-state.ts       # State machine hook
 ├── public/                 # Static assets (served as-is)
-│   ├── favicon/            # Favicon bundle files
-│   ├── manifest.json       # PWA manifest
 │   ├── sw.js               # Service worker
 │   └── robots.txt          # Search engine crawl directives
 ├── tests/                  # Playwright Test Suite
@@ -95,15 +93,15 @@ The agent must strictly respect the following file architecture:
 ### 1. React & Next.js Components (`app/` and `components/`)
 
 - **Server Components by default.** Every component in `app/` is a React Server
-  Component unless explicitly marked with `'use client'`. Keep data fetching
-  and heavy logic in server components.
+  Component unless explicitly marked with `'use client'`. Keep data fetching and
+  heavy logic in server components.
 - **Client boundary discipline.** Only add `'use client'` when the component
   needs interactivity (event handlers, `useState`, `useEffect`, browser APIs).
   Push the boundary as deep as possible.
 - **Strictly forbidden in Client Components:** `async` functions, server-only
   imports (`fs`, `crypto` without browser API), direct database access.
-- **Route conventions:** Follow Next.js App Router file conventions:
-  `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`.
+- **Route conventions:** Follow Next.js App Router file conventions: `page.tsx`,
+  `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`.
 - **Metadata:** Export `metadata` or `generateMetadata` from `layout.tsx` and
   `page.tsx`. Never leave `title: "Create Next App"` placeholders.
 - **Images:** Always use `next/image` over native `<img>`. Provide explicit
@@ -142,10 +140,10 @@ The agent must strictly respect the following file architecture:
 ### DESIGN.md as Authoritative Source
 
 When DESIGN.md specifies an aesthetic decision that conflicts with a generic
-skill rule (e.g., `frontend-design`'s "avoid symmetry" vs DESIGN.md's
-grid-based layout), **DESIGN.md wins.** All agents must read DESIGN.md before
-implementing any UI, and `@code-review` must verify against DESIGN.md's
-specific constraints, not generic rules.
+skill rule (e.g., `frontend-design`'s "avoid symmetry" vs DESIGN.md's grid-based
+layout), **DESIGN.md wins.** All agents must read DESIGN.md before implementing
+any UI, and `@code-review` must verify against DESIGN.md's specific constraints,
+not generic rules.
 
 ### 3. TypeScript
 
@@ -170,8 +168,8 @@ specific constraints, not generic rules.
 - **Fonts:** Via `next/font` — `localFont` for local files, `next/font/google`
   for fonts available there (Next.js downloads and self-hosts at build time).
   Reference the CSS variable in `app/layout.tsx`.
-- **Images:** Processed by `next/image`. Always provide `width`, `height`,
-  and `alt`.
+- **Images:** Processed by `next/image`. Always provide `width`, `height`, and
+  `alt`.
 - **PWA assets:** `manifest.json`, `sw.js`, app icons in `public/`.
 
 ### 5. Accessibility
@@ -184,8 +182,8 @@ specific constraints, not generic rules.
 
 ### 6. SEO
 
-- **Per `seo` skill:** Export `metadata` from every `page.tsx` and
-  `layout.tsx`. Titles <60 characters. Descriptions 150–160 characters.
+- **Per `seo` skill:** Export `metadata` from every `page.tsx` and `layout.tsx`.
+  Titles <60 characters. Descriptions 150–160 characters.
 - JSON-LD structured data. `sitemap.xml` listing all routes.
 - All images have descriptive `alt` text.
 
@@ -195,17 +193,17 @@ specific constraints, not generic rules.
   (`route.ts` with named exports for HTTP methods).
 - **AI Judge** (`app/api/judge/route.ts`) uses `@openrouter/sdk` exclusively.
   ZDR enabled. Streaming via async iterator. `OPENROUTER_API_KEY` server-only.
-- **Scryfall integration** (`lib/services/scryfall.ts`) for card art search
-  and autocomplete. Server-side caching. Rate limit awareness.
-- **No user accounts or auth.** The app is session-only. No `/api/profiles`,
-  no database, no authentication layer.
+- **Scryfall integration** (`lib/services/scryfall.ts`) for card art search and
+  autocomplete. Server-side caching. Rate limit awareness.
+- **No user accounts or auth.** The app is session-only. No `/api/profiles`, no
+  database, no authentication layer.
 - **Game state** (`lib/state/`) is session-local. Discriminated union state
   machine. Undo/redo stack. Life totals, poison counters, commander damage.
-- **AI Judge UI** (`components/features/judge-chat.tsx`): `'use client'`
-  chat interface with streaming response display, message bubbles, and text
-  input. Maximized modal for readability per DESIGN.md §6.4.
-- **State boundaries:** Judge chat is ephemeral (session state only). Game
-  state in `lib/state/` is session-local. No persistence.
+- **AI Judge UI** (`components/features/judge-chat.tsx`): `'use client'` chat
+  interface with streaming response display, message bubbles, and text input.
+  Maximized modal for readability per DESIGN.md §6.4.
+- **State boundaries:** Judge chat is ephemeral (session state only). Game state
+  in `lib/state/` is session-local. No persistence.
 - **Voice assistant:** Phase 2 per DESIGN.md §10. Uses Web Speech API.
 - **PWA:** `manifest.json` sets `"orientation": "portrait"`. Service worker
   caches static assets.
@@ -232,8 +230,8 @@ branching model. Making direct commits to the main stability branches is
 
 ### Main Branches
 
-- **`main` (Production):** Only receives merges from `release/*` or
-  `hotfix/*` branches.
+- **`main` (Production):** Only receives merges from `release/*` or `hotfix/*`
+  branches.
 - **`develop` (Integration):** The daily workspace. All completed features are
   consolidated here.
 
@@ -257,14 +255,14 @@ branching model. Making direct commits to the main stability branches is
      `/api/judge` streaming route, and citation formatting.
    - Uses `@openrouter/sdk` exclusively — ZDR enabled, provider routing,
      built-in streaming.
-   - Works on the shared `feature/*` branch created by `@frontend-dev`.
-     Does NOT create its own branch.
+   - Works on the shared `feature/*` branch created by `@frontend-dev`. Does NOT
+     create its own branch.
    - Invoked after `@frontend-dev` completes the UI shell.
-   - Forbidden from touching React components or styling. Domain:
-     `app/api/`, `lib/services/`, `lib/ai/`.
+   - Forbidden from touching React components or styling. Domain: `app/api/`,
+     `lib/services/`, `lib/ai/`.
 4. **@release-manager Authority:**
-   - Only entity authorized to modify branch state on GitHub (PRs, merges,
-     tags, branch deletion).
+   - Only entity authorized to modify branch state on GitHub (PRs, merges, tags,
+     branch deletion).
    - All operations mirrored to GitHub immediately.
    - All merges via Pull Requests — no direct merges to `main`/`develop`.
    - Hybrid approach: `gh` CLI primary, `curl` + REST API fallback.
@@ -272,23 +270,23 @@ branching model. Making direct commits to the main stability branches is
    - Never delete `main` or `develop`.
 5. **@orchestrator Integration Powers:**
    - Only entity authorized to initiate merges or releases.
-   - Only instructs merge when `@code-review` returns `STATUS: APPROVED` and
-     QA pipeline passes.
-   - Must get explicit user confirmation before creating `release/*` or
-     merging to `main`.
+   - Only instructs merge when `@code-review` returns `STATUS: APPROVED` and QA
+     pipeline passes.
+   - Must get explicit user confirmation before creating `release/*` or merging
+     to `main`.
 
 ### Agent Responsibility Matrix
 
-| Agent                        | Responsible For                                 | Must Read       |
-| ---------------------------- | ----------------------------------------------- | --------------- |
-| `@orchestrator`              | Planning, delegation, gates, DESIGN.md          | AGENTS.md       |
-| `@frontend-dev`              | React components, Tailwind styling, game layout | DESIGN.md §1–9  |
-| `@ai-engineer`               | AI Judge route, OpenRouter SDK, RAG pipeline    | DESIGN.md §6.4  |
-| `@code-review`               | Compliance audit against DESIGN.md              | DESIGN.md       |
-| `@playwright-test-planner`   | Test scenarios from component tree              | DESIGN.md §4–9  |
-| `@playwright-test-generator` | Test code                                       | DESIGN.md §4–9  |
-| `@playwright-test-healer`    | Test execution                                  | DESIGN.md §4–9  |
-| `@release-manager`           | Git ops, PRs, tags                              | —               |
+| Agent                        | Responsible For                                 | Must Read      |
+| ---------------------------- | ----------------------------------------------- | -------------- |
+| `@orchestrator`              | Planning, delegation, gates, DESIGN.md          | AGENTS.md      |
+| `@frontend-dev`              | React components, Tailwind styling, game layout | DESIGN.md §1–9 |
+| `@ai-engineer`               | AI Judge route, OpenRouter SDK, RAG pipeline    | DESIGN.md §6.4 |
+| `@code-review`               | Compliance audit against DESIGN.md              | DESIGN.md      |
+| `@playwright-test-planner`   | Test scenarios from component tree              | DESIGN.md §4–9 |
+| `@playwright-test-generator` | Test code                                       | DESIGN.md §4–9 |
+| `@playwright-test-healer`    | Test execution                                  | DESIGN.md §4–9 |
+| `@release-manager`           | Git ops, PRs, tags                              | —              |
 
 ---
 
@@ -315,8 +313,8 @@ must strictly comply with the rules defined in the installed skill files:
 - **Tailwind CSS Patterns (`tailwind-css-patterns`):** Utility-first v4.1+
   patterns — responsive design, dark mode, component composition, performance.
 - **TypeScript Advanced Types (`typescript-advanced-types`):** Generics,
-  conditional types, mapped types, template literal types, discriminated
-  unions, type guards, assertion functions.
+  conditional types, mapped types, template literal types, discriminated unions,
+  type guards, assertion functions.
 - **Accessibility (`accessibility`):** WCAG 2.2 Level AA — POUR principles,
   semantic JSX, keyboard navigation, ARIA, color contrast, form validation.
 - **SEO Optimization (`seo`):** Technical crawling, metadata, JSON-LD, sitemap,
@@ -325,8 +323,8 @@ must strictly comply with the rules defined in the installed skill files:
   constraints, selector reliability, trace review, Page Object Model, testing
   isolation.
 - **Context7 MCP (`context7-mcp`):** Primary tool for OpenRouter SDK docs, LLM
-  model catalogs, and embedding model references. Used by `@ai-engineer` and
-  all agents.
+  model catalogs, and embedding model references. Used by `@ai-engineer` and all
+  agents.
 
 ---
 
@@ -355,17 +353,16 @@ know the answer — your training data may not reflect recent changes.
 Ponytail's "lazy" philosophy and these design rules do not contradict each
 other; they enhance one another. When building the interface:
 
-> _"Do not create complex abstractions in React or add dependencies for
-> elements that the platform, Next.js, or the standard library can resolve
-> natively. Rely on React Server Components for static content, native
-> `<dialog>` for modals, CSS scroll-snap for carousels, and the TypeScript
-> standard library before writing custom abstractions or pulling in npm
-> packages."_
+> _"Do not create complex abstractions in React or add dependencies for elements
+> that the platform, Next.js, or the standard library can resolve natively. Rely
+> on React Server Components for static content, native `<dialog>` for modals,
+> CSS scroll-snap for carousels, and the TypeScript standard library before
+> writing custom abstractions or pulling in npm packages."_
 
-**Architectural Override Rule:** Tailwind's utility-first model is the
-mandatory styling contract. Ponytail's _'fewest files possible'_ restriction
-applies to preventing unrequested features or redundant helpers. It **MUST NOT**
-replace Tailwind classes with separate CSS files per component.
+**Architectural Override Rule:** Tailwind's utility-first model is the mandatory
+styling contract. Ponytail's _'fewest files possible'_ restriction applies to
+preventing unrequested features or redundant helpers. It **MUST NOT** replace
+Tailwind classes with separate CSS files per component.
 
 ---
 
@@ -393,5 +390,5 @@ replace Tailwind classes with separate CSS files per component.
 > will halt. No exceptions.
 
 **To propose a change:** `@orchestrator` presents the change to the user,
-receives explicit approval ("Approved" or "Aprobado"), then updates the
-relevant document and notifies all agents.
+receives explicit approval ("Approved" or "Aprobado"), then updates the relevant
+document and notifies all agents.
