@@ -124,6 +124,10 @@ All 10 Ravnica guilds. Phase 2 (§10). Selected via `GuildSelector`.
 
 Abzan, Jeskai, Mardu, Sultai, Temur. Phase 2 (§10). Selected via `ClanSelector`.
 
+#### Shard Symbols (`components/ui/icons/shards/`)
+
+Bant, Esper, Grixis, Jund, Naya. Phase 2 (§10). Selected via `ShardSelector`.
+
 ---
 
 ## 3. TYPOGRAPHY
