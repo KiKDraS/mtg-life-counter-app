@@ -91,10 +91,38 @@ Text on these backgrounds auto-selects warm white (`#FAF8F5`) or warm near-black
 | Warm white (text)      | `#FAF8F5`          | Life / UI text on overlay & belt backgrounds      |
 | Warm near-black (text) | `#1A1A1A`          | Life / UI text on light mana backgrounds          |
 
-### 2.3 Guild Color Combos (future scope — §10)
+### 2.3 Guild & Clan Symbols (future scope — §10)
 
-Guild blend colors can be added as a secondary color mode once the 5 base mana
-colors are stable.
+Guild and clan color blends can be added as a secondary color mode once the 5
+base mana colors are stable.
+
+### 2.4 Icon System
+
+All MTG symbols are inline SVG React components. No external `.svg` imports.
+
+#### Mana Symbols (`components/ui/icons/mana/`)
+
+White, Blue, Black, Red, Green, Colorless. Used in color picker modals, player
+zone indicators, and mana-cost displays. Selected via `ManaSelector`.
+
+#### Counter Symbols (`components/ui/icons/counters/`)
+
+Poison, Energy, Experience, Time. Used in the counters overlay (§7.4). Selected
+via `CounterSelector`.
+
+#### Commander Symbol (`components/ui/icons/PlaneswalkerSymbol.tsx`)
+
+The MTG planeswalker icon. Used **exclusively** in the commander damage overlay
+(§7.3). **Not a counter** — it bypasses `CounterSelector` and is imported
+directly by the commander damage component.
+
+#### Guild Symbols (`components/ui/icons/guilds/`)
+
+All 10 Ravnica guilds. Phase 2 (§10). Selected via `GuildSelector`.
+
+#### Clan Symbols (`components/ui/icons/clans/`)
+
+Abzan, Jeskai, Mardu, Sultai, Temur. Phase 2 (§10). No selector yet.
 
 ---
 
@@ -271,9 +299,9 @@ identical, just oriented for the player's side of the table.
 ```
 
 A horizontal line spans the full screen width, broken at the center by a
-circular button displaying the stylized "M" (planeswalker symbol silhouette or
-abstract geometric M). The visual metaphor is a stretched rope with an insignia
-at its midpoint — a subtle divider between top and bottom player zones.
+circular button displaying the MTG logo (`public/images/mtg-logo.png`). The
+visual metaphor is a stretched rope with an insignia at its midpoint — a subtle
+divider between top and bottom player zones.
 
 **Line:** Dark stroke, low opacity. Extends edge-to-edge. The belt line is the
 permanent dividing boundary between top and bottom player zones — player zones
@@ -412,8 +440,8 @@ Each column:
 └──────────────────────┘
 ```
 
-- **Pill:** Rounded pill. Background = opponent's mana color. Center = commander
-  symbol (⚔️).
+- **Pill:** Rounded pill. Background = opponent's mana color. Center =
+  `PlaneswalkerSymbol` (inline SVG, white fill on opponent's color background).
 - **Damage total:** Alongside the pill. Archivo Bold. Text color auto-selects
   warm white (`#FAF8F5`) or warm near-black (`#1A1A1A`) per luminance.
 - **+ button:** Tap = +1 commander damage. Hold = accelerate (±5 → +10 after 1s)
@@ -435,6 +463,9 @@ controls, and a delete button.
 - ⚡ Energy
 - ✦ Experience
 - ⏳ Time / Suspend
+
+**Note:** `PlaneswalkerSymbol` is not a counter — it belongs to the commander
+damage overlay (§7.3).
 
 **Layout per column:**
 
