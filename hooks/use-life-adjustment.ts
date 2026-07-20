@@ -18,10 +18,10 @@ export interface LifeAdjustmentHandlers {
   onClick: (event: ReactMouseEvent<HTMLButtonElement>) => void;
 }
 
-/* §7.1 — tap = ±1; hold = repeat at ±5, accelerating to ±10 after 1s. */
-const HOLD_DELAY_MS = 400;
+/* §4.2 — tap = ±1; hold = repeat at ±5 after 500ms, accelerating to ±10 after 1.5s. */
+const HOLD_DELAY_MS = 500;
 const REPEAT_INTERVAL_MS = 100;
-const ACCELERATE_AFTER_MS = 1000;
+const ACCELERATE_AFTER_MS = 1500;
 const HOLD_STEP = 5;
 const ACCELERATED_STEP = 10;
 

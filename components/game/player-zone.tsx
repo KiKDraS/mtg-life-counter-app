@@ -6,14 +6,19 @@ import { textColorFor } from "@/lib/utils";
 import { useLifeAdjustment } from "@/hooks/use-life-adjustment";
 
 interface PlayerZoneProps {
-  playerNumber: 1 | 2 | 3 | 4 | 5 | 6;
-  color: ManaColor;
-  rotation?: 0 | 90 | -90 | 180;
-  initialLife?: number;
+  readonly playerNumber: 1 | 2 | 3 | 4 | 5 | 6;
+  readonly color: ManaColor;
+  readonly rotation?: 0 | 90 | -90 | 180;
+  readonly initialLife?: number;
 }
 
+const buttonClass =
+  "flex h-full w-full items-center justify-center text-4xl font-bold leading-none " +
+  "select-none touch-manipulation " +
+  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current";
+
 /**
- * §4.2 Player Zone — solid mana-color block with the life total as the hero.
+ * §4.2 Player Zone — three-column grid: [-] | life | [+].
  * Rotation is applied to the outer wrapper (§4.3) so the interior layout is
  * identical for every orientation.
  */
@@ -33,38 +38,39 @@ export function PlayerZone({
   const textColor = textColorFor(background);
   const isLethal = life <= 0;
 
-  const buttonClass =
-    "flex min-h-12 min-w-12 items-center justify-center rounded-full border-2 border-current " +
-    "px-4 text-4xl font-bold leading-none select-none touch-manipulation " +
-    "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current";
-
   return (
     <div
       className="h-full w-full"
       style={{ transform: `rotate(${rotation}deg)` }}
     >
+      {/* §4.2 swipe gestures: deferred to overlays feature */}
       <section
         aria-label={`Player ${playerNumber}: ${life} life`}
-        className="flex h-full w-full flex-col items-center justify-center gap-6"
+        className="grid h-full w-full grid-cols-3"
         style={{ backgroundColor: background, color: textColor }}
       >
-        <p
-          aria-live="polite"
-          aria-atomic="true"
-          className="text-life leading-none font-black tabular-nums"
-          style={{ color: isLethal ? UI.danger : textColor }}
+        <button
+          type="button"
+          aria-label="-1 life"
+          className={buttonClass}
+          {...adjustment(-1)}
         >
-          {life}
-        </p>
-        <div className="flex items-center gap-10">
-          <button
-            type="button"
-            aria-label="-1 life"
-            className={buttonClass}
-            {...adjustment(-1)}
+          −
+        </button>
+
+        <div className="flex h-full items-center justify-center">
+          <p
+            aria-live="polite"
+            aria-atomic="true"
+            className="text-life leading-none font-black tabular-nums"
+            style={{ color: isLethal ? UI.danger : textColor }}
           >
-            −
-          </button>
+            {life}
+          </p>
+        </div>
+
+        <div className="relative flex h-full">
+          {/* §4.2 gear icon: deferred to color picker feature */}
           <button
             type="button"
             aria-label="+1 life"

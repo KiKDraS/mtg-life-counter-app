@@ -307,8 +307,8 @@ test.describe("Player Zone — Contrast & Touch Targets", () => {
     await expect(lifeTotal(zone(page, 2))).toHaveCSS("color", "rgb(26, 26, 26)");
   });
 
-  test("7.2. All life buttons meet the 44×44px minimum touch target", async ({ page }) => {
-    // 1. Navigate to `/`; read boundingBox() for each of the 4 buttons
+  test("7.2. Buttons span full column height (3-column grid layout)", async ({ page }) => {
+    // 1. Navigate to `/`; each button occupies ~33% width × full zone height
     await page.goto("/");
 
     for (const n of [1, 2] as const) {
@@ -316,8 +316,9 @@ test.describe("Player Zone — Contrast & Touch Targets", () => {
         const button = zone(page, n).getByRole("button", { name });
         const box = await button.boundingBox();
         if (!box) throw new Error(`${name} button (player ${n}) not visible`);
+        // Buttons are full columns: width ≈ zone/3, height ≈ zone height
         expect(box.width).toBeGreaterThanOrEqual(44);
-        expect(box.height).toBeGreaterThanOrEqual(44);
+        expect(box.height).toBeGreaterThanOrEqual(100);
       }
     }
   });
