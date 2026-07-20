@@ -21,7 +21,9 @@
   --color-ui-textLight: #FAF8F5;
   --color-ui-textDark:  #1A1A1A;
 
-  /* Typography */
+  /* Typography (§3.2 / §3.3) */
   --font-sans: var(--font-archivo);
   --font-mono: var(--font-archivo);
+  --text-life: clamp(4rem, 15vw, 12rem);
+  --leading-none: 0.9;
 }
