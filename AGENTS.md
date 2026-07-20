@@ -51,6 +51,11 @@ The agent must strictly respect the following file architecture:
 ├── app/                    # Next.js App Router (RSC by default)
 │   ├── api/                # API route handlers
 │   │   └── judge/          # AI Judge streaming endpoint
+│   ├── favicon.ico         # Root favicon (Next.js file convention)
+│   ├── icon0.svg           # App icon (Next.js file convention)
+│   ├── apple-icon.png      # Apple touch icon (Next.js file convention)
+│   ├── manifest.json       # PWA manifest (Next.js file convention)
+│   ├── robots.txt          # Crawl rules (Next.js file convention)
 │   ├── layout.tsx          # Root layout — metadata, fonts, global shell
 │   ├── page.tsx            # Home page (life counter UI)
 │   └── globals.css         # Tailwind imports + global design tokens
@@ -73,8 +78,7 @@ The agent must strictly respect the following file architecture:
 │   ├── use-swipe.ts            # Swipe gesture detection
 │   └── use-game-state.ts       # State machine hook
 ├── public/                 # Static assets (served as-is)
-│   ├── sw.js               # Service worker
-│   └── robots.txt          # Search engine crawl directives
+│   └── sw.js               # Service worker
 ├── tests/                  # Playwright Test Suite
 │   ├── e2e/                # End-to-End user flow tests
 │   └── components/         # Component isolation tests
@@ -163,8 +167,9 @@ not generic rules.
 
 ### 4. Asset Management
 
-- **`public/`**: Assets served as-is — favicon, robots.txt, manifest.json,
-  service worker, PWA icons.
+- **`public/`**: Assets served as-is — service worker, PWA icon images.
+  Favicon, app icons, Apple touch icon, manifest.json, and robots.txt follow
+  Next.js file conventions in `app/`.
 - **Fonts:** Via `next/font` — `localFont` for local files, `next/font/google`
   for fonts available there (Next.js downloads and self-hosts at build time).
   Reference the CSS variable in `app/layout.tsx`.
@@ -199,7 +204,7 @@ not generic rules.
   database, no authentication layer.
 - **Game state** (`lib/state/`) is session-local. Discriminated union state
   machine. Undo/redo stack. Life totals, poison counters, commander damage.
-- **AI Judge UI** (`components/features/judge-chat.tsx`): `'use client'` chat
+- **AI Judge UI** (`components/modals/judge-chat.tsx`): `'use client'` chat
   interface with streaming response display, message bubbles, and text input.
   Maximized modal for readability per DESIGN.md §6.4.
 - **State boundaries:** Judge chat is ephemeral (session state only). Game state
