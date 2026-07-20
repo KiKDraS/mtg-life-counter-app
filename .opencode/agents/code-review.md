@@ -37,6 +37,9 @@ quality gates. If a single item fails, the submission must be rejected.
 - **Explicit interfaces for boundaries:** Exported functions, component props,
   and API boundaries must use explicit `interface` declarations — not inline
   inference, not `type` for object shapes.
+- **Read-only component props:** All component prop interfaces must use
+  `readonly` on each property or `Readonly<Props>` at the component
+  signature. Flag mutable props.
 - **Discriminated unions over optional properties:** For state machines
   (loading/success/error), demand discriminated unions with a `status` or `type`
   discriminant property.
@@ -45,6 +48,8 @@ quality gates. If a single item fails, the submission must be rejected.
   `lib/constants/colors`.
 - **No barrel imports:** Flag imports from barrel files (`index.ts` re-exports).
   Demand direct module imports per `bundle-barrel-imports`.
+- **No catch-all `utils.ts`:** Flag any `utils.ts` or `helpers.ts` that
+  aggregates unrelated functions. Each utility must have its own file.
 
 ### 3. Tailwind & Design Gate
 

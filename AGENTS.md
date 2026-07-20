@@ -127,6 +127,9 @@ The agent must strictly respect the following file architecture:
   `import { Button } from './components/ui'`. Barrels load unused modules,
   cause circular dependencies, and hurt tree-shaking. The only exception is a
   public library API that explicitly needs a single entry point.
+- **Read-only component props:** All component prop interfaces must use
+  `readonly` on each property, or wrap with `Readonly<Props>` at the
+  component signature. No mutable props.
 
 ### 2. Styling with Tailwind CSS (`app/globals.css`)
 
@@ -171,6 +174,10 @@ not generic rules.
 - **Constants per domain:** `lib/constants/` is organized by domain — one file
   per concept. No catch-all `constants.ts`. A new constant goes in a new or
   existing domain file (e.g., `mana.ts`, `guilds.ts`, `labels.ts`).
+- **Utilities per file:** No catch-all `utils.ts` or `helpers.ts`. Each
+  utility function gets its own file (e.g., `lib/cn.ts`, `lib/format-mana.ts`).
+  If a utility needs internal helpers, promote to a folder with a single entry
+  point.
 - **No barrel imports** (per `bundle-barrel-imports`). Import directly from
   module files — never from an `index.ts` re-export barrel.
 
