@@ -7,6 +7,7 @@
 
 import type { ManaColor } from "./colors";
 import type { Guild } from "./guilds";
+import type { Clan } from "./clans";
 
 /* ── Mana symbol labels ── */
 export const MANA_LABELS: Record<ManaColor, string> = {
@@ -30,4 +31,13 @@ export const GUILD_LABELS: Record<Guild, string> = {
   rakdos: "Cult of Rakdos",
   selesnya: "Selesnya Conclave",
   simic: "Simic Combine",
+} as const;
+
+/* ── Tarkir clan display labels ── */
+export const CLAN_LABELS: Record<Clan, string> = {
+  abzan: "Abzan Houses",
+  jeskai: "Jeskai Way",
+  sultai: "Sultai Brood",
+  mardu: "Mardu Horde",
+  temur: "Temur Frontier",
 } as const;
