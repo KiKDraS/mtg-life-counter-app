@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo } from "next/font/google";
 import "./globals.css";
 
@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   description:
     "Magic: The Gathering life counter — track life totals for Commander and other formats",
   manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
   themeColor: "#292A2A",
 };
 

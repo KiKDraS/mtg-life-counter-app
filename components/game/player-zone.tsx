@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MANA, UI, type ManaColor } from "@/lib/constants/colors";
-import { textColorFor } from "@/lib/utils";
+import { textColorFor } from "@/lib/text-color-for";
 import { useLifeAdjustment } from "@/hooks/use-life-adjustment";
 
 interface PlayerZoneProps {
