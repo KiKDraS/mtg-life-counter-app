@@ -34,3 +34,30 @@ export const MANA_LABELS: Record<ManaColor, string> = {
   g: "Green mana",
   c: "Colorless mana",
 } as const;
+
+/* ── Guild types §2.3 ── */
+export type Guild =
+  | "azorius"
+  | "boros"
+  | "dimir"
+  | "golgari"
+  | "gruul"
+  | "izzet"
+  | "orzhov"
+  | "rakdos"
+  | "selesnya"
+  | "simic";
+
+/* ── Guild display labels ── */
+export const GUILD_LABELS: Record<Guild, string> = {
+  azorius: "Azorius Senate",
+  boros: "Boros Legion",
+  dimir: "House Dimir",
+  golgari: "Golgari Swarm",
+  gruul: "Gruul Clans",
+  izzet: "Izzet League",
+  orzhov: "Orzhov Syndicate",
+  rakdos: "Cult of Rakdos",
+  selesnya: "Selesnya Conclave",
+  simic: "Simic Combine",
+} as const;
