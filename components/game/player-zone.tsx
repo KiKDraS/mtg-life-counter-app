@@ -57,10 +57,20 @@ export function PlayerZone({
           {life}
         </p>
         <div className="flex items-center gap-10">
-          <button type="button" aria-label="-1 life" className={buttonClass} {...adjustment(-1)}>
+          <button
+            type="button"
+            aria-label="-1 life"
+            className={buttonClass}
+            {...adjustment(-1)}
+          >
             −
           </button>
-          <button type="button" aria-label="+1 life" className={buttonClass} {...adjustment(1)}>
+          <button
+            type="button"
+            aria-label="+1 life"
+            className={buttonClass}
+            {...adjustment(1)}
+          >
             +
           </button>
         </div>

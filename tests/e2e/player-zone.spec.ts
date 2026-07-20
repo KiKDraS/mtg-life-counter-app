@@ -1,0 +1,324 @@
+// spec: specs/player-zone.spec.md
+// seed: tests/seed.spec.ts
+
+import { test, expect, type Locator, type Page } from "@playwright/test";
+
+function zone(page: Page, n: 1 | 2): Locator {
+  return page.getByRole("region", { name: new RegExp(`^Player ${n}:`) });
+}
+
+function lifeTotal(zoneLocator: Locator): Locator {
+  return zoneLocator.locator('[aria-live="polite"]');
+}
+
+async function lifeValue(zoneLocator: Locator): Promise<number> {
+  return Number(await lifeTotal(zoneLocator).textContent());
+}
+
+async function holdButton(page: Page, button: Locator, ms: number): Promise<void> {
+  const box = await button.boundingBox();
+  if (!box) throw new Error("button not visible");
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.waitForTimeout(ms);
+  await page.mouse.up();
+}
+
+test.describe("Player Zone — Board Rendering", () => {
+  test("1.1. Board renders two zones in an equal vertical split, P1 on top", async ({ page }) => {
+    // 1. Navigate to `/` with a portrait viewport
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    const regions = page.getByRole("region", { name: /^Player \d:/ });
+    await expect(regions).toHaveCount(2);
+    await expect(regions.first()).toBeVisible();
+    await expect(regions.last()).toBeVisible();
+
+    // 2. Read bounding boxes for both zones
+    const p1Box = await zone(page, 1).boundingBox();
+    const p2Box = await zone(page, 2).boundingBox();
+    if (!p1Box || !p2Box) throw new Error("zones not visible");
+
+    expect(p1Box.y).toBeGreaterThanOrEqual(-2);
+    expect(p1Box.y).toBeLessThanOrEqual(2);
+    expect(Math.abs(p2Box.y - 844 / 2)).toBeLessThanOrEqual(2);
+
+    expect(Math.abs(p1Box.height - p2Box.height)).toBeLessThanOrEqual(2);
+    expect(Math.abs(p1Box.height - 844 / 2)).toBeLessThanOrEqual(2);
+    expect(Math.abs(p2Box.height - 844 / 2)).toBeLessThanOrEqual(2);
+
+    expect(p1Box.width).toBe(390);
+    expect(p2Box.width).toBe(390);
+  });
+
+  test("1.2. Top zone (P1) is rotated 180°, bottom zone (P2) is not rotated", async ({ page }) => {
+    // 1. Navigate to `/`; evaluate P1 wrapper transform
+    await page.goto("/");
+
+    const p1Transform = await zone(page, 1).evaluate(
+      (el) => el.parentElement?.style.transform ?? "",
+    );
+    expect(["rotate(180deg)", "matrix(-1, 0, 0, -1, 0, 0)"]).toContain(p1Transform);
+
+    // 2. Same evaluation for the P2 wrapper
+    const p2Transform = await zone(page, 2).evaluate(
+      (el) => el.parentElement?.style.transform ?? "",
+    );
+    expect(["rotate(0deg)", "none", ""]).toContain(p2Transform);
+  });
+
+  test("1.3. Mana background colors are applied per player", async ({ page }) => {
+    // 1. Navigate to `/`; assert P1 background is blue mana #C1D7E9
+    await page.goto("/");
+
+    await expect(zone(page, 1)).toHaveCSS("background-color", "rgb(193, 215, 233)");
+
+    // 2. Assert P2 background is red mana #E49977
+    await expect(zone(page, 2)).toHaveCSS("background-color", "rgb(228, 153, 119)");
+  });
+});
+
+test.describe("Player Zone — Life Display & Tap Adjustment", () => {
+  test("2.1. Both players start at 40 life with massive typography", async ({ page }) => {
+    // 1. Navigate to `/`; both life totals display exact text `40`
+    await page.goto("/");
+
+    const p1Life = lifeTotal(zone(page, 1));
+    const p2Life = lifeTotal(zone(page, 2));
+    await expect(p1Life).toHaveText("40");
+    await expect(p2Life).toHaveText("40");
+
+    // 2. Assert computed typography on each life <p>
+    for (const life of [p1Life, p2Life]) {
+      const fontSize = await life.evaluate(
+        (el) => parseFloat(getComputedStyle(el).fontSize),
+      );
+      expect(fontSize).toBeGreaterThanOrEqual(64);
+      await expect(life).toHaveCSS("font-weight", "900");
+      const fontFamily = await life.evaluate((el) => getComputedStyle(el).fontFamily);
+      expect(fontFamily).toContain("Archivo");
+    }
+  });
+
+  test("2.2. Tap + and − adjust by exactly 1, independently per player", async ({ page }) => {
+    // 1. Navigate to `/`; P1 +1 once, P2 +1 three times
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    const p2 = zone(page, 2);
+    await p1.getByRole("button", { name: "+1 life" }).click();
+    await p2.getByRole("button", { name: "+1 life" }).click();
+    await p2.getByRole("button", { name: "+1 life" }).click();
+    await p2.getByRole("button", { name: "+1 life" }).click();
+
+    await expect(lifeTotal(p1)).toHaveText("41");
+    await expect(lifeTotal(p2)).toHaveText("43");
+
+    // 2. Click P2 −1 once; P2 reads 42, P1 still 41
+    await p2.getByRole("button", { name: "-1 life" }).click();
+    await expect(lifeTotal(p2)).toHaveText("42");
+    await expect(lifeTotal(p1)).toHaveText("41");
+  });
+});
+
+test.describe("Player Zone — Hold Acceleration", () => {
+  test("3.1. Short hold (~700–800ms) engages the ±5 repeat step", async ({ page }) => {
+    // 1. Navigate to `/`; hold P1 `+1 life` for 750ms
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    await holdButton(page, p1.getByRole("button", { name: "+1 life" }), 750);
+
+    // Assert range [46, 60] (widen upper bound by +5 on slow CI); never an exact value
+    const value = await lifeValue(p1);
+    expect(value).toBeGreaterThanOrEqual(46);
+    expect(value).toBeLessThanOrEqual(60);
+  });
+
+  test("3.2. Long hold (~1.6–1.8s) accelerates to the ±10 step", async ({ page }) => {
+    // 1. Navigate to `/`; hold P1 `+1 life` for 1700ms
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    await holdButton(page, p1.getByRole("button", { name: "+1 life" }), 1700);
+
+    // ≥ 80 proves the +10 step engaged (pure ±5 caps at ~+26 here); ≤ 160 sanity bound.
+    // True theoretical max: tap +1, repeats at t≈500–900 = 5×+5, t≈1000–1700 = 8×+10
+    // → +106 (life 146). Plan's "≈126" undercounted interval ticks; 160 covers CI
+    // release-slip of one extra repeat while still catching runaway/double intervals.
+    const value = await lifeValue(p1);
+    expect(value).toBeGreaterThanOrEqual(80);
+    expect(value).toBeLessThanOrEqual(160);
+  });
+
+  test("3.3. Releasing the button stops adjustment immediately", async ({ page }) => {
+    // 1. Navigate to `/`; hold P1 `+1 life` for 600ms, release, read V; wait 400ms, read again
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    await holdButton(page, p1.getByRole("button", { name: "+1 life" }), 600);
+
+    const v = await lifeValue(p1);
+    await page.waitForTimeout(400);
+    expect(await lifeValue(p1)).toBe(v);
+
+    expect(v).toBeGreaterThanOrEqual(41);
+    expect(v).toBeLessThanOrEqual(56);
+  });
+});
+
+test.describe("Player Zone — Lethal State", () => {
+  test("4.1. Life at or below 0 turns the total danger red; recovering restores dark text", async ({
+    page,
+  }) => {
+    // 1. Navigate to `/`; hold P1 `−1 life` until life ≤ 0 (hard cap 5s)
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    const p2 = zone(page, 2);
+    const p1Life = lifeTotal(p1);
+    const p2Life = lifeTotal(p2);
+
+    const minusButton = p1.getByRole("button", { name: "-1 life" });
+    const box = await minusButton.boundingBox();
+    if (!box) throw new Error("minus button not visible");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    const deadline = Date.now() + 5000;
+    while ((await lifeValue(p1)) > 0 && Date.now() < deadline) {
+      await page.waitForTimeout(100);
+    }
+    await page.mouse.up();
+
+    const lethalValue = await lifeValue(p1);
+    expect(lethalValue).toBeLessThanOrEqual(0);
+    await expect(p1Life).toHaveCSS("color", "rgb(213, 0, 0)");
+
+    // 2. Click P1 `+1 life` (max 70) until life > 0; color returns to #1A1A1A
+    const plusButton = p1.getByRole("button", { name: "+1 life" });
+    for (let i = 0; i < 70 && (await lifeValue(p1)) <= 0; i++) {
+      await plusButton.click();
+    }
+    expect(await lifeValue(p1)).toBeGreaterThanOrEqual(1);
+    await expect(p1Life).toHaveCSS("color", "rgb(26, 26, 26)");
+
+    await expect(p2Life).toHaveText("40");
+    await expect(p2Life).toHaveCSS("color", "rgb(26, 26, 26)");
+  });
+});
+
+test.describe("Player Zone — Keyboard & Focus", () => {
+  test("5.1. Tab reaches all four buttons in DOM order with a visible focus ring", async ({
+    page,
+  }) => {
+    // 1. Navigate to `/`; press Tab four times, asserting focus after each press
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    const p2 = zone(page, 2);
+    const order = [
+      p1.getByRole("button", { name: "-1 life" }),
+      p1.getByRole("button", { name: "+1 life" }),
+      p2.getByRole("button", { name: "-1 life" }),
+      p2.getByRole("button", { name: "+1 life" }),
+    ];
+    for (const button of order) {
+      await page.keyboard.press("Tab");
+      await expect(button).toBeFocused();
+    }
+
+    // 2. Focused button exposes a visible focus ring
+    const focused = p2.getByRole("button", { name: "+1 life" });
+    await expect(focused).toHaveCSS("outline-style", "solid");
+    await expect(focused).toHaveCSS("outline-width", "2px");
+  });
+
+  test("5.2. Enter and Space each adjust by exactly 1 (no acceleration from keyboard)", async ({
+    page,
+  }) => {
+    // 1. Navigate to `/`; Tab twice to focus P1 `+1 life`; press Enter
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    const p2 = zone(page, 2);
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await expect(p1.getByRole("button", { name: "+1 life" })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(lifeTotal(p1)).toHaveText("41");
+
+    // 2. Press Space once; P1 reads 42, P2 unchanged at 40
+    await page.keyboard.press("Space");
+    await expect(lifeTotal(p1)).toHaveText("42");
+    await expect(lifeTotal(p2)).toHaveText("40");
+  });
+});
+
+test.describe("Player Zone — ARIA & Announcements", () => {
+  test("6.1. Zones announce the 'Player N: X life' pattern and it stays in sync with adjustments", async ({
+    page,
+  }) => {
+    // 1. Navigate to `/`; both regions resolve with exact accessible names
+    await page.goto("/");
+
+    await expect(page.getByRole("region", { name: "Player 1: 40 life" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Player 2: 40 life" })).toBeVisible();
+
+    // 2. Click P1 `+1 life` once; region re-resolves under the updated name
+    await zone(page, 1)
+      .getByRole("button", { name: "+1 life" })
+      .click();
+    await expect(page.getByRole("region", { name: "Player 1: 41 life" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Player 1: 40 life" })).toHaveCount(0);
+  });
+
+  test("6.2. Buttons expose correct labels; life total is a polite live region", async ({
+    page,
+  }) => {
+    // 1. Navigate to `/`; each zone has exactly one `-1 life` and one `+1 life` button, both visible
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    const p2 = zone(page, 2);
+    for (const z of [p1, p2]) {
+      await expect(z.getByRole("button", { name: "-1 life" })).toBeVisible();
+      await expect(z.getByRole("button", { name: "+1 life" })).toBeVisible();
+    }
+
+    // 2. aria-live/aria-atomic on both life totals; text updates to 41 after a tap
+    for (const z of [p1, p2]) {
+      await expect(lifeTotal(z)).toHaveAttribute("aria-live", "polite");
+      await expect(lifeTotal(z)).toHaveAttribute("aria-atomic", "true");
+    }
+    await p1.getByRole("button", { name: "+1 life" }).click();
+    await expect(lifeTotal(p1)).toHaveText("41");
+  });
+});
+
+test.describe("Player Zone — Contrast & Touch Targets", () => {
+  test("7.1. Life text is warm near-black #1A1A1A on both mana backgrounds", async ({ page }) => {
+    // 1. Navigate to `/`; assert text color #1A1A1A on both life totals at 40 life
+    await page.goto("/");
+
+    await expect(lifeTotal(zone(page, 1))).toHaveCSS("color", "rgb(26, 26, 26)");
+    await expect(lifeTotal(zone(page, 2))).toHaveCSS("color", "rgb(26, 26, 26)");
+  });
+
+  test("7.2. All life buttons meet the 44×44px minimum touch target", async ({ page }) => {
+    // 1. Navigate to `/`; read boundingBox() for each of the 4 buttons
+    await page.goto("/");
+
+    for (const n of [1, 2] as const) {
+      for (const name of ["-1 life", "+1 life"]) {
+        const button = zone(page, n).getByRole("button", { name });
+        const box = await button.boundingBox();
+        if (!box) throw new Error(`${name} button (player ${n}) not visible`);
+        expect(box.width).toBeGreaterThanOrEqual(44);
+        expect(box.height).toBeGreaterThanOrEqual(44);
+      }
+    }
+  });
+});
