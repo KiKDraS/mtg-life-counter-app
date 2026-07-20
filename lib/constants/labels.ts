@@ -8,6 +8,7 @@
 import type { ManaColor } from "./colors";
 import type { Guild } from "./guilds";
 import type { Clan } from "./clans";
+import type { Shard } from "./shards";
 
 /* ── Mana symbol labels ── */
 export const MANA_LABELS: Record<ManaColor, string> = {
@@ -40,4 +41,13 @@ export const CLAN_LABELS: Record<Clan, string> = {
   sultai: "Sultai Brood",
   mardu: "Mardu Horde",
   temur: "Temur Frontier",
+} as const;
+
+/* ── Alara shard display labels ── */
+export const SHARD_LABELS: Record<Shard, string> = {
+  bant:  "Bant",
+  esper: "Esper",
+  grixis:"Grixis",
+  jund:  "Jund",
+  naya:  "Naya",
 } as const;
