@@ -1,5 +1,5 @@
 import type { SVGAttributes } from "react";
-import type { Guild } from "@/lib/constants/colors";
+import type { Guild } from "@/lib/constants/guilds";
 import AzoriusSymbol from "./guilds/AzoriusSymbol";
 import BorosSymbol from "./guilds/BorosSymbol";
 import DimirSymbol from "./guilds/DimirSymbol";

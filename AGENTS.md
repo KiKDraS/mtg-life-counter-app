@@ -159,9 +159,11 @@ not generic rules.
 - **Per `typescript-advanced-types`:** Discriminated unions for state machines,
   generics for reusable utilities, `satisfies` for config objects.
 - **No magic strings for shared values:** Import from `lib/constants/` for
-  colors, labels, and any future shared constants. The TS constant file is the
-  single source of truth — when DESIGN.md §2 changes, update
-  `lib/constants/colors.ts` first, then mirror to `globals.css`.
+  colors, labels, and any future shared constants. When DESIGN.md §2 changes,
+  update `lib/constants/colors.ts` first, then mirror to `globals.css`.
+- **Constants per domain:** `lib/constants/` is organized by domain — one file
+  per concept. No catch-all `constants.ts`. A new constant goes in a new or
+  existing domain file (e.g., `mana.ts`, `guilds.ts`, `labels.ts`).
 - **No barrel imports** (per `bundle-barrel-imports`). Import directly from
   module files.
 
