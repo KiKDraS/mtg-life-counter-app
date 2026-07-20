@@ -74,6 +74,12 @@ execution across all four layers simultaneously:
   directly from the source file: `import { Button } from './components/ui/button'`,
   never `import { Button } from './components/ui'`. The only exception is an
   explicit public library API.
+- **Read-only component props:** All component prop interfaces must use
+  `readonly` on each property, or wrap with `Readonly<Props>` at the
+  component signature. No mutable props.
+- **Utilities per file:** No catch-all `utils.ts` or `helpers.ts`. Each
+  utility function gets its own file (e.g., `lib/cn.ts`, `lib/format-mana.ts`).
+  If a utility needs internal helpers, promote to a folder.
 - Use `satisfies` for config objects. Use generics for reusable utilities.
 
 ### 3. Tailwind CSS Styling
