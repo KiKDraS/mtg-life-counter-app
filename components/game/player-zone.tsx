@@ -13,8 +13,10 @@ interface PlayerZoneProps {
 }
 
 const buttonClass =
-  "flex h-full w-full items-center justify-center text-4xl font-bold leading-none " +
+  "relative flex h-full w-full items-center justify-center text-4xl font-bold leading-none " +
   "select-none touch-manipulation " +
+  "after:content-[''] after:absolute after:inset-0 after:bg-black/8 after:pointer-events-none " +
+  "after:transition-opacity after:duration-150 after:opacity-0 active:after:opacity-100 " +
   "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current";
 
 /**

@@ -18,18 +18,16 @@ export interface LifeAdjustmentHandlers {
   onClick: (event: ReactMouseEvent<HTMLButtonElement>) => void;
 }
 
-/* §4.2 — tap = ±1; hold = repeat at ±5 after 500ms, accelerating to ±10 after 1.5s. */
-const HOLD_DELAY_MS = 500;
+/* §4.2 — tap = ±1; hold = repeat at ±10 after 1000ms. */
+const HOLD_DELAY_MS = 1000;
 const REPEAT_INTERVAL_MS = 100;
-const ACCELERATE_AFTER_MS = 1500;
-const HOLD_STEP = 5;
-const ACCELERATED_STEP = 10;
+const HOLD_STEP = 10;
 
 /**
  * §7.1 life adjustment gestures.
  *
- * Pointer taps fire ±1 on `pointerdown`; holding repeats at an accelerating
- * step. Keyboard activation (Enter/Space) fires a single ±1 via the click
+ * Pointer taps fire ±1 on `pointerdown`; holding repeats at ±10 after 1000ms.
+ * Keyboard activation (Enter/Space) fires a single ±1 via the click
  * handler, guarded by `event.detail === 0` so pointer taps never double-fire.
  *
  * Returns a factory: pass a direction, spread the result onto a `<button>`.
@@ -40,7 +38,6 @@ export function useLifeAdjustment(
   const onAdjustRef = useRef(onAdjust);
   const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const repeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const holdStartRef = useRef(0);
 
   useEffect(() => {
     onAdjustRef.current = onAdjust;
@@ -64,13 +61,9 @@ export function useLifeAdjustment(
       onPointerDown: () => {
         stopHold();
         onAdjustRef.current(direction);
-        holdStartRef.current = Date.now();
         delayTimerRef.current = setTimeout(() => {
           repeatTimerRef.current = setInterval(() => {
-            const heldMs = Date.now() - holdStartRef.current;
-            const step =
-              heldMs >= ACCELERATE_AFTER_MS ? ACCELERATED_STEP : HOLD_STEP;
-            onAdjustRef.current(direction * step);
+            onAdjustRef.current(direction * HOLD_STEP);
           }, REPEAT_INTERVAL_MS);
         }, HOLD_DELAY_MS);
       },
