@@ -1,15 +1,13 @@
 import type { SVGAttributes } from "react";
-import PlaneswalkerSymbol from "./counters/PlaneswalkerSymbol";
 import EnergySymbol from "./counters/EnergySymbol";
-import PoisonSymbol from "./counters/PoisonSymbol";
 import ExperienceSymbol from "./counters/ExperienceSymbol";
+import PoisonSymbol from "./counters/PoisonSymbol";
 import TimeSymbol from "./counters/TimeSymbol";
 
 export type CounterType =
-  | "planeswalker"
   | "energy"
-  | "poison"
   | "experience"
+  | "poison"
   | "time";
 
 type CounterSelectorProps = {
@@ -19,10 +17,9 @@ type CounterSelectorProps = {
 } & SVGAttributes<SVGSVGElement>;
 
 const COUNTER_ICONS: Record<CounterType, React.ElementType> = {
-  planeswalker: PlaneswalkerSymbol,
   energy: EnergySymbol,
-  poison: PoisonSymbol,
   experience: ExperienceSymbol,
+  poison: PoisonSymbol,
   time: TimeSymbol,
 };
 
