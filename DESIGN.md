@@ -398,11 +398,91 @@ modal library.
 
 ### 6.5 Modal: Color Picker (per player)
 
-- Triggered by gear icon on player zone
-- Shows 5 mana symbols as large tappable options
-- Optional guild color grid below (future)
-- Preview of how the zone will look
-- "Apply" button
+Triggered by the gear icon on each player zone. 80/20 vertical split — a color
+selection area above, a fixed filter strip below.
+
+```
+┌──────────────────────────┐
+│                          │
+│    COLOR SELECTION AREA  │  ← 80% height
+│   (wheel or dual wheels) │
+│                          │
+├──────────────────────────┤
+│ [mana] guild clan shard  │  ← 20% height, never changes
+│      WUBRG  Colorless    │
+└──────────────────────────┘
+```
+
+#### Filter Strip (bottom 20%)
+
+Six fixed items in a horizontal row. This strip **never changes** — it is always
+visible regardless of which wheel is shown above. The active filter is visually
+highlighted (filled background, inverted text) so the user always knows which
+wheel they are viewing.
+
+| Item         | Type   | Action                                                                   |
+| ------------ | ------ | ------------------------------------------------------------------------ |
+| **mana**     | Tab    | Shows the 5-color WUBRG mana wheel (default on open).                    |
+| **guild**    | Tab    | Shows two 5-symbol wheels side-by-side (10 Ravnica guilds).              |
+| **clan**     | Tab    | Shows a single 5-symbol wheel (5 Tarkir clans).                          |
+| **shard**    | Tab    | Shows a single 5-symbol wheel (5 Alara shards).                          |
+| **WUBRG**    | Action | Applies 5-color gradient background. Closes modal immediately.           |
+| **Colorless**| Action | Applies colorless solid background. Closes modal immediately.            |
+
+#### Mana Tab (default)
+
+A circular wheel with the 5 mana symbols arranged clockwise in **WUBRG order**:
+White → Blue → Black → Red → Green. Each symbol is a tappable button (≥44px),
+rendered via `ManaSelector`.
+
+- **Tap a mana symbol** → the player zone background becomes that solid mana
+  color → modal closes immediately. No "Apply" button needed.
+
+#### Guild Tab
+
+Two 5-symbol wheels placed side-by-side (10 Ravnica guilds won't fit a single
+wheel). Each symbol is rendered via `GuildSelector`.
+
+- **Tap a guild symbol** → the player zone background becomes a
+  `linear-gradient(to bottom right, <guild-color-1>, <guild-color-2>)` using
+  that guild's two mana colors → modal closes immediately.
+- A small guild badge (24×24px) appears in the bottom‑right corner of the player
+  zone.
+
+#### Clan Tab
+
+A single 5-symbol wheel (same circular layout as the mana tab). Each symbol is
+rendered via `ClanSelector`.
+
+- **Tap a clan symbol** → the player zone background becomes a
+  `linear-gradient(to bottom right, <color-1>, <color-2>, <color-3>)` using that
+  clan's three mana colors → modal closes immediately.
+- A small clan badge (24×24px) appears in the bottom‑right corner.
+
+#### Shard Tab
+
+Same as clan — single 5-symbol wheel, rendered via `ShardSelector`. Tap a shard
+→ 3-color `linear-gradient(to bottom right, ...)` → close. Shard badge (24×24px)
+in bottom‑right.
+
+#### Behavior Summary
+
+| Selection            | Closes modal? | Player zone result                                    |
+| -------------------- | ------------- | ----------------------------------------------------- |
+| Single mana color    | On tap        | Solid mana color                                      |
+| WUBRG                | Immediately   | 5-color `linear-gradient(to bottom right, W,U,B,R,G)` |
+| Colorless            | Immediately   | Solid `#CAC5C0`                                       |
+| Guild                | On tap        | 2-color gradient + guild badge (bottom‑right)         |
+| Clan                 | On tap        | 3-color gradient + clan badge (bottom‑right)          |
+| Shard                | On tap        | 3-color gradient + shard badge (bottom‑right)         |
+
+- No standalone "Apply" button — every selection confirms instantly.
+- The player zone previews the change in real-time inside the modal.
+- Faction badges are rendered via `GuildSelector`, `ClanSelector`, or
+  `ShardSelector` at 24×24px and placed in the bottom‑right corner of the player
+  zone.
+- The filter strip always shows the highlighted active tab — no mode is hidden
+  from the user.
 
 ---
 
