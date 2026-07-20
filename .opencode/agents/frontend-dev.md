@@ -56,6 +56,10 @@ execution across all four layers simultaneously:
   - Eliminate data waterfalls with `Promise.all()`.
   - Wrap heavy or async sections in `<Suspense>` boundaries.
   - Use `next/dynamic` for lazy-loaded, non-critical components.
+- **Never write tests.** Do not create, modify, or maintain `.spec.ts` or
+  `.test.ts` files. Test generation and maintenance is handled exclusively by
+  the Playwright pipeline (planner → generator → healer). If the healer
+  reports a real app bug, fix the app code — not the tests.
 
 ### 2. TypeScript
 
