@@ -265,30 +265,29 @@ column handles taps and holds, while the full area detects swipe gestures.
   ◄─────── full-zone swipe ───────►
 ```
 
-| Column | Width | Content |
-| ------ | ----- | ------- |
+| Column | Width | Content                                                                                   |
+| ------ | ----- | ----------------------------------------------------------------------------------------- |
 | Left   | 33.3% | **[-]** — decrement life. No border, no rounded corners. The entire column is the button. |
-| Center | 33.3% | **Life total** — `--text-life`, Archivo Black 900, vertically and horizontally centered. |
-| Right  | 33.3% | **[+]** — increment life. Same borderless treatment as [-]. Entire column is the button. |
+| Center | 33.3% | **Life total** — `--text-life`, Archivo Black 900, vertically and horizontally centered.  |
+| Right  | 33.3% | **[+]** — increment life. Same borderless treatment as [-]. Entire column is the button.  |
 
-- **Top-right:** Gear icon (color picker trigger). Sits in the right column's top
-  corner, outside the button hit area.
+- **Top-right:** Gear icon (color picker trigger). Sits in the right column's
+  top corner, outside the button hit area.
 - **[-] / [+] buttons use the full column:** No border, no `border-radius`, no
   background distinction from the player zone color. The button is
   indistinguishable from the background — only the `-` / `+` label reveals the
   hit area. Text color auto-selects warm white (`#FAF8F5`) or warm near-black
   (`#1A1A1A`) based on the player's mana color luminance, matching the life
   total.
-- **Life adjustment:** Tap [-] or [+] → ±1. Hold → accelerate (±5 after 500ms,
-  ±10 after 1.5s). Double-tap the life total → opens numpad for exact entry.
+- **Life adjustment:** Tap [-] or [+] → ±1. Hold → accelerate (±10 after 1s).
+  Double-tap the life total → opens numpad for exact entry.
 - **Lethal state:** Life total turns danger red (`#D50000`) when at 0 or below.
   The +/- columns remain unaffected.
 - **Swipe gestures (full player zone):** Swipe left anywhere on the zone →
   commander damage overlay. Swipe right → counters overlay. The gesture detector
-  differentiates swipes from taps: any horizontal movement ≥10px detected
-  before 300ms is treated as a swipe. Vertical movement is ignored. Taps and
-  holds on the +/- buttons are unaffected since they involve no horizontal
-  movement.
+  differentiates swipes from taps: any horizontal movement ≥10px detected before
+  300ms is treated as a swipe. Vertical movement is ignored. Taps and holds on
+  the +/- buttons are unaffected since they involve no horizontal movement.
 - **After swipe (overlay open):** Swiping in either direction along the X-axis
   closes the overlay and returns to the life total view.
 
