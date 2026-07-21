@@ -9,6 +9,7 @@
  */
 
 /* ── Player identity colors (§2.1) ── */
+/* Keys are in WUBRG order (White → Blue → Black → Red → Green → Colorless). */
 export const MANA = {
   w: "#F8F6D8" as const, // White  — warm, sheltering
   u: "#C1D7E9" as const, // Blue   — electric, intellectual
@@ -26,43 +27,43 @@ import type { Clan } from "./clans";
 
 /* ── Alara shard gradient stops (3-color triads) ── */
 export const SHARD_COLORS: Record<Shard, readonly [string, string, string]> = {
-  bant:  [MANA.g, MANA.w, MANA.u] as const,
+  bant: [MANA.g, MANA.w, MANA.u] as const,
   esper: [MANA.w, MANA.u, MANA.b] as const,
-  grixis:[MANA.u, MANA.b, MANA.r] as const,
-  jund:  [MANA.b, MANA.r, MANA.g] as const,
-  naya:  [MANA.r, MANA.g, MANA.w] as const,
+  grixis: [MANA.u, MANA.b, MANA.r] as const,
+  jund: [MANA.b, MANA.r, MANA.g] as const,
+  naya: [MANA.r, MANA.g, MANA.w] as const,
 };
 
 /* ── Ravnica guild gradient stops (2-color pairs) ── */
 export const GUILD_COLORS: Record<Guild, readonly [string, string]> = {
   azorius: [MANA.w, MANA.u] as const,
-  boros:   [MANA.r, MANA.w] as const,
-  dimir:   [MANA.u, MANA.b] as const,
+  boros: [MANA.r, MANA.w] as const,
+  dimir: [MANA.u, MANA.b] as const,
   golgari: [MANA.b, MANA.g] as const,
-  gruul:   [MANA.r, MANA.g] as const,
-  izzet:   [MANA.u, MANA.r] as const,
-  orzhov:  [MANA.w, MANA.b] as const,
-  rakdos:  [MANA.b, MANA.r] as const,
-  selesnya:[MANA.g, MANA.w] as const,
-  simic:   [MANA.g, MANA.u] as const,
+  gruul: [MANA.r, MANA.g] as const,
+  izzet: [MANA.u, MANA.r] as const,
+  orzhov: [MANA.w, MANA.b] as const,
+  rakdos: [MANA.b, MANA.r] as const,
+  selesnya: [MANA.g, MANA.w] as const,
+  simic: [MANA.g, MANA.u] as const,
 };
 
 /* ── Tarkir clan gradient stops (3-color wedges) ── */
 export const CLAN_COLORS: Record<Clan, readonly [string, string, string]> = {
-  abzan:  [MANA.w, MANA.b, MANA.g] as const,
+  abzan: [MANA.w, MANA.b, MANA.g] as const,
   jeskai: [MANA.u, MANA.r, MANA.w] as const,
   sultai: [MANA.b, MANA.g, MANA.u] as const,
-  mardu:  [MANA.r, MANA.w, MANA.b] as const,
-  temur:  [MANA.g, MANA.u, MANA.r] as const,
+  mardu: [MANA.r, MANA.w, MANA.b] as const,
+  temur: [MANA.g, MANA.u, MANA.r] as const,
 };
 
 /* ── UI & shell colors (§2.2) ── */
 export const UI = {
-  overlay:   "#1A1A1A" as const, // Commander damage & counters overlay bg
-  belt:      "#000000" as const, // Spellbook belt, AI Judge modal
-  danger:    "#D50000" as const, // Life ≤ 0, commander damage ≥ 21
+  overlay: "#1A1A1A" as const, // Commander damage & counters overlay bg
+  belt: "#000000" as const, // Spellbook belt, AI Judge modal
+  danger: "#D50000" as const, // Life ≤ 0, commander damage ≥ 21
   textLight: "#FAF8F5" as const, // Text on dark backgrounds
-  textDark:  "#1A1A1A" as const, // Text on light backgrounds
-  iconDark:  "#0D0F0F" as const, // Silhouette fill for mana, shards, clans, guild (§2.2)
+  textDark: "#1A1A1A" as const, // Text on light backgrounds
+  iconDark: "#0D0F0F" as const, // Silhouette fill for mana, shards, clans, guild (§2.2)
   iconLight: "#FAF8F5" as const, // Silhouette fill for counters, player-actions, Planeswalker (§2.2)
 } as const;

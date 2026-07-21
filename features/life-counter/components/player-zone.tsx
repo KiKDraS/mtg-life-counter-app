@@ -1,13 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import { MANA, UI, type ManaColor } from "@/shared/lib/constants/colors";
-import { textColorFor } from "@/shared/lib/text-color-for";
+import { useRef, useCallback } from "react";
+import { UI } from "@/shared/lib/constants/colors";
 import { useLifeAdjustment } from "@/features/life-counter/hooks/use-life-adjustment";
+import {
+  INCREMENT_LIFE,
+  DECREMENT_LIFE,
+} from "@/features/life-counter/constants/life";
+import {
+  usePlayerState,
+  adjustLife,
+  setColor,
+} from "@/features/life-counter/hooks/use-player-state";
+import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
+import { ColorPicker } from "./color-picker";
+import type { PlayerColor } from "@/features/life-counter/types/player";
+import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 
 interface PlayerZoneProps {
   readonly playerNumber: 1 | 2 | 3 | 4 | 5 | 6;
-  readonly color: ManaColor;
+  readonly color: PlayerColor;
   readonly rotation?: 0 | 90 | -90 | 180;
   readonly initialLife?: number;
 }
@@ -29,32 +41,39 @@ export function PlayerZone({
   rotation = 0,
   initialLife = 40,
 }: PlayerZoneProps) {
-  // ponytail: zone-local state; lifted to game state machine with the board feature
-  const [life, setLife] = useState(initialLife);
-  const adjustment = useLifeAdjustment((delta) =>
-    setLife((prev) => prev + delta),
+  const [state, dispatch] = usePlayerState(initialLife, color);
+
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+
+  const adjustment = useLifeAdjustment((delta) => dispatch(adjustLife(delta)));
+
+  const handleColorSelect = useCallback(
+    (result: PlayerColor) => {
+      dispatch(setColor(result));
+      dialogRef.current?.close();
+    },
+    [dispatch],
   );
 
-  const background = MANA[color];
-  const textColor = textColorFor(background);
-  const isLethal = life <= 0;
+  const isLethal = state.life <= 0;
+  const { background, textColor } = zoneStylesFor(state.color);
 
   return (
     <div
-      className="h-full w-full"
+      className="relative h-full w-full"
       style={{ transform: `rotate(${rotation}deg)` }}
     >
       {/* §4.2 swipe gestures: deferred to overlays feature */}
       <section
-        aria-label={`Player ${playerNumber}: ${life} life`}
+        aria-label={`Player ${playerNumber}: ${state.life} life`}
         className="grid h-full w-full grid-cols-3"
-        style={{ backgroundColor: background, color: textColor }}
+        style={{ background, color: textColor }}
       >
         <button
           type="button"
           aria-label="-1 life"
           className={buttonClass}
-          {...adjustment(-1)}
+          {...adjustment(DECREMENT_LIFE)}
         >
           −
         </button>
@@ -66,22 +85,37 @@ export function PlayerZone({
             className="text-life leading-none font-black tabular-nums"
             style={{ color: isLethal ? UI.danger : textColor }}
           >
-            {life}
+            {state.life}
           </p>
         </div>
 
         <div className="relative flex h-full">
-          {/* §4.2 gear icon: deferred to color picker feature */}
+          {/* §4.2 gear icon — top-right, outside the + button hit area */}
+          <button
+            type="button"
+            aria-label="Change color"
+            onClick={() => dialogRef.current?.show()}
+            className="absolute top-1 right-1 z-10 flex size-11 items-center justify-center rounded-full transition-colors hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
+          >
+            <ColorSettings size={24} fill="currentColor" />
+          </button>
+
           <button
             type="button"
             aria-label="+1 life"
             className={buttonClass}
-            {...adjustment(1)}
+            {...adjustment(INCREMENT_LIFE)}
           >
             +
           </button>
         </div>
       </section>
+
+      {/*
+       * §6.5 — Color Picker modal.
+       * One dialog per player zone — each zone manages its own color locally.
+       */}
+      <ColorPicker dialogRef={dialogRef} onSelect={handleColorSelect} />
     </div>
   );
 }

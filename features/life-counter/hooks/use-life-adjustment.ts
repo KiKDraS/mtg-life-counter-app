@@ -5,10 +5,11 @@ import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
+import { INCREMENT_LIFE, DECREMENT_LIFE } from "@/features/life-counter/constants/life";
 
-type Direction = 1 | -1;
+type LifeSign = typeof INCREMENT_LIFE | typeof DECREMENT_LIFE;
 
-export type AdjustCallback = (delta: number) => void;
+type AdjustCallback = (delta: number) => void;
 
 export interface LifeAdjustmentHandlers {
   onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
@@ -34,7 +35,7 @@ const HOLD_STEP = 10;
  */
 export function useLifeAdjustment(
   onAdjust: AdjustCallback,
-): (direction: Direction) => LifeAdjustmentHandlers {
+): (direction: LifeSign) => LifeAdjustmentHandlers {
   const onAdjustRef = useRef(onAdjust);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -53,7 +54,7 @@ export function useLifeAdjustment(
     return () => stopHold();
   }, [stopHold]);
 
-  const startRepeat = useCallback((direction: Direction) => {
+  const startRepeat = useCallback((direction: LifeSign) => {
     // single interval: skip the first N ticks to build the hold delay
     let ticks = 0;
     const skipTicks = HOLD_DELAY_MS / REPEAT_INTERVAL_MS;
@@ -65,7 +66,7 @@ export function useLifeAdjustment(
   }, []);
 
   const handlePointerDown = useCallback(
-    (direction: Direction) => {
+    (direction: LifeSign) => {
       stopHold();
       onAdjustRef.current(direction);
       startRepeat(direction);
@@ -74,7 +75,7 @@ export function useLifeAdjustment(
   );
 
   const handleClick = useCallback(
-    (direction: Direction, event: ReactMouseEvent<HTMLButtonElement>) => {
+    (direction: LifeSign, event: ReactMouseEvent<HTMLButtonElement>) => {
       const isKeyboardClick = event.detail === 0;
       if (isKeyboardClick) {
         onAdjustRef.current(direction);
@@ -84,7 +85,7 @@ export function useLifeAdjustment(
   );
 
   return useCallback(
-    (direction: Direction): LifeAdjustmentHandlers => ({
+    (direction: LifeSign): LifeAdjustmentHandlers => ({
       onPointerDown: (event) => {
         const isPrimaryClick = event.button === 0;
         if (isPrimaryClick) handlePointerDown(direction);
