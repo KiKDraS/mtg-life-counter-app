@@ -1,20 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import type {
-  MouseEvent as ReactMouseEvent,
-  PointerEvent as ReactPointerEvent,
-} from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 
 type Direction = 1 | -1;
 
 export type AdjustCallback = (delta: number) => void;
 
 export interface LifeAdjustmentHandlers {
-  onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
-  onPointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
-  onPointerLeave: (event: ReactPointerEvent<HTMLButtonElement>) => void;
-  onPointerCancel: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onPointerDown: () => void;
+  onPointerUp: () => void;
+  onPointerLeave: () => void;
+  onPointerCancel: () => void;
   onClick: (event: ReactMouseEvent<HTMLButtonElement>) => void;
 }
 
@@ -36,48 +33,62 @@ export function useLifeAdjustment(
   onAdjust: AdjustCallback,
 ): (direction: Direction) => LifeAdjustmentHandlers {
   const onAdjustRef = useRef(onAdjust);
-  const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const repeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     onAdjustRef.current = onAdjust;
-  });
+  }, [onAdjust]);
 
   const stopHold = useCallback(() => {
-    if (delayTimerRef.current !== null) {
-      clearTimeout(delayTimerRef.current);
-      delayTimerRef.current = null;
-    }
-    if (repeatTimerRef.current !== null) {
-      clearInterval(repeatTimerRef.current);
-      repeatTimerRef.current = null;
+    if (timerRef.current !== null) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
   }, []);
 
-  useEffect(() => stopHold, [stopHold]);
+  useEffect(() => {
+    return () => stopHold();
+  }, [stopHold]);
+
+  const startRepeat = useCallback((direction: Direction) => {
+    // single interval: skip the first N ticks to build the hold delay
+    let ticks = 0;
+    const skipTicks = HOLD_DELAY_MS / REPEAT_INTERVAL_MS;
+    timerRef.current = setInterval(() => {
+      if (++ticks >= skipTicks) {
+        onAdjustRef.current(direction * HOLD_STEP);
+      }
+    }, REPEAT_INTERVAL_MS);
+  }, []);
+
+  const handlePointerDown = useCallback(
+    (direction: Direction) => {
+      stopHold();
+      onAdjustRef.current(direction);
+      startRepeat(direction);
+    },
+    [stopHold, startRepeat],
+  );
+
+  const handleClick = useCallback(
+    (direction: Direction, event: ReactMouseEvent<HTMLButtonElement>) => {
+      // detail === 0 → keyboard-originated click; pointer taps already
+      // fired on pointerdown, so only keyboard fires here.
+      if (event.detail === 0) {
+        onAdjustRef.current(direction);
+      }
+    },
+    [],
+  );
 
   return useCallback(
     (direction: Direction): LifeAdjustmentHandlers => ({
-      onPointerDown: () => {
-        stopHold();
-        onAdjustRef.current(direction);
-        delayTimerRef.current = setTimeout(() => {
-          repeatTimerRef.current = setInterval(() => {
-            onAdjustRef.current(direction * HOLD_STEP);
-          }, REPEAT_INTERVAL_MS);
-        }, HOLD_DELAY_MS);
-      },
+      onPointerDown: () => handlePointerDown(direction),
       onPointerUp: stopHold,
       onPointerLeave: stopHold,
       onPointerCancel: stopHold,
-      onClick: (event) => {
-        // detail === 0 → keyboard-originated click; pointer taps already
-        // fired on pointerdown, so only keyboard fires here.
-        if (event.detail === 0) {
-          onAdjustRef.current(direction);
-        }
-      },
+      onClick: (event) => handleClick(direction, event),
     }),
-    [stopHold],
+    [handlePointerDown, stopHold, handleClick],
   );
 }
