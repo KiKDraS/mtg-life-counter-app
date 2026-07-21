@@ -75,9 +75,8 @@ export function useLifeAdjustment(
 
   const handleClick = useCallback(
     (direction: Direction, event: ReactMouseEvent<HTMLButtonElement>) => {
-      // detail === 0 → keyboard-originated click; pointer taps already
-      // fired on pointerdown, so only keyboard fires here.
-      if (event.detail === 0) {
+      const isKeyboardClick = event.detail === 0;
+      if (isKeyboardClick) {
         onAdjustRef.current(direction);
       }
     },
@@ -87,7 +86,8 @@ export function useLifeAdjustment(
   return useCallback(
     (direction: Direction): LifeAdjustmentHandlers => ({
       onPointerDown: (event) => {
-        if (event.button === 0) handlePointerDown(direction);
+        const isPrimaryClick = event.button === 0;
+        if (isPrimaryClick) handlePointerDown(direction);
       },
       onPointerUp: stopHold,
       onPointerLeave: stopHold,
