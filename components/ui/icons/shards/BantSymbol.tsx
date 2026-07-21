@@ -21,7 +21,10 @@ function BantSymbol({ size = 48, className, ...props }: BantSymbolProps) {
         <defs>
           <linearGradient id="bantGrad" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor={c1} />
-            <stop offset="50%" stopColor={c2} />
+            <stop offset="33.3%" stopColor={c1} />
+            <stop offset="33.3%" stopColor={c2} />
+            <stop offset="66.6%" stopColor={c2} />
+            <stop offset="66.6%" stopColor={c3} />
             <stop offset="100%" stopColor={c3} />
           </linearGradient>
         </defs>
