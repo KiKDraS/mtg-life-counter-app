@@ -22,6 +22,7 @@ export type ManaColor = keyof typeof MANA;
 
 import type { Shard } from "./shards";
 import type { Guild } from "./guilds";
+import type { Clan } from "./clans";
 
 /* ── Alara shard gradient stops (3-color triads) ── */
 export const SHARD_COLORS: Record<Shard, readonly [string, string, string]> = {
@@ -44,6 +45,15 @@ export const GUILD_COLORS: Record<Guild, readonly [string, string]> = {
   rakdos:  [MANA.b, MANA.r] as const,
   selesnya:[MANA.g, MANA.w] as const,
   simic:   [MANA.g, MANA.u] as const,
+};
+
+/* ── Tarkir clan gradient stops (3-color wedges) ── */
+export const CLAN_COLORS: Record<Clan, readonly [string, string, string]> = {
+  abzan:  [MANA.w, MANA.b, MANA.g] as const,
+  jeskai: [MANA.u, MANA.r, MANA.w] as const,
+  sultai: [MANA.b, MANA.g, MANA.u] as const,
+  mardu:  [MANA.r, MANA.w, MANA.b] as const,
+  temur:  [MANA.g, MANA.u, MANA.r] as const,
 };
 
 /* ── UI & shell colors (§2.2) ── */
