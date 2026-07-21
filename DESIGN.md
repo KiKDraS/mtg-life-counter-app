@@ -90,6 +90,8 @@ Text on these backgrounds auto-selects warm white (`#FAF8F5`) or warm near-black
 | Danger red             | `#D50000`          | Life total ≤ 0, commander damage ≥ 21             |
 | Warm white (text)      | `#FAF8F5`          | Life / UI text on overlay & belt backgrounds      |
 | Warm near-black (text) | `#1A1A1A`          | Life / UI text on light mana backgrounds          |
+| Icon silhouette dark   | `#0D0F0F`          | Silhouette fill for mana, shards, clans, guild    |
+| Icon silhouette light  | `#FAF8F5`          | Silhouette fill for counters, player-actions, Planeswalker |
 
 ### 2.3 Guild & Clan Symbols (future scope — §10)
 
@@ -99,34 +101,65 @@ base mana colors are stable.
 ### 2.4 Icon System
 
 All MTG symbols are inline SVG React components. No external `.svg` imports.
+Silhouette colors use the `iconDark` and `iconLight` tokens from §2.2.
+
+| Icon type               | Background                      | Silhouette fill | Selected via                          |
+| ----------------------- | ------------------------------- | --------------- | ------------------------------------- |
+| Mana                    | Solid mana color circle         | `iconDark`      | `ManaSelector`                        |
+| Guild                   | 2-color hard-split circle       | `iconDark`      | `GuildSelector`                       |
+| Clan / Shard            | 3-color hard-split circle       | `iconDark`      | `ClanSelector` / `ShardSelector`      |
+| Counter                 | None — sits directly on overlay | `iconLight`     | `CounterSelector`                     |
+| Player-action           | None                            | `iconLight`     | `PlayerActionSelector`                |
+| Planeswalker (Commander)| None — sits directly on overlay | `iconLight`     | Direct import                         |
+
+Faction backgrounds use `linear-gradient(to bottom right, ...)` with **hard
+color stops** — no blending:
+
+- **Guilds (2 colors):**
+  `linear-gradient(to bottom right, color1 0%, color1 50%, color2 50%, color2 100%)`
+  — diagonal split, colors meet along the center line.
+- **Clans / Shards (3 colors):**
+  `linear-gradient(to bottom right, color1 0%, color1 33.3%, color2 33.3%, color2 66.6%, color3 66.6%, color3 100%)`
+  — three diagonal bands, hard edges at 33.3% and 66.6%.
+
+Color stops are defined in `GUILD_COLORS`, `CLAN_COLORS`, and `SHARD_COLORS`.
 
 #### Mana Symbols (`components/ui/icons/mana/`)
 
 White, Blue, Black, Red, Green, Colorless. Used in color picker modals, player
-zone indicators, and mana-cost displays. Selected via `ManaSelector`.
+zone indicators, and mana-cost displays. Circle background filled with the
+mana color. Silhouette uses `iconDark`. Selected via `ManaSelector`.
 
 #### Counter Symbols (`components/ui/icons/counters/`)
 
-Poison, Energy, Experience, Time. Used in the counters overlay (§7.4). Selected
-via `CounterSelector`.
+Poison, Energy, Experience, Time. Used in the counters overlay (§7.4). No
+background — the icon sits directly on the overlay surface. Silhouette uses
+`iconLight`. Selected via `CounterSelector`.
 
 #### Commander Symbol (`components/ui/icons/PlaneswalkerSymbol.tsx`)
 
 The MTG planeswalker icon. Used **exclusively** in the commander damage overlay
 (§7.3). **Not a counter** — it bypasses `CounterSelector` and is imported
-directly by the commander damage component.
+directly by the commander damage component. No background. Silhouette uses
+`iconLight`.
 
 #### Guild Symbols (`components/ui/icons/guilds/`)
 
-All 10 Ravnica guilds. Phase 2 (§10). Selected via `GuildSelector`.
+All 10 Ravnica guilds. Phase 2 (§10). Circle background with a 2-color hard
+diagonal split using each guild's color pair from `GUILD_COLORS`. Silhouette
+uses `iconDark`. Selected via `GuildSelector`.
 
 #### Clan Symbols (`components/ui/icons/clans/`)
 
-Abzan, Jeskai, Mardu, Sultai, Temur. Phase 2 (§10). Selected via `ClanSelector`.
+Abzan, Jeskai, Mardu, Sultai, Temur. Phase 2 (§10). Circle background with a
+3-color hard diagonal split from `CLAN_COLORS`. Silhouette uses `iconDark`.
+Selected via `ClanSelector`.
 
 #### Shard Symbols (`components/ui/icons/shards/`)
 
-Bant, Esper, Grixis, Jund, Naya. Phase 2 (§10). Selected via `ShardSelector`.
+Bant, Esper, Grixis, Jund, Naya. Phase 2 (§10). Circle background with a
+3-color hard diagonal split from `SHARD_COLORS`. Silhouette uses `iconDark`.
+Selected via `ShardSelector`.
 
 ---
 
@@ -469,8 +502,8 @@ Two 5-symbol wheels placed side-by-side (10 Ravnica guilds won't fit a single
 wheel). Each symbol is rendered via `GuildSelector`.
 
 - **Tap a guild symbol** → the player zone background becomes a
-  `linear-gradient(to bottom right, <guild-color-1>, <guild-color-2>)` using
-  that guild's two mana colors → modal closes immediately.
+  `linear-gradient(to bottom right, color1 0%, color1 50%, color2 50%, color2 100%)`
+  using that guild's two mana colors → modal closes immediately.
 - A small guild badge (24×24px) appears in the bottom‑right corner of the player
   zone.
 
@@ -480,8 +513,8 @@ A single 5-symbol wheel (same circular layout as the mana tab). Each symbol is
 rendered via `ClanSelector`.
 
 - **Tap a clan symbol** → the player zone background becomes a
-  `linear-gradient(to bottom right, <color-1>, <color-2>, <color-3>)` using that
-  clan's three mana colors → modal closes immediately.
+  `linear-gradient(to bottom right, color1 0%, color1 33.3%, color2 33.3%, color2 66.6%, color3 66.6%, color3 100%)`
+  using that clan's three mana colors → modal closes immediately.
 - A small clan badge (24×24px) appears in the bottom‑right corner.
 
 #### Shard Tab
@@ -495,7 +528,7 @@ in bottom‑right.
 | Selection         | Closes modal? | Player zone result                                    |
 | ----------------- | ------------- | ----------------------------------------------------- |
 | Single mana color | On tap        | Solid mana color                                      |
-| WUBRG             | Immediately   | 5-color `linear-gradient(to bottom right, W,U,B,R,G)` |
+| WUBRG             | Immediately   | 5-color `linear-gradient(to bottom right, W 0%, W 20%, U 20%, U 40%, B 40%, B 60%, R 60%, R 80%, G 80%, G 100%)` |
 | Colorless         | Immediately   | Solid `#CAC5C0`                                       |
 | Guild             | On tap        | 2-color gradient + guild badge (bottom‑right)         |
 | Clan              | On tap        | 3-color gradient + clan badge (bottom‑right)          |
@@ -561,10 +594,11 @@ Each column:
 
 ### 7.4 Counters Overlay
 
-Always a 2-column grid. Each column is a counter type with a pill, value, +/-
+Always a 2-column grid. Each column is a counter type with an icon, value, +/-
 controls, and a delete button.
 
-**Background:** Solid `#1a1a1a` (near-black, warm undertone).
+**Background:** Solid `#1a1a1a` (near-black, warm undertone). Counter icons sit
+directly on the background — **no pill, no rounded container.**
 
 **Default counters (always present as placeholders):**
 
@@ -579,24 +613,21 @@ damage overlay (§7.3).
 **Layout per column:**
 
 ```
-┌──────────────────────────────────────┐
-│  ┌──────┐                            │
-│  │  ☠️  │  3  [-]  [+]  [✕]          │  ← Pill (colorless #9E9E9E), icon, value, controls, delete
-│  └──────┘                            │
-└──────────────────────────────────────┘
+┌────────────────────────────────────────────┐
+│  ☠️    3    [-]  [+]  [✕]                   │  ← Icon, value, controls, delete
+└────────────────────────────────────────────┘
 ```
 
-- **Pill:** Rounded pill. Background = colorless (`#CAC5C0`). Center = counter
-  icon (☠️/⚡/✦/⏳ for defaults, first letter of name for custom counters).
-- **Value:** Alongside the pill. Archivo Bold. Text color auto-selects warm
-  white (`#FAF8F5`) or warm near-black (`#1A1A1A`) per luminance.
-- **[-] [+] buttons:** Tap = ±1. Hold = accelerate (±5 → ±10 after 1s) — same
-  criteria as §7.1 life adjustment.
-- **[✕] delete button:** Removes the counter column. Shown on every counter —
-  defaults and custom alike.
+- **Icon:** Counter symbol drawn with `iconLight` (`#FAF8F5`) silhouette. Sits
+  directly on the overlay background (`#1a1a1a`). No pill, no background
+  container.
+- **Value:** Alongside the icon. Archivo Bold. Text color auto-selects warm
+  white (`#FAF8F5`) per luminance.
+- **[-] [+] buttons:** Tap = ±1. Hold = accelerate (±5 → ±10 after 1s).
+- **[✕] delete button:** Removes the counter column. Shown on every counter.
 - **+ button (bottom-right):** Opens a prompt to add a custom counter (name +
-  initial value). Custom counters use the first letter of their name as the pill
-  icon instead of a symbol.
+  initial value). Custom counters use the first letter of their name as the
+  icon.
 - **Lethal indicator:** Poison at 10+ turns both the poison counter value
   **and** the player's life total lethal red (`#D50000`).
 
