@@ -46,9 +46,10 @@ quality gates. If a single item fails, the submission must be rejected.
 - **Discriminated unions over optional properties:** For state machines
   (loading/success/error), demand discriminated unions with a `status` or `type`
   discriminant property.
-- **Constant enforcement:** Flag any hardcoded color strings or labels that
-  duplicate values in `shared/lib/constants/colors`. Must import from
-  `shared/lib/constants/colors`.
+- **Constant enforcement:** Flag any hardcoded string literal that represents
+  an app-level concept (color hexes, labels, mana names, domain terms like
+  `"wubrg"`, `"poison"`). Must import from the appropriate constants file
+  (`shared/lib/constants/` or `features/<name>/constants/`).
 - **No barrel imports:** Flag imports from barrel files (`index.ts` re-exports).
   Demand direct module imports per `bundle-barrel-imports`.
 - **No catch-all `utils.ts`:** Flag any `utils.ts` or `helpers.ts` that
