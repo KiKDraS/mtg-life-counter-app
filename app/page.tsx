@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PlayerZone } from "@/components/game/player-zone";
+import { PlayerZone } from "@/features/life-counter/components/player-zone";
 
 export const metadata: Metadata = {
   title: "MTG Life Counter",

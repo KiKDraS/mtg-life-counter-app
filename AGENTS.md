@@ -59,24 +59,21 @@ The agent must strictly respect the following file architecture:
 │   ├── layout.tsx          # Root layout — metadata, fonts, global shell
 │   ├── page.tsx            # Home page (life counter UI)
 │   └── globals.css         # Tailwind imports + global design tokens
-├── components/             # Shared React components
-│   ├── ui/                 # Primitive UI components (button, dialog)
-│   │   └── icons/          # SVG icon components (mana symbols, logo, etc.)
-│   ├── game/               # Core game board — layout grid, player zones, life display, life buttons
-│   ├── overlays/           # Swipe gesture overlays — commander damage, counters
-│   ├── modals/             # Modal dialogs — color picker, initial life, player selector, AI Judge
-│   └── menu/               # Spellbook menu — central floating button + action belt
-├── lib/                    # Pure TypeScript utilities
-│   ├── ai/                 # AI Judge — prompts, RAG, citations, history
-│   │   └── rag/            # MTG rules embedding & retrieval pipeline
-│   ├── services/           # External API clients (Scryfall)
-│   ├── state/              # Game state machine (discriminated union)
-│   ├── utils.ts            # Shared helper functions
-│   └── types.ts            # Shared TypeScript interfaces & types
-├── hooks/                  # Custom React hooks
-│   ├── use-life-adjustment.ts  # Tap/hold acceleration logic
-│   ├── use-swipe.ts            # Swipe gesture detection
-│   └── use-game-state.ts       # State machine hook
+├── features/               # Feature modules — one folder per feature
+│   ├── life-counter/       # Core gameplay: life tracking, counters, overlays
+│   │   ├── components/     # Game board, player zones, overlays, menu
+│   │   └── hooks/          # use-life-adjustment, use-swipe, use-game-state
+│   └── ai-judge/           # AI-powered MTG rules Q&A
+│       ├── components/     # Judge chat UI, streaming message bubbles
+│       └── lib/            # Prompts, RAG, citations, history
+├── shared/                 # Shared across all features
+│   ├── components/         # UI primitives
+│   │   └── icons/          # SVG icons — mana, guilds, clans, shards, counters
+│   └── lib/                # Shared utilities
+│       ├── constants/      # Colors, labels, mana, guilds, clans, shards
+│       ├── services/       # External API clients (Scryfall)
+│       ├── state/          # Game state machine (discriminated union)
+│       └── types.ts        # Shared TypeScript interfaces
 ├── public/                 # Static assets (served as-is)
 │   └── sw.js               # Service worker
 ├── tests/                  # Playwright Test Suite
@@ -94,7 +91,7 @@ The agent must strictly respect the following file architecture:
 
 ## Development Rules and Guidelines
 
-### 1. React & Next.js Components (`app/` and `components/`)
+### 1. React & Next.js Components (`app/`, `features/`, and `shared/components/`)
 
 - **Server Components by default.** Every component in `app/` is a React Server
   Component unless explicitly marked with `'use client'`. Keep data fetching and
@@ -123,7 +120,7 @@ The agent must strictly respect the following file architecture:
 - **No barrel imports (per `bundle-barrel-imports`):** A barrel file is an
   `index.ts`/`index.tsx` that only re-exports sibling modules (e.g.,
   `export { Foo } from './foo'`). Import directly from the source file instead:
-  `import { Button } from './components/ui/button'`, never
+  `import { Button } from './shared/components/ui/button'`, never
   `import { Button } from './components/ui'`. Barrels load unused modules,
   cause circular dependencies, and hurt tree-shaking. The only exception is a
   public library API that explicitly needs a single entry point.
@@ -147,7 +144,7 @@ The agent must strictly respect the following file architecture:
   stacks. No purple gradients on white.
 - **No hardcoded hex values:** Always reference CSS custom properties from
   `globals.css` via `var(--color-*)`. Design tokens are the only valid color
-  source. If a color isn't tokenized yet, add it to `lib/constants/colors.ts`
+  source. If a color isn't tokenized yet, add it to `shared/lib/constants/colors.ts`
   first, then mirror to `globals.css`.
 - **Motion:** Prefer Tailwind's `animate-*` utilities and CSS keyframes.
 
@@ -168,14 +165,15 @@ not generic rules.
   boundaries.
 - **Per `typescript-advanced-types`:** Discriminated unions for state machines,
   generics for reusable utilities, `satisfies` for config objects.
-- **No magic strings for shared values:** Import from `lib/constants/` for
+- **No magic strings for shared values:** Import from `shared/lib/constants/` for
   colors, labels, and any future shared constants. When DESIGN.md §2 changes,
-  update `lib/constants/colors.ts` first, then mirror to `globals.css`.
-- **Constants per domain:** `lib/constants/` is organized by domain — one file
+  update `shared/lib/constants/colors.ts` first, then mirror to `globals.css`.
+- **Constants per domain:** `shared/lib/constants/` is organized by domain — one file
   per concept. No catch-all `constants.ts`. A new constant goes in a new or
   existing domain file (e.g., `mana.ts`, `guilds.ts`, `labels.ts`).
 - **Utilities per file:** No catch-all `utils.ts` or `helpers.ts`. Each
-  utility function gets its own file (e.g., `lib/cn.ts`, `lib/format-mana.ts`).
+  utility function gets its own file (e.g., `shared/lib/cn.ts`,
+  `shared/lib/format-mana.ts`).
   If a utility needs internal helpers, promote to a folder with a single entry
   point.
 - **No barrel imports** (per `bundle-barrel-imports`). Import directly from
@@ -214,17 +212,17 @@ not generic rules.
   (`route.ts` with named exports for HTTP methods).
 - **AI Judge** (`app/api/judge/route.ts`) uses `@openrouter/sdk` exclusively.
   ZDR enabled. Streaming via async iterator. `OPENROUTER_API_KEY` server-only.
-- **Scryfall integration** (`lib/services/scryfall.ts`) for card art search and
+- **Scryfall integration** (`shared/lib/services/scryfall.ts`) for card art search and
   autocomplete. Server-side caching. Rate limit awareness.
 - **No user accounts or auth.** The app is session-only. No `/api/profiles`, no
   database, no authentication layer.
-- **Game state** (`lib/state/`) is session-local. Discriminated union state
+- **Game state** (`shared/lib/state/`) is session-local. Discriminated union state
   machine. Undo/redo stack. Life totals, poison counters, commander damage.
-- **AI Judge UI** (`components/modals/judge-chat.tsx`): `'use client'` chat
+- **AI Judge UI** (`features/ai-judge/components/`): `'use client'` chat
   interface with streaming response display, message bubbles, and text input.
   Maximized modal for readability per DESIGN.md §6.4.
 - **State boundaries:** Judge chat is ephemeral (session state only). Game state
-  in `lib/state/` is session-local. No persistence.
+  in `shared/lib/state/` is session-local. No persistence.
 - **Voice assistant:** Phase 2 per DESIGN.md §10. Uses Web Speech API.
 - **PWA:** `manifest.json` sets `"orientation": "portrait"`. Service worker
   caches static assets.
@@ -280,7 +278,7 @@ branching model. Making direct commits to the main stability branches is
      create its own branch.
    - Invoked after `@frontend-dev` completes the UI shell.
    - Forbidden from touching React components or styling. Domain: `app/api/`,
-     `lib/services/`, `lib/ai/`.
+     `shared/lib/services/`, `features/ai-judge/lib/`.
 4. **@release-manager Authority:**
    - Only entity authorized to modify branch state on GitHub (PRs, merges, tags,
      branch deletion).

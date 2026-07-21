@@ -124,38 +124,38 @@ color stops** — no blending:
 
 Color stops are defined in `GUILD_COLORS`, `CLAN_COLORS`, and `SHARD_COLORS`.
 
-#### Mana Symbols (`components/ui/icons/mana/`)
+#### Mana Symbols (`shared/components/icons/mana/`)
 
 White, Blue, Black, Red, Green, Colorless. Used in color picker modals, player
 zone indicators, and mana-cost displays. Circle background filled with the
 mana color. Silhouette uses `iconDark`. Selected via `ManaSelector`.
 
-#### Counter Symbols (`components/ui/icons/counters/`)
+#### Counter Symbols (`shared/components/icons/counters/`)
 
 Poison, Energy, Experience, Time. Used in the counters overlay (§7.4). No
 background — the icon sits directly on the overlay surface. Silhouette uses
 `iconLight`. Selected via `CounterSelector`.
 
-#### Commander Symbol (`components/ui/icons/PlaneswalkerSymbol.tsx`)
+#### Commander Symbol (`shared/components/icons/PlaneswalkerSymbol.tsx`)
 
 The MTG planeswalker icon. Used **exclusively** in the commander damage overlay
 (§7.3). **Not a counter** — it bypasses `CounterSelector` and is imported
 directly by the commander damage component. No background. Silhouette uses
 `iconLight`.
 
-#### Guild Symbols (`components/ui/icons/guilds/`)
+#### Guild Symbols (`shared/components/icons/guilds/`)
 
 All 10 Ravnica guilds. Phase 2 (§10). Circle background with a 2-color hard
 diagonal split using each guild's color pair from `GUILD_COLORS`. Silhouette
 uses `iconDark`. Selected via `GuildSelector`.
 
-#### Clan Symbols (`components/ui/icons/clans/`)
+#### Clan Symbols (`shared/components/icons/clans/`)
 
 Abzan, Jeskai, Mardu, Sultai, Temur. Phase 2 (§10). Circle background with a
 3-color hard diagonal split from `CLAN_COLORS`. Silhouette uses `iconDark`.
 Selected via `ClanSelector`.
 
-#### Shard Symbols (`components/ui/icons/shards/`)
+#### Shard Symbols (`shared/components/icons/shards/`)
 
 Bant, Esper, Grixis, Jund, Naya. Phase 2 (§10). Circle background with a
 3-color hard diagonal split from `SHARD_COLORS`. Silhouette uses `iconDark`.
