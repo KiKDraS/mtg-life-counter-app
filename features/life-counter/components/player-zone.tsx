@@ -2,7 +2,11 @@
 
 import { useRef, useCallback } from "react";
 import { UI } from "@/shared/lib/constants/colors";
-import { useLifeAdjustment } from "@/features/life-counter/hooks/use-life-adjustment";
+import {
+  useLifeAdjustment,
+  INCREMENT,
+  DECREMENT,
+} from "@/features/life-counter/hooks/use-life-adjustment";
 import {
   usePlayerState,
   adjustLife,
@@ -69,7 +73,7 @@ export function PlayerZone({
           type="button"
           aria-label="-1 life"
           className={buttonClass}
-          {...adjustment(-1)}
+          {...adjustment(DECREMENT)}
         >
           −
         </button>
@@ -100,7 +104,7 @@ export function PlayerZone({
             type="button"
             aria-label="+1 life"
             className={buttonClass}
-            {...adjustment(1)}
+            {...adjustment(INCREMENT)}
           >
             +
           </button>
