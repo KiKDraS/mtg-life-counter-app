@@ -18,6 +18,8 @@ export interface LifeAdjustmentHandlers {
   onClick: (event: ReactMouseEvent<HTMLButtonElement>) => void;
 }
 
+const PRIMARY_BUTTON = 0;
+
 /* §4.2 — tap = ±1; hold = repeat at ±10 after 1000ms. */
 const HOLD_DELAY_MS = 1000;
 const REPEAT_INTERVAL_MS = 100;
@@ -75,9 +77,8 @@ export function useLifeAdjustment(
 
   const handleClick = useCallback(
     (direction: Direction, event: ReactMouseEvent<HTMLButtonElement>) => {
-      // detail === 0 → keyboard-originated click; pointer taps already
-      // fired on pointerdown, so only keyboard fires here.
-      if (event.detail === 0) {
+      const isKeyboardClick = event.detail === 0;
+      if (isKeyboardClick) {
         onAdjustRef.current(direction);
       }
     },
@@ -87,7 +88,8 @@ export function useLifeAdjustment(
   return useCallback(
     (direction: Direction): LifeAdjustmentHandlers => ({
       onPointerDown: (event) => {
-        if (event.button === 0) handlePointerDown(direction);
+        const isPrimaryClick = event.button === PRIMARY_BUTTON;
+        if (isPrimaryClick) handlePointerDown(direction);
       },
       onPointerUp: stopHold,
       onPointerLeave: stopHold,
