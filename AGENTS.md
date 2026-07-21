@@ -96,6 +96,11 @@ The agent must strictly respect the following file architecture:
 - **Server Components by default.** Every component in `app/` is a React Server
   Component unless explicitly marked with `'use client'`. Keep data fetching and
   heavy logic in server components.
+- **File naming convention:** React component files (`.tsx`) use PascalCase
+  (`PlayerZone.tsx`, `ManaSelector.tsx`). Hooks use `use-` prefix with kebab-case
+  (`use-life-adjustment.ts`). Non-component `.ts` files (utilities, constants,
+  types, services) use kebab-case (`text-color-for.ts`, `colors.ts`).
+  Directories use kebab-case (`life-counter/`, `player-actions/`).
 - **Client boundary discipline.** Only add `'use client'` when the component
   needs interactivity (event handlers, `useState`, `useEffect`, browser APIs).
   Push the boundary as deep as possible.

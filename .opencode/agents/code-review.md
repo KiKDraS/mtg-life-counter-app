@@ -34,6 +34,9 @@ quality gates. If a single item fails, the submission must be rejected.
 - **No `any` without justification:** Flag every instance of `any`. Each must
   have a comment explaining why `unknown` couldn't work. Accept only when the
   type is genuinely unknowable (e.g., `JSON.parse` return before validation).
+- **File naming convention:** Flag React component files (`.tsx`) that are not
+  PascalCase. Hooks must use `use-` prefix with kebab-case. Non-component `.ts`
+  files and directories must use kebab-case.
 - **Explicit interfaces for boundaries:** Exported functions, component props,
   and API boundaries must use explicit `interface` declarations — not inline
   inference, not `type` for object shapes.
