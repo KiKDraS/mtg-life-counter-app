@@ -124,6 +124,10 @@ quality gates. If a single item fails, the submission must be rejected.
   associated `<label>` via `htmlFor` or wrapping.
 - **Color contrast:** Text must meet 4.5:1, large text 3:1. Flag insufficient
   contrast combinations.
+- **Dynamic text contrast enforcement:** Flag any hardcoded text color on a
+  MANA, UI, or computed color background. Must use `textColorFor()`. Exception:
+  gradient backgrounds where all stops guarantee adequate contrast with the
+  chosen text token.
 - **`prefers-reduced-motion`:** Animations must respect the user's motion
   preference. Per DESIGN.md §9: disable ALL swipe animations, use instant
   show/hide for overlays.

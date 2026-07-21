@@ -155,6 +155,11 @@ execution across all four layers simultaneously:
 - **Forms:** Proper `<label>` associations. Clear error messaging. Accessible
   validation.
 - **Color contrast:** 4.5:1 for text, 3:1 for large text minimum.
+- **Dynamic text contrast:** When text renders on a computed or variable
+  background color (e.g., mana colors, player-identity zones), use
+  `textColorFor()` from `shared/lib/text-color-for.ts` to auto-select
+  `UI.textLight` or `UI.textDark`. Never hardcode text colors on MANA or UI
+  color backgrounds.
 
 ### 6. Composition Patterns (`composition-patterns`)
 
