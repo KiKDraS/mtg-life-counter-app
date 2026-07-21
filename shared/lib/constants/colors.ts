@@ -13,7 +13,7 @@
 export const MANA = {
   w: "#F8F6D8" as const, // White  — warm, sheltering
   u: "#C1D7E9" as const, // Blue   — electric, intellectual
-  b: "#B8B0A8" as const, // Black  — ambitious, dark
+  b: "#666565" as const, // Black  — ambitious, dark
   r: "#E49977" as const, // Red    — passionate, aggressive
   g: "#A3C095" as const, // Green  — natural, wild
   c: "#CAC5C0" as const, // Colorless — neutral / eldrazi
