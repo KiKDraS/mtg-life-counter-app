@@ -1,14 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type {
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+} from "react";
 
 type Direction = 1 | -1;
 
 export type AdjustCallback = (delta: number) => void;
 
 export interface LifeAdjustmentHandlers {
-  onPointerDown: () => void;
+  onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
   onPointerUp: () => void;
   onPointerLeave: () => void;
   onPointerCancel: () => void;
@@ -83,7 +86,9 @@ export function useLifeAdjustment(
 
   return useCallback(
     (direction: Direction): LifeAdjustmentHandlers => ({
-      onPointerDown: () => handlePointerDown(direction),
+      onPointerDown: (event) => {
+        if (event.button === 0) handlePointerDown(direction);
+      },
       onPointerUp: stopHold,
       onPointerLeave: stopHold,
       onPointerCancel: stopHold,
