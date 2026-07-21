@@ -1,5 +1,5 @@
 import type { SVGAttributes } from "react";
-import { SHARD_COLORS } from "@/lib/constants/colors";
+import { SHARD_COLORS, UI } from "@/lib/constants/colors";
 
 type JundSymbolProps = {
   size?: number;
@@ -21,13 +21,13 @@ function JundSymbol({ size = 48, className, ...props }: JundSymbolProps) {
         </defs>
         <circle cx="50" cy="50" r="50" fill="url(#jundGrad)" />
         {/* Dragon's jaw — Jund's savage dragon theme */}
-        <path fill="#0D0F0F" d="M15 68 Q15 10 50 8 Q85 10 85 68 L70 68 L70 35 L55 55 L40 35 L40 55 L30 45 L30 68 Z" />
+        <path fill={UI.iconDark} d="M15 68 Q15 10 50 8 Q85 10 85 68 L70 68 L70 35 L55 55 L40 35 L40 55 L30 45 L30 68 Z" />
         {/* Upper fangs */}
-        <path fill="#0D0F0F" d="M25 38 L22 52 L30 42 Z" />
-        <path fill="#0D0F0F" d="M55 48 L52 62 L60 52 Z" />
-        <path fill="#0D0F0F" d="M75 38 L72 52 L80 42 Z" />
+        <path fill={UI.iconDark} d="M25 38 L22 52 L30 42 Z" />
+        <path fill={UI.iconDark} d="M55 48 L52 62 L60 52 Z" />
+        <path fill={UI.iconDark} d="M75 38 L72 52 L80 42 Z" />
         {/* Lower jaw */}
-        <path fill="#0D0F0F" d="M20 72 L30 78 L42 72 L55 78 L67 72 L78 76 L80 84 L65 84 L55 80 L42 84 L30 80 L18 84 Z" />
+        <path fill={UI.iconDark} d="M20 72 L30 78 L42 72 L55 78 L67 72 L78 76 L80 84 L65 84 L55 80 L42 84 L30 80 L18 84 Z" />
       </svg>
     </span>
   );

@@ -20,6 +20,8 @@
   --color-ui-danger:    #D50000;
   --color-ui-textLight: #FAF8F5;
   --color-ui-textDark:  #1A1A1A;
+  --color-ui-iconDark:  #0D0F0F;
+  --color-ui-iconLight: #FAF8F5;
 
   /* Typography (§3.2 / §3.3) */
   --font-sans: var(--font-archivo);
