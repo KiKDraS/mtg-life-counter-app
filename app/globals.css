@@ -29,3 +29,15 @@
   --text-life: clamp(4rem, 15vw, 12rem);
   --leading-none: 0.9;
 }
+
+/* ── Native dialog reset (§6.1) ── */
+dialog {
+  border: none;
+  padding: 0;
+  max-width: unset;
+  max-height: unset;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
