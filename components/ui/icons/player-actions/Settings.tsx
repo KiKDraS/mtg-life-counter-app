@@ -1,4 +1,5 @@
 import type { SVGAttributes } from "react";
+import { UI } from "@/lib/constants/colors";
 
 type SettingsProps = {
   size?: number;
@@ -12,7 +13,7 @@ function ColorSettings({ size = 48, className, ...props }: SettingsProps) {
         xmlns="http://www.w3.org/2000/svg"
         width={size}
         height={size}
-        fill="#FAF8F5"
+        fill={UI.iconLight}
         viewBox="0 -960 960 960"
         {...props}
       >

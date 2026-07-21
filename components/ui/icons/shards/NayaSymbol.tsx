@@ -1,5 +1,5 @@
 import type { SVGAttributes } from "react";
-import { SHARD_COLORS } from "@/lib/constants/colors";
+import { SHARD_COLORS, UI } from "@/lib/constants/colors";
 
 type NayaSymbolProps = {
   size?: number;
@@ -21,9 +21,9 @@ function NayaSymbol({ size = 48, className, ...props }: NayaSymbolProps) {
         </defs>
         <circle cx="50" cy="50" r="50" fill="url(#nayaGrad)" />
         {/* Three claw marks — Naya's primal beast theme */}
-        <path fill="#0D0F0F" d="M22 15 Q35 42 25 78 Q20 82 16 78 Q22 40 16 18 Z" />
-        <path fill="#0D0F0F" d="M50 20 Q58 48 48 82 Q44 85 40 82 Q52 46 44 22 Z" />
-        <path fill="#0D0F0F" d="M76 28 Q82 52 68 85 Q64 88 60 84 Q74 50 68 30 Z" />
+        <path fill={UI.iconDark} d="M22 15 Q35 42 25 78 Q20 82 16 78 Q22 40 16 18 Z" />
+        <path fill={UI.iconDark} d="M50 20 Q58 48 48 82 Q44 85 40 82 Q52 46 44 22 Z" />
+        <path fill={UI.iconDark} d="M76 28 Q82 52 68 85 Q64 88 60 84 Q74 50 68 30 Z" />
       </svg>
     </span>
   );

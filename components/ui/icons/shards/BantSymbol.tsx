@@ -1,5 +1,5 @@
 import type { SVGAttributes } from "react";
-import { SHARD_COLORS } from "@/lib/constants/colors";
+import { SHARD_COLORS, UI } from "@/lib/constants/colors";
 
 type BantSymbolProps = {
   size?: number;
@@ -27,7 +27,7 @@ function BantSymbol({ size = 48, className, ...props }: BantSymbolProps) {
         </defs>
         <circle cx="50" cy="50" r="50" fill="url(#bantGrad)" />
         {/* Knight's shield — Bant's chivalric order */}
-        <path fill="#0D0F0F" d="M50 10 L85 30 L85 70 L50 92 L15 70 L15 30 Z" />
+        <path fill={UI.iconDark} d="M50 10 L85 30 L85 70 L50 92 L15 70 L15 30 Z" />
         {/* Inner shield crest */}
         <path
           fill="url(#bantGrad)"

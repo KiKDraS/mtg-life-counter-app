@@ -53,4 +53,6 @@ export const UI = {
   danger:    "#D50000" as const, // Life ≤ 0, commander damage ≥ 21
   textLight: "#FAF8F5" as const, // Text on dark backgrounds
   textDark:  "#1A1A1A" as const, // Text on light backgrounds
+  iconDark:  "#0D0F0F" as const, // Silhouette fill for mana, shards, clans, guild (§2.2)
+  iconLight: "#FAF8F5" as const, // Silhouette fill for counters, player-actions, Planeswalker (§2.2)
 } as const;

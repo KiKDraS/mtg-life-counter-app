@@ -1,5 +1,5 @@
 import type { SVGAttributes } from "react";
-import { SHARD_COLORS } from "@/lib/constants/colors";
+import { SHARD_COLORS, UI } from "@/lib/constants/colors";
 
 type EsperSymbolProps = {
   size?: number;
@@ -21,11 +21,11 @@ function EsperSymbol({ size = 48, className, ...props }: EsperSymbolProps) {
         </defs>
         <circle cx="50" cy="50" r="50" fill="url(#esperGrad)" />
         {/* 3-tooth gear — Esper's artifact mastery */}
-        <circle cx="50" cy="50" r="16" fill="#0D0F0F" />
-        <path fill="#0D0F0F" d="M43 8 L57 8 L57 25 L43 25 Z" />
-        <path fill="#0D0F0F" d="M43 75 L57 75 L57 92 L43 92 Z" />
-        <path fill="#0D0F0F" d="M8 43 L25 43 L25 57 L8 57 Z" />
-        <path fill="#0D0F0F" d="M75 43 L92 43 L92 57 L75 57 Z" />
+        <circle cx="50" cy="50" r="16" fill={UI.iconDark} />
+        <path fill={UI.iconDark} d="M43 8 L57 8 L57 25 L43 25 Z" />
+        <path fill={UI.iconDark} d="M43 75 L57 75 L57 92 L43 92 Z" />
+        <path fill={UI.iconDark} d="M8 43 L25 43 L25 57 L8 57 Z" />
+        <path fill={UI.iconDark} d="M75 43 L92 43 L92 57 L75 57 Z" />
         {/* Center hole */}
         <circle cx="50" cy="50" r="8" fill="url(#esperGrad)" />
       </svg>
