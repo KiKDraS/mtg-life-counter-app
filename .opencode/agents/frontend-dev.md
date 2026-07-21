@@ -41,6 +41,11 @@ execution across all four layers simultaneously:
 - **Server Components by default.** Every component in `app/` is an RSC unless
   explicitly marked with `'use client'`. Perform data fetching and heavy
   computation server-side.
+- **File naming convention:** React component files (`.tsx`) use PascalCase
+  (`PlayerZone.tsx`, `ManaSelector.tsx`). Hooks use `use-` prefix with kebab-case
+  (`use-life-adjustment.ts`). Non-component `.ts` files (utilities, constants,
+  types, services) use kebab-case (`text-color-for.ts`, `colors.ts`).
+  Directories use kebab-case (`life-counter/`, `player-actions/`).
 - **Client boundary precision.** Add `'use client'` only at the leaf component
   level. Never mark an entire page as client unless truly unavoidable.
 - **Strictly forbidden in Client Components:** `async function` components,
