@@ -120,7 +120,7 @@ export function PlayerZone({
           <button
             type="button"
             aria-label="Change color"
-            onClick={() => dialogRef.current?.showModal()}
+            onClick={() => dialogRef.current?.show()}
             className="absolute top-1 right-1 z-10 flex size-11 items-center justify-center rounded-full transition-colors hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
           >
             <ColorSettings size={24} fill="currentColor" />

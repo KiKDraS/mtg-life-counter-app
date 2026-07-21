@@ -72,7 +72,7 @@ player name — the color is their identity.
 | ------------ | --------- | ---------------------- |
 | 🟡 White (W) | `#F8F6D8` | Warm, sheltering       |
 | 🔵 Blue (U)  | `#C1D7E9` | Electric, intellectual |
-| ⚫ Black (B) | `#B8B0A8` | Ambitious, dark        |
+| ⚫ Black (B) | `#666565` | Ambitious, dark        |
 | 🔴 Red (R)   | `#E49977` | Passionate, aggressive |
 | 🟢 Green (G) | `#A3C095` | Natural, wild          |
 | ✦ Colorless  | `#CAC5C0` | Neutral/eldrazi        |
@@ -82,15 +82,15 @@ Text on these backgrounds auto-selects warm white (`#FAF8F5`) or warm near-black
 
 ### 2.2 UI & Shell Colors
 
-| Token                  | Hex                | Usage                                             |
-| ---------------------- | ------------------ | ------------------------------------------------- |
-| Background overlay     | `#1a1a1a`          | Commander damage and counters overlay backgrounds |
-| Belt / AI Judge        | `#000000`          | Spellbook belt, AI Judge modal backdrop           |
-| Modal backdrop         | `rgba(0,0,0,0.35)` | Config modals (life, players, color picker)       |
-| Danger red             | `#D50000`          | Life total ≤ 0, commander damage ≥ 21             |
-| Warm white (text)      | `#FAF8F5`          | Life / UI text on overlay & belt backgrounds      |
-| Warm near-black (text) | `#1A1A1A`          | Life / UI text on light mana backgrounds          |
-| Icon silhouette dark   | `#0D0F0F`          | Silhouette fill for mana, shards, clans, guild    |
+| Token                  | Hex                | Usage                                                      |
+| ---------------------- | ------------------ | ---------------------------------------------------------- |
+| Background overlay     | `#1a1a1a`          | Commander damage and counters overlay backgrounds          |
+| Belt / AI Judge        | `#000000`          | Spellbook belt, AI Judge modal backdrop                    |
+| Modal backdrop         | `rgba(0,0,0,0.35)` | Config modals (life, players, color picker)                |
+| Danger red             | `#D50000`          | Life total ≤ 0, commander damage ≥ 21                      |
+| Warm white (text)      | `#FAF8F5`          | Life / UI text on overlay & belt backgrounds               |
+| Warm near-black (text) | `#1A1A1A`          | Life / UI text on light mana backgrounds                   |
+| Icon silhouette dark   | `#0D0F0F`          | Silhouette fill for mana, shards, clans, guild             |
 | Icon silhouette light  | `#FAF8F5`          | Silhouette fill for counters, player-actions, Planeswalker |
 
 ### 2.3 Guild & Clan Symbols (future scope — §10)
@@ -103,14 +103,14 @@ base mana colors are stable.
 All MTG symbols are inline SVG React components. No external `.svg` imports.
 Silhouette colors use the `iconDark` and `iconLight` tokens from §2.2.
 
-| Icon type               | Background                      | Silhouette fill | Selected via                          |
-| ----------------------- | ------------------------------- | --------------- | ------------------------------------- |
-| Mana                    | Solid mana color circle         | `iconDark`      | `ManaSelector`                        |
-| Guild                   | 2-color hard-split circle       | `iconDark`      | `GuildSelector`                       |
-| Clan / Shard            | 3-color hard-split circle       | `iconDark`      | `ClanSelector` / `ShardSelector`      |
-| Counter                 | None — sits directly on overlay | `iconLight`     | `CounterSelector`                     |
-| Player-action           | None                            | `iconLight`     | `PlayerActionSelector`                |
-| Planeswalker (Commander)| None — sits directly on overlay | `iconLight`     | Direct import                         |
+| Icon type                | Background                      | Silhouette fill | Selected via                     |
+| ------------------------ | ------------------------------- | --------------- | -------------------------------- |
+| Mana                     | Solid mana color circle         | `iconDark`      | `ManaSelector`                   |
+| Guild                    | 2-color hard-split circle       | `iconDark`      | `GuildSelector`                  |
+| Clan / Shard             | 3-color hard-split circle       | `iconDark`      | `ClanSelector` / `ShardSelector` |
+| Counter                  | None — sits directly on overlay | `iconLight`     | `CounterSelector`                |
+| Player-action            | None                            | `iconLight`     | `PlayerActionSelector`           |
+| Planeswalker (Commander) | None — sits directly on overlay | `iconLight`     | Direct import                    |
 
 Faction backgrounds use `linear-gradient(to bottom right, ...)` with **hard
 color stops** — no blending:
@@ -127,8 +127,8 @@ Color stops are defined in `GUILD_COLORS`, `CLAN_COLORS`, and `SHARD_COLORS`.
 #### Mana Symbols (`shared/components/icons/mana/`)
 
 White, Blue, Black, Red, Green, Colorless. Used in color picker modals, player
-zone indicators, and mana-cost displays. Circle background filled with the
-mana color. Silhouette uses `iconDark`. Selected via `ManaSelector`.
+zone indicators, and mana-cost displays. Circle background filled with the mana
+color. Silhouette uses `iconDark`. Selected via `ManaSelector`.
 
 #### Counter Symbols (`shared/components/icons/counters/`)
 
@@ -157,9 +157,9 @@ Selected via `ClanSelector`.
 
 #### Shard Symbols (`shared/components/icons/shards/`)
 
-Bant, Esper, Grixis, Jund, Naya. Phase 2 (§10). Circle background with a
-3-color hard diagonal split from `SHARD_COLORS`. Silhouette uses `iconDark`.
-Selected via `ShardSelector`.
+Bant, Esper, Grixis, Jund, Naya. Phase 2 (§10). Circle background with a 3-color
+hard diagonal split from `SHARD_COLORS`. Silhouette uses `iconDark`. Selected
+via `ShardSelector`.
 
 ---
 
@@ -525,14 +525,14 @@ in bottom‑right.
 
 #### Behavior Summary
 
-| Selection         | Closes modal? | Player zone result                                    |
-| ----------------- | ------------- | ----------------------------------------------------- |
-| Single mana color | On tap        | Solid mana color                                      |
+| Selection         | Closes modal? | Player zone result                                                                                               |
+| ----------------- | ------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Single mana color | On tap        | Solid mana color                                                                                                 |
 | WUBRG             | Immediately   | 5-color `linear-gradient(to bottom right, W 0%, W 20%, U 20%, U 40%, B 40%, B 60%, R 60%, R 80%, G 80%, G 100%)` |
-| Colorless         | Immediately   | Solid `#CAC5C0`                                       |
-| Guild             | On tap        | 2-color gradient + guild badge (bottom‑right)         |
-| Clan              | On tap        | 3-color gradient + clan badge (bottom‑right)          |
-| Shard             | On tap        | 3-color gradient + shard badge (bottom‑right)         |
+| Colorless         | Immediately   | Solid `#CAC5C0`                                                                                                  |
+| Guild             | On tap        | 2-color gradient + guild badge (bottom‑right)                                                                    |
+| Clan              | On tap        | 3-color gradient + clan badge (bottom‑right)                                                                     |
+| Shard             | On tap        | 3-color gradient + shard badge (bottom‑right)                                                                    |
 
 - No standalone "Apply" button — every selection confirms instantly.
 - The player zone previews the change in real-time inside the modal.
@@ -548,13 +548,13 @@ in bottom‑right.
 
 ### 7.1 Life Adjustment
 
-| Gesture               | Result                                           |
-| --------------------- | ------------------------------------------------ |
-| Tap [+]               | +1 life                                          |
-| Tap [-]               | -1 life                                          |
-| Hold [+]              | Rapid increment (±10 after 1s)                    |
-| Hold [-]              | Rapid decrement (±10 after 1s)                    |
-| Double-tap life total | Opens numpad for exact entry                     |
+| Gesture               | Result                         |
+| --------------------- | ------------------------------ |
+| Tap [+]               | +1 life                        |
+| Tap [-]               | -1 life                        |
+| Hold [+]              | Rapid increment (±10 after 1s) |
+| Hold [-]              | Rapid decrement (±10 after 1s) |
+| Double-tap life total | Opens numpad for exact entry   |
 
 ### 7.2 Swipe Gestures
 

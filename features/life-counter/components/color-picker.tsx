@@ -47,11 +47,10 @@ function polarTop(index: number): string {
 export function ColorPicker({ dialogRef, onSelect }: ColorPickerProps) {
   return (
     <dialog
-      open={false}
       ref={dialogRef}
       aria-modal="true"
       aria-labelledby="color-picker-title"
-      className="absolute top-0 left-0 flex w-full h-full flex-col border-0 rounded-none bg-black/80 text-[#FAF8F5]"
+      className="absolute top-0 left-0 m-0 w-full h-full open:flex flex-col border-0 rounded-none bg-black/80 text-[#FAF8F5]"
     >
       {/* 80% — color selection area */}
       <div className="relative flex items-center justify-center w-100 h-full m-auto ">
