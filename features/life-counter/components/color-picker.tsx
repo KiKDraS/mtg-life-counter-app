@@ -4,8 +4,7 @@ import type { ManaColor } from "@/shared/lib/constants/colors";
 import { MANA } from "@/shared/lib/constants/colors";
 import { MANA_LABELS } from "@/shared/lib/constants/labels";
 import ManaSelector from "@/shared/components/icons/ManaSelector";
-
-export type PlayerColor = ManaColor | "wubrg";
+import type { PlayerColor } from "@/features/life-counter/types/player";
 
 interface ColorPickerProps {
   readonly dialogRef: React.RefObject<HTMLDialogElement | null>;

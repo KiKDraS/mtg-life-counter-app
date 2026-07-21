@@ -10,7 +10,7 @@ import {
 } from "@/features/life-counter/hooks/use-player-state";
 import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
 import { ColorPicker } from "./color-picker";
-import type { PlayerColor } from "./color-picker";
+import type { PlayerColor } from "@/features/life-counter/types/player";
 import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 
 interface PlayerZoneProps {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useReducer } from "react";
-import type { PlayerColor } from "@/features/life-counter/components/color-picker";
+import type { PlayerColor } from "@/features/life-counter/types/player";
 
 /* ── State ── */
 export interface PlayerState {
