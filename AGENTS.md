@@ -62,7 +62,10 @@ The agent must strictly respect the following file architecture:
 ├── features/               # Feature modules — one folder per feature
 │   ├── life-counter/       # Core gameplay: life tracking, counters, overlays
 │   │   ├── components/     # Game board, player zones, overlays, menu
-│   │   └── hooks/          # use-life-adjustment, use-swipe, use-game-state
+│   │   ├── hooks/          # use-life-adjustment, use-swipe, use-game-state
+│   │   ├── utils/          # Feature-specific utilities
+│   │   ├── types/          # Types shared within this feature
+│   │   └── constants/      # Constants shared within this feature
 │   └── ai-judge/           # AI-powered MTG rules Q&A
 │       ├── components/     # Judge chat UI, streaming message bubbles
 │       └── lib/            # Prompts, RAG, citations, history
@@ -73,7 +76,7 @@ The agent must strictly respect the following file architecture:
 │       ├── constants/      # Colors, labels, mana, guilds, clans, shards
 │       ├── services/       # External API clients (Scryfall)
 │       ├── state/          # Game state machine (discriminated union)
-│       └── types.ts        # Shared TypeScript interfaces
+│       └── types/          # Shared TypeScript interfaces (no catch-all file)
 ├── public/                 # Static assets (served as-is)
 │   └── sw.js               # Service worker
 ├── tests/                  # Playwright Test Suite
@@ -170,12 +173,21 @@ not generic rules.
   boundaries.
 - **Per `typescript-advanced-types`:** Discriminated unions for state machines,
   generics for reusable utilities, `satisfies` for config objects.
-- **No magic strings for shared values:** Import from `shared/lib/constants/` for
-  colors, labels, and any future shared constants. When DESIGN.md §2 changes,
-  update `shared/lib/constants/colors.ts` first, then mirror to `globals.css`.
+- **No magic strings anywhere:** All domain/business values must come from
+  constants. Shared values (colors, labels, mana) go in
+  `shared/lib/constants/`. Feature-specific values go in
+  `features/<name>/constants/`. No hardcoded string literals representing
+  app-level concepts (e.g., `"#D50000"`, `"White mana"`, `"wubrg"`,
+  `"poison"`). Literal strings are only permitted for one-off, non-reusable,
+  presentation-only values (e.g., an `aria-label` describing a specific
+  element). When DESIGN.md §2 changes, update `shared/lib/constants/colors.ts`
+  first, then mirror to `globals.css`.
 - **Constants per domain:** `shared/lib/constants/` is organized by domain — one file
   per concept. No catch-all `constants.ts`. A new constant goes in a new or
   existing domain file (e.g., `mana.ts`, `guilds.ts`, `labels.ts`).
+- **Feature-specific constants/types:** When a type or constant is used in
+  more than one file within a feature, move it to `features/<name>/types/`
+  or `features/<name>/constants/`. Single-file types and constants stay inline.
 - **Utilities per file:** No catch-all `utils.ts` or `helpers.ts`. Each
   utility function gets its own file (e.g., `shared/lib/cn.ts`,
   `shared/lib/format-mana.ts`).

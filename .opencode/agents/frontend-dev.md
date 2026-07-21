@@ -24,10 +24,12 @@ execution across all four layers simultaneously:
 2. **Components (`features/` and `shared/components/`):** Isolate feature-specific
    UI in `features/<name>/components/` and shared primitives in
    `shared/components/`. Add `'use client'` only when interactivity is needed.
-3. **Logic (`shared/lib/` and `features/*/hooks/`):** Extract shared utilities
-   into `shared/lib/` and stateful React logic into feature-specific `hooks/`.
-   Use strict types — interfaces for exports, discriminated unions for state
-   machines.
+3. **Logic (`shared/lib/` and `features/*/`):** Extract shared utilities into
+   `shared/lib/` and stateful React logic into feature-specific `hooks/`.
+   Use `features/<name>/types/` for types shared within a feature,
+   `features/<name>/constants/` for feature constants, and
+   `features/<name>/utils/` for feature utilities. Use strict types —
+   interfaces for exports, discriminated unions for state machines.
 4. **API & Data (`app/api/` and `shared/lib/services/`):** Build non-AI API
    routes, Scryfall client for card art search, game state machine, and PWA
    configuration. All session-local — no user accounts, no database, no auth.
@@ -75,10 +77,12 @@ execution across all four layers simultaneously:
 - **Explicit interfaces** for exported functions, component props, and API
   boundaries. Use discriminated unions for state machines per
   `typescript-advanced-types`.
-- **No magic strings.** Import color values and labels from
-  `shared/lib/constants/colors`. Never hardcode color hexes or labels like
-  `"#D50000"` or `"White mana"` directly in components.
-  `shared/lib/constants/colors.ts` is the single source of truth.
+- **No magic strings.** Never hardcode domain strings anywhere in the
+  codebase. Import shared values (colors, labels, mana) from
+  `shared/lib/constants/` and feature-specific values from
+  `features/<name>/constants/`. No hardcoded color hexes, labels, or
+  domain terms like `"#D50000"`, `"White mana"`, `"wubrg"`, or `"poison"`.
+  `shared/lib/constants/colors.ts` is the single source of truth for colors.
 - **No barrel imports.** A barrel file is an `index.ts`/`index.tsx` that only
   re-exports sibling modules (e.g., `export { Foo } from './foo'`). Import
   directly from the source file: `import { Button } from './shared/components/ui/button'`,
