@@ -5,10 +5,9 @@ import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
+import { INCREMENT_LIFE, DECREMENT_LIFE } from "@/features/life-counter/constants/life";
 
-export const INCREMENT = 1 as const;
-export const DECREMENT = -1 as const;
-type LifeSign = typeof INCREMENT | typeof DECREMENT;
+type LifeSign = typeof INCREMENT_LIFE | typeof DECREMENT_LIFE;
 
 type AdjustCallback = (delta: number) => void;
 
