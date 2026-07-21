@@ -9,6 +9,7 @@ import type { ManaColor } from "./colors";
 import type { Guild } from "./guilds";
 import type { Clan } from "./clans";
 import type { Shard } from "./shards";
+import type { PlayerAction } from "./actions";
 
 /* ── Mana symbol labels ── */
 export const MANA_LABELS: Record<ManaColor, string> = {
@@ -50,4 +51,13 @@ export const SHARD_LABELS: Record<Shard, string> = {
   grixis:"Grixis",
   jund:  "Jund",
   naya:  "Naya",
+} as const;
+
+/* ── Player action display labels ── */
+export const ACTION_LABELS: Record<PlayerAction, string> = {
+  lifeSettings:  "Life Settings",
+  selectPlayers: "Select Players",
+  restartGame:   "Restart Game",
+  callJudge:     "Call Judge",
+  colorSettings: "Color Settings",
 } as const;
