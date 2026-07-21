@@ -86,7 +86,7 @@ Text on these backgrounds auto-selects warm white (`#FAF8F5`) or warm near-black
 | ---------------------- | ------------------ | ---------------------------------------------------------- |
 | Background overlay     | `#1a1a1a`          | Commander damage and counters overlay backgrounds          |
 | Belt / AI Judge        | `#000000`          | Spellbook belt, AI Judge modal backdrop                    |
-| Modal backdrop         | `rgba(0,0,0,0.35)` | Config modals (life, players, color picker)                |
+| Modal background       | `rgba(0,0,0,0.80)` | Config modals (life, players, color picker)                |
 | Danger red             | `#D50000`          | Life total ≤ 0, commander damage ≥ 21                      |
 | Warm white (text)      | `#FAF8F5`          | Life / UI text on overlay & belt backgrounds               |
 | Warm near-black (text) | `#1A1A1A`          | Life / UI text on light mana backgrounds                   |
