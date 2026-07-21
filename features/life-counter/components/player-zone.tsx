@@ -86,7 +86,7 @@ export function PlayerZone({
 
   return (
     <div
-      className="h-full w-full"
+      className="relative h-full w-full"
       style={{ transform: `rotate(${rotation}deg)` }}
     >
       {/* §4.2 swipe gestures: deferred to overlays feature */}
