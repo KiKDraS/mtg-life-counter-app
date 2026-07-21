@@ -23,8 +23,8 @@ React components, Tailwind styling, or anything in `app/` outside of
 | Directory | What you build |
 |---|---|
 | `app/api/judge/` | Streaming API route for AI Judge queries |
-| `lib/ai/` | Prompt templates, citation parser, token budget manager |
-| `lib/ai/rag/` | MTG rules embedding, vector store, retrieval pipeline |
+| `features/ai-judge/lib/` | Prompt templates, citation parser, token budget manager |
+| `features/ai-judge/lib/rag/` | MTG rules embedding, vector store, retrieval pipeline |
 
 ---
 
@@ -110,7 +110,7 @@ React components, Tailwind styling, or anything in `app/` outside of
   Player question: {user_question}
   ```
 
-### 3. RAG Pipeline (`lib/ai/rag/`)
+### 3. RAG Pipeline (`features/ai-judge/lib/rag/`)
 
 - **Knowledge sources:**
   - MTG Comprehensive Rules (full text, updated quarterly)
@@ -159,7 +159,7 @@ React components, Tailwind styling, or anything in `app/` outside of
   { "type": "error", "code": "model_unavailable", "message": "The AI Judge is temporarily offline. Try again shortly." }
   ```
 
-### 5. Citation Formatting (`lib/ai/citations.ts`)
+### 5. Citation Formatting (`features/ai-judge/lib/citations.ts`)
 
 - **Parser:** Extract citations from the structured LLM output. Validate
   against expected format. Sanitize before returning to client.
@@ -175,7 +175,7 @@ React components, Tailwind styling, or anything in `app/` outside of
   chat UI component (`frontend-dev` responsibility) renders them as clickable
   footnotes that expand to show the full rule excerpt.
 
-### 6. Chat History (`lib/ai/history.ts`)
+### 6. Chat History (`features/ai-judge/lib/history.ts`)
 
 - **Per-session in-memory.** Each game session gets an independent conversation
   array. No cross-session leakage.
@@ -208,7 +208,7 @@ React components, Tailwind styling, or anything in `app/` outside of
   and Scryfall client first. You then add the AI pipeline on top.
 - **Push protocol:**
   ```bash
-  git add app/api/judge/ lib/ai/ package.json
+  git add app/api/judge/ features/ai-judge/lib/ package.json
   git commit -m "feat: add AI Judge with OpenRouter SDK and MTG rules RAG"
   git push origin feature/branch-name
   ```

@@ -21,14 +21,15 @@ execution across all four layers simultaneously:
 
 1. **Pages & Layouts (`app/`):** Build the route page and any shared layouts
    using React Server Components by default. Export `metadata` for SEO.
-2. **Components (`components/`):** Isolate reusable UI into dedicated component
-   files, split by `ui/` (primitives) and `features/` (composed). Add
-   `'use client'` only when interactivity is needed.
-3. **Logic (`lib/` and `hooks/`):** Extract pure TypeScript utilities into
-   `lib/` and stateful React logic into `hooks/`. Use strict types — interfaces
-   for exports, discriminated unions for state machines.
-4. **API & Data (`app/api/` and `lib/services/`):** Build non-AI API routes,
-   Scryfall client for card art search, game state machine, and PWA
+2. **Components (`features/` and `shared/components/`):** Isolate feature-specific
+   UI in `features/<name>/components/` and shared primitives in
+   `shared/components/`. Add `'use client'` only when interactivity is needed.
+3. **Logic (`shared/lib/` and `features/*/hooks/`):** Extract shared utilities
+   into `shared/lib/` and stateful React logic into feature-specific `hooks/`.
+   Use strict types — interfaces for exports, discriminated unions for state
+   machines.
+4. **API & Data (`app/api/` and `shared/lib/services/`):** Build non-AI API
+   routes, Scryfall client for card art search, game state machine, and PWA
    configuration. All session-local — no user accounts, no database, no auth.
 
 ---
@@ -70,19 +71,20 @@ execution across all four layers simultaneously:
   boundaries. Use discriminated unions for state machines per
   `typescript-advanced-types`.
 - **No magic strings.** Import color values and labels from
-  `lib/constants/colors`. Never hardcode color hexes or labels like
+  `shared/lib/constants/colors`. Never hardcode color hexes or labels like
   `"#D50000"` or `"White mana"` directly in components.
-  `lib/constants/colors.ts` is the single source of truth.
+  `shared/lib/constants/colors.ts` is the single source of truth.
 - **No barrel imports.** A barrel file is an `index.ts`/`index.tsx` that only
   re-exports sibling modules (e.g., `export { Foo } from './foo'`). Import
-  directly from the source file: `import { Button } from './components/ui/button'`,
+  directly from the source file: `import { Button } from './shared/components/ui/button'`,
   never `import { Button } from './components/ui'`. The only exception is an
   explicit public library API.
 - **Read-only component props:** All component prop interfaces must use
   `readonly` on each property, or wrap with `Readonly<Props>` at the
   component signature. No mutable props.
 - **Utilities per file:** No catch-all `utils.ts` or `helpers.ts`. Each
-  utility function gets its own file (e.g., `lib/cn.ts`, `lib/format-mana.ts`).
+  utility function gets its own file (e.g., `shared/lib/cn.ts`,
+  `shared/lib/format-mana.ts`).
   If a utility needs internal helpers, promote to a folder.
 - Use `satisfies` for config objects. Use generics for reusable utilities.
 
@@ -95,7 +97,7 @@ execution across all four layers simultaneously:
   properties. Every color, spacing, and type value must reference these tokens.
 - **No hardcoded color hex values.** Always reference `var(--color-*)` from
   `globals.css`. The design tokens in `@theme` are the only valid color source.
-  If a color isn't tokenized yet, add it to `lib/constants/colors.ts` first,
+  If a color isn't tokenized yet, add it to `shared/lib/constants/colors.ts` first,
   then mirror to `globals.css`.
 - **`@apply` is forbidden** for component styles — it defeats utility-first.
   Only permitted in `globals.css` for base layer resets.
@@ -158,13 +160,13 @@ execution across all four layers simultaneously:
 
 ### 7. API & Data Layer
 
-- **Scryfall Integration (`lib/services/scryfall.ts`):** Typed client for
+- **Scryfall Integration (`shared/lib/services/scryfall.ts`):** Typed client for
   Scryfall REST API — `/cards/search`, `/cards/autocomplete`,
   `/cards/named`. Cache responses server-side to avoid hitting rate limits.
   Respect Scryfall's rate limit headers and add delay between requests when
   needed. Phase 1: card text/oracle lookups for AI Judge RAG. Phase 2
   (per DESIGN.md §10): card art backgrounds and avatar picker.
-- **Game State (`lib/state/game.ts`):** Discriminated union state machine:
+- **Game State (`shared/lib/state/game.ts`):** Discriminated union state machine:
   `setup → playing → paused → ended`. Track life totals, poison counters,
   commander damage, monarch, and initiative per player. Implement undo/redo
   with a command stack. All state is session-local — no persistence to disk.
@@ -183,8 +185,8 @@ execution across all four layers simultaneously:
 ## Definition of Done
 
 A feature is complete when:
-- The React component tree is built across `app/`, `components/`, `lib/`, and
-  `hooks/` with proper RSC/Client boundaries.
+- The React component tree is built across `app/`, `features/`, `shared/components/`,
+  and `shared/lib/` with proper RSC/Client boundaries.
 - TypeScript compiles without errors under strict mode.
 - Tailwind classes produce correct, responsive visuals.
 - Metadata is exported from every route.

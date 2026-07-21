@@ -44,8 +44,8 @@ quality gates. If a single item fails, the submission must be rejected.
   (loading/success/error), demand discriminated unions with a `status` or `type`
   discriminant property.
 - **Constant enforcement:** Flag any hardcoded color strings or labels that
-  duplicate values in `lib/constants/colors`. Must import from
-  `lib/constants/colors`.
+  duplicate values in `shared/lib/constants/colors`. Must import from
+  `shared/lib/constants/colors`.
 - **No barrel imports:** Flag imports from barrel files (`index.ts` re-exports).
   Demand direct module imports per `bundle-barrel-imports`.
 - **No catch-all `utils.ts`:** Flag any `utils.ts` or `helpers.ts` that
@@ -178,13 +178,13 @@ declaration. Do not use ambiguous phrases.
 ### Review Findings:
 - [RSC] `app/features/PlayerPanel.tsx` is marked `'use client'` but contains an `async function` component — async is RSC-only.
 - [TS] `lib/api.ts:42` uses `any` without justification. Use `unknown` and type narrowing.
-- [Tailwind] `components/ui/Card.tsx` uses `@apply` on line 15. Move styles to `className` with utility classes.
-- [Patterns] `components/ui/Button.tsx` has 5 boolean props (`isPrimary`, `isLarge`, `isDisabled`, `isFullWidth`, `isLoading`). Refactor to compound components or explicit variants.
+- [Tailwind] `shared/components/ui/Card.tsx` uses `@apply` on line 15. Move styles to `className` with utility classes.
+- [Patterns] `shared/components/ui/Button.tsx` has 5 boolean props (`isPrimary`, `isLarge`, `isDisabled`, `isFullWidth`, `isLoading`). Refactor to compound components or explicit variants.
 - [Perf] `app/page.tsx` fetches `playerData` and `matchHistory` sequentially. Use `Promise.all()`.
-- [A11y] `components/ui/Dialog.tsx` uses `<div role="dialog">` instead of native `<dialog>` element.
+- [A11y] `shared/components/ui/Dialog.tsx` uses `<div role="dialog">` instead of native `<dialog>` element.
 - [SEO] `app/layout.tsx` exports `title: "Create Next App"` — update to app-specific title.
 - [AI] `app/api/judge/route.ts` is using raw `fetch` instead of `@openrouter/sdk`. Use the SDK with ZDR enabled.
-- [AI] System prompt in `lib/ai/prompts.ts` is generic — define MTG judge persona with citation format requirements.
+- [AI] System prompt in `features/ai-judge/lib/prompts.ts` is generic — define MTG judge persona with citation format requirements.
 
 STATUS: REJECTED
 ```
