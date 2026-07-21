@@ -18,8 +18,6 @@ export interface LifeAdjustmentHandlers {
   onClick: (event: ReactMouseEvent<HTMLButtonElement>) => void;
 }
 
-const PRIMARY_BUTTON = 0;
-
 /* §4.2 — tap = ±1; hold = repeat at ±10 after 1000ms. */
 const HOLD_DELAY_MS = 1000;
 const REPEAT_INTERVAL_MS = 100;
@@ -88,7 +86,7 @@ export function useLifeAdjustment(
   return useCallback(
     (direction: Direction): LifeAdjustmentHandlers => ({
       onPointerDown: (event) => {
-        const isPrimaryClick = event.button === PRIMARY_BUTTON;
+        const isPrimaryClick = event.button === 0;
         if (isPrimaryClick) handlePointerDown(direction);
       },
       onPointerUp: stopHold,
