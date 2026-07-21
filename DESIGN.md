@@ -625,9 +625,11 @@ damage overlay (§7.3).
   white (`#FAF8F5`) per luminance.
 - **[-] [+] buttons:** Tap = ±1. Hold = accelerate (±5 → ±10 after 1s).
 - **[✕] delete button:** Removes the counter column. Shown on every counter.
-- **+ button (bottom-right):** Opens a prompt to add a custom counter (name +
-  initial value). Custom counters use the first letter of their name as the
-  icon.
+- **+ button (bottom-right):** Opens a prompt asking for the custom counter name
+  (initial value is always 0). Custom counters use a rounded pill — background
+  `#CAC5C0` (colorless), icon `iconDark` (`#0D0F0F`) — displaying the first
+  letter of their name. This visually distinguishes custom counters from the
+  pill-free default counters.
 - **Lethal indicator:** Poison at 10+ turns both the poison counter value
   **and** the player's life total lethal red (`#D50000`).
 
