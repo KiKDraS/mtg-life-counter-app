@@ -1,31 +1,17 @@
 "use client";
 
-import { useReducer, useRef, useCallback } from "react";
-import { MANA, UI } from "@/shared/lib/constants/colors";
-import type { ManaColor } from "@/shared/lib/constants/colors";
-import { textColorFor } from "@/shared/lib/text-color-for";
+import { useRef, useCallback } from "react";
+import { UI } from "@/shared/lib/constants/colors";
 import { useLifeAdjustment } from "@/features/life-counter/hooks/use-life-adjustment";
+import {
+  usePlayerState,
+  adjustLife,
+  setColor,
+} from "@/features/life-counter/hooks/use-player-state";
+import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
 import { ColorPicker } from "./color-picker";
 import type { PlayerColor } from "./color-picker";
 import ColorSettings from "@/shared/components/icons/player-actions/Settings";
-
-type PlayerState = {
-  life: number;
-  color: PlayerColor;
-};
-
-type PlayerAction =
-  | { type: "ADJUST_LIFE"; delta: number }
-  | { type: "SET_COLOR"; color: PlayerColor };
-
-function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
-  switch (action.type) {
-    case "ADJUST_LIFE":
-      return { ...state, life: state.life + action.delta };
-    case "SET_COLOR":
-      return { ...state, color: action.color };
-  }
-}
 
 interface PlayerZoneProps {
   readonly playerNumber: 1 | 2 | 3 | 4 | 5 | 6;
@@ -40,9 +26,6 @@ const buttonClass =
   "transition-shadow duration-150 active:shadow-[inset_0_0_0_9999px_rgba(0,0,0,0.08)] " +
   "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current";
 
-/* §6.5 — hard-stop diagonal bands: W 0‑20%, U 20‑40%, B 40‑60%, R 60‑80%, G 80‑100% */
-const WUBRG_GRADIENT = `linear-gradient(to bottom right, ${MANA.w} 0%,${MANA.w} 20%,${MANA.u} 20%,${MANA.u} 40%,${MANA.b} 40%,${MANA.b} 60%,${MANA.r} 60%,${MANA.r} 80%,${MANA.g} 80%,${MANA.g} 100%)`;
-
 /**
  * §4.2 Player Zone — three-column grid: [-] | life | [+].
  * Rotation is applied to the outer wrapper (§4.3) so the interior layout is
@@ -54,35 +37,22 @@ export function PlayerZone({
   rotation = 0,
   initialLife = 40,
 }: PlayerZoneProps) {
-  const [state, dispatch] = useReducer(playerReducer, {
-    life: initialLife,
-    color,
-  });
+  const [state, dispatch] = usePlayerState(initialLife, color);
 
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
-  const adjustment = useLifeAdjustment((delta) =>
-    dispatch({ type: "ADJUST_LIFE", delta }),
+  const adjustment = useLifeAdjustment((delta) => dispatch(adjustLife(delta)));
+
+  const handleColorSelect = useCallback(
+    (result: PlayerColor) => {
+      dispatch(setColor(result));
+      dialogRef.current?.close();
+    },
+    [dispatch],
   );
 
-  const handleColorSelect = useCallback((result: PlayerColor) => {
-    dispatch({ type: "SET_COLOR", color: result });
-    dialogRef.current?.close();
-  }, []);
-
   const isLethal = state.life <= 0;
-
-  // Narrow the union: state.color is ManaColor in the else branch
-  let background: string;
-  let textColor: string;
-
-  if (state.color === "wubrg") {
-    background = WUBRG_GRADIENT;
-    textColor = UI.textDark;
-  } else {
-    background = MANA[state.color];
-    textColor = textColorFor(MANA[state.color]);
-  }
+  const { background, textColor } = zoneStylesFor(state.color);
 
   return (
     <div
