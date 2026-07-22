@@ -14,9 +14,12 @@ import {
   setLife,
   setColor,
 } from "@/features/life-counter/hooks/use-player-state";
+import { useSwipe } from "@/features/life-counter/hooks/use-swipe";
 import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
 import { ColorPicker } from "./ColorPicker";
 import { LifeNumpad } from "./LifeNumpad";
+import { CommanderDamage } from "./CommanderDamage";
+import { Counters } from "./Counters";
 import type { PlayerColor } from "@/features/life-counter/types/player";
 import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 
@@ -49,6 +52,9 @@ export function PlayerZone({
 
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const numpadRef = useRef<HTMLDialogElement | null>(null);
+  const commanderRef = useRef<HTMLDialogElement | null>(null);
+  const countersRef = useRef<HTMLDialogElement | null>(null);
+  const zoneRef = useRef<HTMLDivElement | null>(null);
 
   const adjustment = useLifeAdjustment((delta) => dispatch(adjustLife(delta)));
 
@@ -65,15 +71,29 @@ export function PlayerZone({
     [dispatch],
   );
 
+  const handleSwipeLeft = useCallback(() => {
+    commanderRef.current?.show();
+  }, []);
+
+  const handleSwipeRight = useCallback(() => {
+    countersRef.current?.show();
+  }, []);
+
+  /* §7.2 — full-zone swipe gestures */
+  useSwipe(zoneRef as React.RefObject<HTMLElement | null>, {
+    onSwipeLeft: handleSwipeLeft,
+    onSwipeRight: handleSwipeRight,
+  });
+
   const isLethal = state.life <= 0;
   const { background, textColor } = zoneStylesFor(state.color);
 
   return (
     <div
+      ref={zoneRef}
       className="relative h-full w-full"
       style={{ transform: `rotate(${rotation}deg)` }}
     >
-      {/* §4.2 swipe gestures: deferred to overlays feature */}
       <section
         aria-label={`Player ${playerNumber}: ${state.life} life`}
         className="grid h-full w-full grid-cols-3"
@@ -133,6 +153,22 @@ export function PlayerZone({
        */}
       <ColorPicker dialogRef={dialogRef} onSelect={handleColorSelect} />
       <LifeNumpad dialogRef={numpadRef} onConfirm={handleNumpadConfirm} />
+
+      {/*
+       * §7.3 — Commander Damage overlay.
+       * §7.4 — Counters overlay.
+       * Each manages its own `useSwipe` to support close-on-swipe.
+       */}
+      <CommanderDamage
+        onClose={() => {
+          /* ponytail: placeholder — no cleanup needed yet */
+        }}
+      />
+      <Counters
+        onClose={() => {
+          /* ponytail: placeholder — no cleanup needed yet */
+        }}
+      />
     </div>
   );
 }
