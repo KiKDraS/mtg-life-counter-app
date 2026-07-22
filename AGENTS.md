@@ -208,6 +208,10 @@ not generic rules.
   point.
 - **No barrel imports** (per `bundle-barrel-imports`). Import directly from
   module files — never from an `index.ts` re-export barrel.
+- **Named predicate variables:** Never compare against a literal directly
+  in a conditional. Assign the comparison to a named `const` that explains
+  what is being checked. `const isLethal = life <= 0` instead of
+  `if (life <= 0)`. The variable name IS the documentation.
 
 ### 4. Asset Management
 
