@@ -49,7 +49,8 @@ export function ColorPicker({ dialogRef, onSelect }: ColorPickerProps) {
       className="absolute top-0 left-0 m-0 w-full h-full open:flex flex-col border-0 rounded-none bg-black/80 text-ui-textLight"
     >
       {/* 80% — color selection area */}
-      <div className="relative flex items-center justify-center w-100 h-full m-auto ">
+      {/* keep: exact width for color wheel centering */}
+      <div className="relative flex items-center justify-center w-81.25 h-full m-auto ">
         {MANA_KEYS.map((color, i) => (
           <button
             key={color}

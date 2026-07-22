@@ -68,6 +68,8 @@ execution across all four layers simultaneously:
   `.test.ts` files. Test generation and maintenance is handled exclusively by
   the Playwright pipeline (planner → generator → healer). If the healer
   reports a real app bug, fix the app code — not the tests.
+- **Keep markers:** Do not modify any line marked `// keep: <reason>`. These
+  values intentionally break conventions — they are correct as-is.
 
 ### 2. TypeScript
 
