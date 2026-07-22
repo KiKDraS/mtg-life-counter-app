@@ -29,17 +29,30 @@ export function DialogShell({
   children,
   onClose,
 }: DialogShellProps) {
+  const close = useCallback(() => {
+    dialogRef.current?.close();
+  }, [dialogRef]);
+
+  /* §6.1 — backdrop tap dismisses the dialog */
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent<HTMLDialogElement>) => {
-      /* When the click lands directly on the <dialog> element (not a child),
-       * the user tapped the empty backdrop area. Close the dialog — the native
-       * close event fires, which triggers onClose for cleanup. */
       const isBackdropClick = e.target === e.currentTarget;
-      if (isBackdropClick) {
-        dialogRef.current?.close();
+      if (isBackdropClick) close();
+    },
+    [close],
+  );
+
+  /* §6.1 — Escape key dismisses the dialog.
+   * React shims the native `cancel` event but it may not fire reliably across
+   * all React versions. An explicit `onKeyDown` ensures Escape always closes. */
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDialogElement>) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        close();
       }
     },
-    [dialogRef],
+    [close],
   );
 
   return (
@@ -48,6 +61,13 @@ export function DialogShell({
       aria-modal="true"
       aria-labelledby={ariaLabelledBy}
       onClose={onClose}
+      onCancel={(e) => {
+        /* Intercept the cancel event so we control the close ourselves.
+         * The native close then fires `onClose` for cleanup. */
+        e.preventDefault();
+        close();
+      }}
+      onKeyDown={handleKeyDown}
       onClick={handleBackdropClick}
       className={cn(
         "absolute top-0 left-0 m-0 w-full h-full open:flex flex-col",

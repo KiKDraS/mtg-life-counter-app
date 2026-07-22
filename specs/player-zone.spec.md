@@ -278,7 +278,37 @@ MTG Life Counter — Player Zone milestone (branch `feature/player-zone`). Two p
 **File:** `tests/e2e/player-zone.spec.ts`
 
 **Steps:**
-  1. Open numpad; type 005
-    - expect: Status reads 005
-  2. Click Confirm
-    - expect: P1 life reads 5, not 005
+   1. Open numpad; type 005
+     - expect: Status reads 005
+   2. Click Confirm
+     - expect: P1 life reads 5, not 005
+
+### 9. Swipe Gestures (§7.2)
+
+**Seed:** `tests/seed.spec.ts`
+
+#### 9.1. Swipe left opens Commander Damage overlay; swipe right opens Counters overlay
+
+**File:** `tests/e2e/player-zone.spec.ts`
+
+**Steps:**
+   1. Navigate to `/`
+   2. Swipe left (~50px) on the P1 zone (wrapper `<div>`)
+     - expect: Commander Damage dialog appears with `aria-labelledby="commander-damage-title"`
+   3. Press Escape to close
+     - expect: Dialog closes
+   4. Swipe right (~50px) on the P1 zone
+     - expect: Counters dialog appears with `aria-labelledby="counters-title"`
+   5. Press Escape to close
+     - expect: Dialog closes
+
+#### 9.2. Short vertical jab (<10px) does not trigger a swipe
+
+**File:** `tests/e2e/player-zone.spec.ts`
+
+**Steps:**
+   1. Navigate to `/`
+   2. Press `pointerdown` on P1 zone, move 5px down, `pointerup`
+     - expect: No dialogs open — life total unchanged
+   3. Tap P1 `+1 life` button normally
+     - expect: Life reads 41 — tap gesture not conflicting with swipe

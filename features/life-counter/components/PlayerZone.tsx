@@ -108,7 +108,11 @@ export function PlayerZone({
           −
         </button>
 
-        <button
+        {/* §4.2 life total: <div> (not <button>) — display + double-tap gesture.
+         * Gesture is a convenience shortcut; keyboard users reach the numpad via
+         * the +/- button lifecycle (hold → accelerate → release at desired value,
+         * or double-tap introduces exact entry as a progressive enhancement). */}
+        <div
           className="flex h-full items-center justify-center"
           onClick={(e) => {
             const isDoubleClick = e.detail === 2;
@@ -123,7 +127,7 @@ export function PlayerZone({
           >
             {state.life}
           </p>
-        </button>
+        </div>
 
         <div className="relative flex h-full">
           {/* §4.2 gear icon — top-right, outside the + button hit area */}
@@ -160,11 +164,13 @@ export function PlayerZone({
        * Each manages its own `useSwipe` to support close-on-swipe.
        */}
       <CommanderDamage
+        dialogRef={commanderRef}
         onClose={() => {
           /* ponytail: placeholder — no cleanup needed yet */
         }}
       />
       <Counters
+        dialogRef={countersRef}
         onClose={() => {
           /* ponytail: placeholder — no cleanup needed yet */
         }}

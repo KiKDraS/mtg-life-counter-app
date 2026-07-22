@@ -1,8 +1,12 @@
 "use client";
 
-import { useRef } from "react";
 import { DialogShell } from "@/shared/components/DialogShell";
 import { useSwipe } from "@/features/life-counter/hooks/use-swipe";
+
+interface CommanderDamageProps {
+  readonly dialogRef: React.RefObject<HTMLDialogElement | null>;
+  readonly onClose: () => void;
+}
 
 /**
  * §7.3 — Commander Damage overlay (placeholder).
@@ -13,11 +17,9 @@ import { useSwipe } from "@/features/life-counter/hooks/use-swipe";
  * @see DESIGN.md §7.3
  */
 export function CommanderDamage({
+  dialogRef,
   onClose,
-}: {
-  readonly onClose: () => void;
-}) {
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
+}: CommanderDamageProps) {
 
   /* Swipe X-axis (either direction) → close the overlay */
   useSwipe(dialogRef as React.RefObject<HTMLElement | null>, {

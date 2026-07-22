@@ -584,3 +584,84 @@ test.describe("Player Zone — Double-tap Numpad", () => {
     await expect(lifeTotal(p1)).toHaveText("5");
   });
 });
+
+/* ── §9 helpers — Swipe gestures ── */
+
+/**
+ * Simulate a horizontal swipe on an element using pointer events.
+ * Moves `distance` px in the given direction, fast enough to qualify as a
+ * swipe (≥10px within 300ms per §4.2).
+ */
+async function swipeOn(
+  locator: Locator,
+  direction: "left" | "right",
+  distance = 50,
+): Promise<void> {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error("element not visible for swipe");
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  const targetX = direction === "left" ? cx - distance : cx + distance;
+  const page = locator.page();
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(targetX, cy);
+  await page.mouse.up();
+}
+
+test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
+  test("9.1. Swipe left opens Commander Damage; swipe right opens Counters", async ({ page }) => {
+    // 1. Navigate to `/`
+    await page.goto("/");
+
+    // 2. Swipe left on P1 zone → Commander Damage dialog
+    await swipeOn(zone(page, 1), "left");
+    const commanderDlg = page.getByRole("dialog", {
+      name: "Commander Damage",
+    });
+    await expect(commanderDlg).toBeVisible();
+
+    // Close via Escape
+    await page.keyboard.press("Escape");
+    await expect(commanderDlg).not.toBeVisible();
+
+    // 3. Swipe right on P1 zone → Counters dialog
+    await swipeOn(zone(page, 1), "right");
+    const countersDlg = page.getByRole("dialog", { name: "Counters" });
+    await expect(countersDlg).toBeVisible();
+
+    // Close via Escape
+    await page.keyboard.press("Escape");
+    await expect(countersDlg).not.toBeVisible();
+
+    // Life total unchanged
+    await expect(lifeTotal(zone(page, 1))).toHaveText("40");
+    await expect(lifeTotal(zone(page, 2))).toHaveText("40");
+  });
+
+  test("9.2. Short vertical jab (<10px) does not trigger a swipe", async ({ page }) => {
+    // 1. Navigate to `/`
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    const box = await p1.boundingBox();
+    if (!box) throw new Error("zone not visible");
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+
+    // 2. Press down, move 5px down, release — vertical jab, not a swipe
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.move(cx, cy + 5);
+    await page.mouse.up();
+
+    // No dialogs should have opened
+    const anyDialog = page.getByRole("dialog");
+    await expect(anyDialog).toHaveCount(0);
+    await expect(lifeTotal(p1)).toHaveText("40");
+
+    // 3. Normal tap still works
+    await p1.getByRole("button", { name: "+1 life" }).click();
+    await expect(lifeTotal(p1)).toHaveText("41");
+  });
+});

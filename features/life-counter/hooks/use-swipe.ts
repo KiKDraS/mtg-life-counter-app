@@ -52,13 +52,17 @@ export function useSwipe(
 
       gestureRef.current = null;
 
-      const dx = e.clientX - gesture.startX;
-      const dt = performance.now() - gesture.startTime;
-      const absDx = dx < 0 ? -dx : dx;
+      const distanceX = e.clientX - gesture.startX;
+      const elapsedMs = performance.now() - gesture.startTime;
+      const isSwipeLeft = distanceX < 0;
+      const horizontalDistance = isSwipeLeft ? -distanceX : distanceX;
 
-      if (absDx < SWIPE_THRESHOLD_PX || dt > SWIPE_TIMEOUT_MS) return;
+      const isHorizontalEnough = horizontalDistance >= SWIPE_THRESHOLD_PX;
+      const isFastEnough = elapsedMs <= SWIPE_TIMEOUT_MS;
 
-      if (dx < 0) {
+      if (!isHorizontalEnough || !isFastEnough) return;
+
+      if (isSwipeLeft) {
         onSwipeLeft();
       } else {
         onSwipeRight();
