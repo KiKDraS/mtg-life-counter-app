@@ -1,7 +1,6 @@
 "use client";
 
 import { DialogShell } from "@/shared/components/DialogShell";
-import { useSwipe } from "@/features/life-counter/hooks/use-swipe";
 
 interface CountersProps {
   readonly dialogRef: React.RefObject<HTMLDialogElement | null>;
@@ -12,7 +11,7 @@ interface CountersProps {
  * §7.4 — Counters overlay (placeholder).
  *
  * Full-screen dialog showing poison, energy, experience, time counters.
- * Swipe X-axis in either direction to close and return to life total.
+ * Close via swipe (zone-level), backdrop click, or Escape.
  *
  * @see DESIGN.md §7.4
  */
@@ -20,12 +19,6 @@ export function Counters({
   dialogRef,
   onClose,
 }: CountersProps) {
-
-  /* Swipe X-axis (either direction) → close the overlay */
-  useSwipe(dialogRef as React.RefObject<HTMLElement | null>, {
-    onSwipeLeft: () => dialogRef.current?.close(),
-    onSwipeRight: () => dialogRef.current?.close(),
-  });
 
   return (
     <DialogShell

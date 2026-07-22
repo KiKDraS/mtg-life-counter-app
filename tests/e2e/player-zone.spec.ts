@@ -694,4 +694,36 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
 
     await expect(countersDlg).not.toBeVisible();
   });
+
+  test("9.5. Swipe right on open Commander Damage closes it without opening Counters", async ({ page }) => {
+    await page.goto("/");
+
+    // Open Commander Damage via swipe left on zone
+    await swipeOn(zone(page, 1), "left");
+    const commanderDlg = page.getByRole("dialog", {
+      name: "Commander Damage",
+    });
+    await expect(commanderDlg).toBeVisible();
+
+    // Swipe directly on the dialog
+    await swipeOn(commanderDlg, "right");
+
+    await expect(commanderDlg).not.toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Counters" })).toHaveCount(0);
+  });
+
+  test("9.6. Swipe left on open Counters closes it without opening Commander Damage", async ({ page }) => {
+    await page.goto("/");
+
+    // Open Counters via swipe right on zone
+    await swipeOn(zone(page, 1), "right");
+    const countersDlg = page.getByRole("dialog", { name: "Counters" });
+    await expect(countersDlg).toBeVisible();
+
+    // Swipe directly on the dialog
+    await swipeOn(countersDlg, "left");
+
+    await expect(countersDlg).not.toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Commander Damage" })).toHaveCount(0);
+  });
 });

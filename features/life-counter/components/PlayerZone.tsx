@@ -72,11 +72,22 @@ export function PlayerZone({
   );
 
   const handleSwipeLeft = useCallback(() => {
-    commanderRef.current?.show();
+    /* If any overlay is open, close it regardless of swipe direction */
+    if (commanderRef.current?.open || countersRef.current?.open) {
+      commanderRef.current?.close();
+      countersRef.current?.close();
+    } else {
+      commanderRef.current?.show();
+    }
   }, []);
 
   const handleSwipeRight = useCallback(() => {
-    countersRef.current?.show();
+    if (commanderRef.current?.open || countersRef.current?.open) {
+      commanderRef.current?.close();
+      countersRef.current?.close();
+    } else {
+      countersRef.current?.show();
+    }
   }, []);
 
   /* §7.2 — full-zone swipe gestures */
