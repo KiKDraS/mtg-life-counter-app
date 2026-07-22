@@ -49,6 +49,16 @@ export function useSwipe(
     const handlePointerDown = (e: PointerEvent) => {
       const isPrimaryClick = e.button === 0;
       if (!isPrimaryClick) return;
+
+      /* §4.2: ignore pointerdown that originated inside a +/- button, so
+       * starting a horizontal drag on them doesn't fire ±1 (from
+       * use-life-adjustment's pointerdown handler) AND open an overlay.
+       * Swipes still work on the life total area and zone background. */
+      const isLifeButton = (e.target as HTMLElement).closest(
+        '[aria-label="-1 life"], [aria-label="+1 life"]',
+      );
+      if (isLifeButton) return;
+
       gestureRef.current = { startX: e.clientX, startTime: performance.now() };
     };
 
