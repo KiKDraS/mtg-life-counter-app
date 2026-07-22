@@ -11,7 +11,8 @@ export interface ZoneStyles {
 }
 
 export function zoneStylesFor(color: PlayerColor): ZoneStyles {
-  if (color === "wubrg") {
+  const isWubrg = color === "wubrg";
+  if (isWubrg) {
     return { background: WUBRG_GRADIENT, textColor: UI.textDark };
   }
 

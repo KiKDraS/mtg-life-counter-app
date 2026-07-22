@@ -39,6 +39,9 @@ quality gates. If a single item fails, the submission must be rejected.
   files and directories must use kebab-case.
 - **Keep markers:** Flag any modification to lines marked `// keep:`. These
   intentionally break conventions and must be preserved.
+- **Named predicate variables:** Flag anonymous inline comparisons against
+  literals like `if (value === "string")` or `if (value <= 0)`. Must extract
+  to `const isMeaningful = value === LITERAL`.
 - **Explicit interfaces for boundaries:** Exported functions, component props,
   and API boundaries must use explicit `interface` declarations — not inline
   inference, not `type` for object shapes.

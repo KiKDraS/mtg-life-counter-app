@@ -85,6 +85,9 @@ execution across all four layers simultaneously:
   `features/<name>/constants/`. No hardcoded color hexes, labels, or
   domain terms like `"#D50000"`, `"White mana"`, `"wubrg"`, or `"poison"`.
   `shared/lib/constants/colors.ts` is the single source of truth for colors.
+- **Named predicate variables:** Compare against a literal only through a
+  named `const`. `const isLethal = life <= 0` then `if (isLethal)`. Never
+  anonymous inline comparisons like `if (life <= 0)`.
 - **No barrel imports.** A barrel file is an `index.ts`/`index.tsx` that only
   re-exports sibling modules (e.g., `export { Foo } from './foo'`). Import
   directly from the source file: `import { Button } from './shared/components/ui/button'`,
