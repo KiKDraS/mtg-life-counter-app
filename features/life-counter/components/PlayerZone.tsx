@@ -86,10 +86,11 @@ export function PlayerZone({
           −
         </button>
 
-        <div
+        <button
           className="flex h-full items-center justify-center"
           onClick={(e) => {
-            if (e.detail === 2) numpadRef.current?.show();
+            const isDoubleClick = e.detail === 2;
+            if (isDoubleClick) numpadRef.current?.show();
           }}
         >
           <p
@@ -100,7 +101,7 @@ export function PlayerZone({
           >
             {state.life}
           </p>
-        </div>
+        </button>
 
         <div className="relative flex h-full">
           {/* §4.2 gear icon — top-right, outside the + button hit area */}
