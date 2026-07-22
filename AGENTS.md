@@ -135,12 +135,22 @@ The agent must strictly respect the following file architecture:
 - **Read-only component props:** All component prop interfaces must use
   `readonly` on each property, or wrap with `Readonly<Props>` at the
   component signature. No mutable props.
+- **Extract repeated markup:** When the same element with the same class
+  pattern appears 3+ times, extract it into a component — locally in the file,
+  in `features/<name>/components/`, or in `shared/components/` depending on
+  scope. Combine with `cn()` for variant variations. Do not copy-paste
+  className strings.
 
 ### 2. Styling with Tailwind CSS (`app/globals.css`)
 
 - **Utility-first.** Style components with Tailwind utility classes directly in
   JSX `className`. No separate CSS files per component unless for complex
   keyframe animations or third-party overrides.
+- **Class composition with `cn()`:** Use `cn()` from `shared/lib/cn.ts` for
+  all className composition — conditionals, merging, and variant construction.
+  Extract repeated class patterns into constants. Never concatenate class
+  strings manually. `cn()` wraps `clsx` + `tailwind-merge` and deduplicates
+  conflicting Tailwind classes automatically.
 - **Design tokens** live in `globals.css` via `@theme` directive or CSS custom
   properties. Every color, spacing, and typography value must reference these
   tokens. See DESIGN.md §2 for the complete `@theme` token specification.

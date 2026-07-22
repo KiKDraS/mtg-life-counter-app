@@ -73,6 +73,9 @@ quality gates. If a single item fails, the submission must be rejected.
 - **Utility-first enforcement:** Flag any `@apply` usage in component-level
   code. Tailwind classes must appear in `className`. Exception: `@apply`
   in `globals.css` for base layer resets only.
+- **Class composition:** Flag raw string concatenation in `className`. Must
+  use `cn()` from `shared/lib/cn.ts`. Flag class repetition across sibling
+  elements that should be extracted to a shared constant or component.
 - **Responsive breakpoints:** Verify `sm:`, `md:`, `lg:` prefixes.
 - **Design token enforcement:** Flag any hardcoded hex color values in
   `className` or `style` props. All colors must use `var(--color-*)` from
