@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useCallback } from "react";
+import { cn } from "@/shared/lib/cn";
 import { UI } from "@/shared/lib/constants/colors";
 import { useLifeAdjustment } from "@/features/life-counter/hooks/use-life-adjustment";
 import {
@@ -26,11 +27,12 @@ interface PlayerZoneProps {
   readonly initialLife?: number;
 }
 
-const buttonClass =
-  "flex h-full w-full items-center justify-center text-4xl font-bold leading-none " +
-  "select-none touch-manipulation " +
-  "transition-shadow duration-150 active:shadow-[inset_0_0_0_9999px_rgba(0,0,0,0.08)] " +
-  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current";
+const buttonClass = cn(
+  "flex h-full w-full items-center justify-center text-4xl font-bold leading-none",
+  "select-none touch-manipulation",
+  "transition-shadow duration-150 active:shadow-[inset_0_0_0_9999px_rgba(0,0,0,0.08)]",
+  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
+);
 
 /**
  * §4.2 Player Zone — three-column grid: [-] | life | [+].

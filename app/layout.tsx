@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo } from "next/font/google";
+import { cn } from "@/shared/lib/cn";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -26,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${archivo.variable} h-full antialiased`}>
+    <html lang="en" className={cn(archivo.variable, "h-full", "antialiased")}>
       <head>
         <meta name="apple-mobile-web-app-title" content="Life Counter" />
       </head>

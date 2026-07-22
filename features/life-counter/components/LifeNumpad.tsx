@@ -1,6 +1,17 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { cn } from "@/shared/lib/cn";
+import { DialogShell } from "@/shared/components/DialogShell";
+
+const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+/* Repeated 10× across numpad buttons — extracted per "extract 3+ repeats" rule. */
+const digitBtnClass = cn(
+  "flex h-14 items-center justify-center rounded-lg font-bold",
+  "transition-colors hover:bg-white/10",
+  "text-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+);
 
 interface LifeNumpadProps {
   readonly dialogRef: React.RefObject<HTMLDialogElement | null>;
@@ -35,13 +46,10 @@ export function LifeNumpad({ dialogRef, onConfirm }: LifeNumpadProps) {
   }, [dialogRef]);
 
   return (
-    <dialog
-      ref={dialogRef}
-      aria-modal="true"
-      aria-labelledby="numpad-title"
+    <DialogShell
+      dialogRef={dialogRef}
+      ariaLabelledBy="numpad-title"
       onClose={() => setValue("")}
-      onKeyDown={(e) => { if (e.key === "Escape") handleClose(); }}
-      className="absolute top-0 left-0 m-0 w-full h-full open:flex flex-col border-0 rounded-none bg-black/80 text-ui-textLight"
     >
       {/* Title (sr-only) */}
       <h2 id="numpad-title" className="sr-only">
@@ -60,35 +68,33 @@ export function LifeNumpad({ dialogRef, onConfirm }: LifeNumpadProps) {
 
       {/* Numpad grid */}
       <div className="mx-auto grid w-64 grid-cols-3 gap-3 pb-6">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => (
+        {DIGITS.map((d) => (
           <button
             key={d}
             type="button"
             aria-label={`${d}`}
             onClick={() => handleDigit(d)}
-            className="flex h-14 items-center justify-center rounded-lg text-2xl font-bold transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          >
-            {d}
-          </button>
-        ))}
-
-        {[0].map((d) => (
-          <button
-            key={d}
-            type="button"
-            aria-label={`${d}`}
-            onClick={() => handleDigit(d)}
-            className="flex h-14 items-center justify-center rounded-lg text-2xl font-bold transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className={digitBtnClass}
           >
             {d}
           </button>
         ))}
 
         <button
+          key={0}
+          type="button"
+          aria-label="0"
+          onClick={() => handleDigit(0)}
+          className={digitBtnClass}
+        >
+          0
+        </button>
+
+        <button
           type="button"
           aria-label="Backspace"
           onClick={handleBackspace}
-          className="flex h-14 items-center justify-center rounded-lg text-xl font-bold transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className={cn(digitBtnClass, "text-xl")}
         >
           ⌫
         </button>
@@ -97,7 +103,7 @@ export function LifeNumpad({ dialogRef, onConfirm }: LifeNumpadProps) {
           type="button"
           aria-label="Confirm"
           onClick={handleConfirm}
-          className="flex h-14 items-center justify-center rounded-lg bg-white/20 text-2xl font-bold transition-colors hover:bg-white/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className={cn(digitBtnClass, "bg-white/20", "hover:bg-white/30")}
         >
           ✓
         </button>
@@ -114,6 +120,6 @@ export function LifeNumpad({ dialogRef, onConfirm }: LifeNumpadProps) {
           ✕
         </button>
       </div>
-    </dialog>
+    </DialogShell>
   );
 }
