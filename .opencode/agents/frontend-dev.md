@@ -88,6 +88,9 @@ execution across all four layers simultaneously:
 - **Named predicate variables:** Compare against a literal only through a
   named `const`. `const isLethal = life <= 0` then `if (isLethal)`. Never
   anonymous inline comparisons like `if (life <= 0)`.
+- **Early return over if/else:** Prefer guard clauses. Bail out early, then
+  write the happy path flat. `if (!valid) return;` instead of
+  `if (valid) { ... } else { return; }`.
 - **No barrel imports.** A barrel file is an `index.ts`/`index.tsx` that only
   re-exports sibling modules (e.g., `export { Foo } from './foo'`). Import
   directly from the source file: `import { Button } from './shared/components/ui/button'`,

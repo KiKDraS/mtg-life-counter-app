@@ -212,6 +212,9 @@ not generic rules.
   in a conditional. Assign the comparison to a named `const` that explains
   what is being checked. `const isLethal = life <= 0` instead of
   `if (life <= 0)`. The variable name IS the documentation.
+- **Early return over if/else:** Prefer guard clauses that bail out early.
+  Flatten conditionals instead of nesting. `if (!valid) return;` then the
+  happy path, not `if (valid) { ... } else { return; }`.
 
 ### 4. Asset Management
 
