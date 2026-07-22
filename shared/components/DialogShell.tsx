@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { cn } from "@/shared/lib/cn";
 
 interface DialogShellProps {
@@ -21,10 +21,6 @@ interface DialogShellProps {
  * Tapping the backdrop (outside children) dismisses the dialog, just like
  * pressing Escape.
  *
- * All event handlers are attached via native `addEventListener` in a
- * `useEffect` rather than JSX props, to avoid jsx-a11y lint rules that do not
- * recognise `<dialog>` as an interactive element.
- *
  * @see DESIGN.md §6.1 — Dialog Pattern
  */
 export function DialogShell({
@@ -37,55 +33,43 @@ export function DialogShell({
     dialogRef.current?.close();
   }, [dialogRef]);
 
-  /* ponytail: keep the latest onClose in a ref so the effect closure always
-   * calls the current version without re-attaching listeners. */
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
+  /* §6.1 — backdrop tap dismisses the dialog */
+  const handleBackdropClick = useCallback(
+    (e: React.MouseEvent<HTMLDialogElement>) => {
+      const isBackdropClick = e.target === e.currentTarget;
+      if (isBackdropClick) close();
+    },
+    [close],
+  );
 
-  useEffect(() => {
-    const el = dialogRef.current;
-    if (!el) return;
-
-    const handleClose = () => onCloseRef.current?.();
-
-    const handleCancel = (e: Event) => {
-      e.preventDefault();
-      close();
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
+  /* §6.1 — Escape key dismisses the dialog */
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDialogElement>) => {
       const isEscape = e.key === "Escape";
       if (isEscape) {
         e.preventDefault();
         close();
       }
-    };
-
-    const handleClick = (e: MouseEvent) => {
-      const isBackdropClick = e.target === e.currentTarget;
-      if (isBackdropClick) close();
-    };
-
-    el.addEventListener("close", handleClose);
-    el.addEventListener("cancel", handleCancel);
-    el.addEventListener("keydown", handleKeyDown);
-    el.addEventListener("click", handleClick);
-
-    return () => {
-      el.removeEventListener("close", handleClose);
-      el.removeEventListener("cancel", handleCancel);
-      el.removeEventListener("keydown", handleKeyDown);
-      el.removeEventListener("click", handleClick);
-    };
-  }, [dialogRef, close]);
+    },
+    [close],
+  );
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <dialog
       ref={dialogRef}
       aria-modal="true"
       aria-labelledby={ariaLabelledBy}
+      onClose={onClose}
+      /* The jsx-a11y plugin does not list <dialog> as interactive, but the
+       * HTML spec defines it as such — it is the correct host for these
+       * handlers. Disabled the rule above for this element. */
+      onCancel={(e) => {
+        e.preventDefault();
+        close();
+      }}
+      onKeyDown={handleKeyDown}
+      onClick={handleBackdropClick}
       className={cn(
         "absolute top-0 left-0 m-0 w-full h-full open:flex flex-col",
         "border-0 rounded-none bg-black/80 text-ui-textLight",
