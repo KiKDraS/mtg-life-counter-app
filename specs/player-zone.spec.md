@@ -310,5 +310,25 @@ MTG Life Counter — Player Zone milestone (branch `feature/player-zone`). Two p
    1. Navigate to `/`
    2. Press `pointerdown` on P1 zone, move 5px down, `pointerup`
      - expect: No dialogs open — life total unchanged
-   3. Tap P1 `+1 life` button normally
-     - expect: Life reads 41 — tap gesture not conflicting with swipe
+    3. Tap P1 `+1 life` button normally
+      - expect: Life reads 41 — tap gesture not conflicting with swipe
+
+#### 9.3. Backdrop click dismisses Commander Damage dialog
+
+**File:** `tests/e2e/player-zone.spec.ts`
+
+**Steps:**
+   1. Navigate to `/`
+   2. Swipe left on P1 zone → Commander Damage dialog opens
+   3. Click the dialog backdrop (top-left corner, outside content)
+      - expect: Dialog closes
+
+#### 9.4. Backdrop click dismisses Counters dialog
+
+**File:** `tests/e2e/player-zone.spec.ts`
+
+**Steps:**
+   1. Navigate to `/`
+   2. Swipe right on P1 zone → Counters dialog opens
+   3. Click the dialog backdrop (top-left corner, outside content)
+      - expect: Dialog closes

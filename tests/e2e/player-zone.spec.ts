@@ -664,4 +664,34 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
     await p1.getByRole("button", { name: "+1 life" }).click();
     await expect(lifeTotal(p1)).toHaveText("41");
   });
+
+  test("9.3. Backdrop click dismisses Commander Damage dialog", async ({ page }) => {
+    await page.goto("/");
+
+    // Open via swipe left
+    await swipeOn(zone(page, 1), "left");
+    const commanderDlg = page.getByRole("dialog", {
+      name: "Commander Damage",
+    });
+    await expect(commanderDlg).toBeVisible();
+
+    // Click backdrop (top-left corner — content is centered, so edges are backdrop)
+    await commanderDlg.click({ position: { x: 5, y: 5 } });
+
+    await expect(commanderDlg).not.toBeVisible();
+  });
+
+  test("9.4. Backdrop click dismisses Counters dialog", async ({ page }) => {
+    await page.goto("/");
+
+    // Open via swipe right
+    await swipeOn(zone(page, 1), "right");
+    const countersDlg = page.getByRole("dialog", { name: "Counters" });
+    await expect(countersDlg).toBeVisible();
+
+    // Click backdrop
+    await countersDlg.click({ position: { x: 5, y: 5 } });
+
+    await expect(countersDlg).not.toBeVisible();
+  });
 });

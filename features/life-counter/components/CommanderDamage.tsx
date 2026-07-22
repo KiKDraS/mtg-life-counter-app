@@ -33,7 +33,7 @@ export function CommanderDamage({
       ariaLabelledBy="commander-damage-title"
       onClose={onClose}
     >
-      <div className="flex flex-1 flex-col items-center justify-center gap-6">
+      <div className="m-auto flex flex-col items-center gap-6 py-16">
         <h2
           id="commander-damage-title"
           className="text-heading font-bold text-ui-textLight"
