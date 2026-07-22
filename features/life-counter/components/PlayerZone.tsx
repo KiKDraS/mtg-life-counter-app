@@ -108,15 +108,26 @@ export function PlayerZone({
           −
         </button>
 
-        {/* §4.2 life total: <div> (not <button>) — display + double-tap gesture.
-         * Gesture is a convenience shortcut; keyboard users reach the numpad via
-         * the +/- button lifecycle (hold → accelerate → release at desired value,
-         * or double-tap introduces exact entry as a progressive enhancement). */}
-        <div
+        {/*
+         * §4.2 life total — native <button> for a11y compliance.
+         * tabIndex={-1}: not in sequential Tab order because single Enter/Space
+         * does nothing (the gesture is double-click/tap). Keyboard users reach
+         * exact life entry via the +/- buttons (hold → accelerate), so no
+         * functionality is lost.
+         */}
+        <button
+          type="button"
+          tabIndex={-1}
           className="flex h-full items-center justify-center"
           onClick={(e) => {
             const isDoubleClick = e.detail === 2;
             if (isDoubleClick) numpadRef.current?.show();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              numpadRef.current?.show();
+              e.preventDefault();
+            }
           }}
         >
           <p
@@ -127,7 +138,7 @@ export function PlayerZone({
           >
             {state.life}
           </p>
-        </div>
+        </button>
 
         <div className="relative flex h-full">
           {/* §4.2 gear icon — top-right, outside the + button hit area */}

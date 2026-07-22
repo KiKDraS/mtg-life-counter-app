@@ -71,7 +71,7 @@ export function DialogShell({
       onClick={handleBackdropClick}
       className={cn(
         "absolute top-0 left-0 m-0 w-full h-full open:flex flex-col",
-        "border-0 rounded-none bg-black/80 text-ui-textLight"
+        "border-0 rounded-none bg-black/80 text-ui-textLight",
       )}
     >
       {children}
