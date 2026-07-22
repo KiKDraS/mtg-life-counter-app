@@ -42,6 +42,9 @@ quality gates. If a single item fails, the submission must be rejected.
 - **Named predicate variables:** Flag anonymous inline comparisons against
   literals like `if (value === "string")` or `if (value <= 0)`. Must extract
   to `const isMeaningful = value === LITERAL`.
+- **Early return over if/else:** Flag nested if/else chains when a guard
+  clause would flatten the code. Prefer `if (!valid) return;` then the
+  happy path.
 - **Explicit interfaces for boundaries:** Exported functions, component props,
   and API boundaries must use explicit `interface` declarations — not inline
   inference, not `type` for object shapes.
