@@ -15,18 +15,18 @@ interface LifeNumpadProps {
  * Confirm (✓) → calls `onConfirm(enteredValue)`.
  */
 export function LifeNumpad({ dialogRef, onConfirm }: LifeNumpadProps) {
-  const [value, setValue] = useState(0);
+  const [value, setValue] = useState("");
 
   const handleDigit = useCallback((digit: number) => {
-    setValue((prev) => Math.min(prev * 10 + digit, 9999));
+    setValue((prev) => (prev + digit).slice(0, 4));
   }, []);
 
   const handleBackspace = useCallback(() => {
-    setValue((prev) => Math.floor(prev / 10));
+    setValue((prev) => prev.slice(0, -1));
   }, []);
 
   const handleConfirm = useCallback(() => {
-    onConfirm(value);
+    onConfirm(Number(value));
     dialogRef.current?.close();
   }, [value, onConfirm, dialogRef]);
 
@@ -39,7 +39,8 @@ export function LifeNumpad({ dialogRef, onConfirm }: LifeNumpadProps) {
       ref={dialogRef}
       aria-modal="true"
       aria-labelledby="numpad-title"
-      onClose={() => setValue(0)}
+      onClose={() => setValue("")}
+      onKeyDown={(e) => { if (e.key === "Escape") handleClose(); }}
       className="absolute top-0 left-0 m-0 w-full h-full open:flex flex-col border-0 rounded-none bg-black/80 text-ui-textLight"
     >
       {/* Title (sr-only) */}
