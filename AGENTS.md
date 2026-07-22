@@ -140,6 +140,9 @@ The agent must strictly respect the following file architecture:
   in `features/<name>/components/`, or in `shared/components/` depending on
   scope. Combine with `cn()` for variant variations. Do not copy-paste
   className strings.
+- **Keep markers:** Lines marked with `// keep: <reason>` must not be modified
+  by any agent. Use for values that break conventions intentionally — precise
+  dimensions, hardcoded values with a verified source, manual spacing.
 
 ### 2. Styling with Tailwind CSS (`app/globals.css`)
 

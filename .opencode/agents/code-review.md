@@ -37,6 +37,8 @@ quality gates. If a single item fails, the submission must be rejected.
 - **File naming convention:** Flag React component files (`.tsx`) that are not
   PascalCase. Hooks must use `use-` prefix with kebab-case. Non-component `.ts`
   files and directories must use kebab-case.
+- **Keep markers:** Flag any modification to lines marked `// keep:`. These
+  intentionally break conventions and must be preserved.
 - **Explicit interfaces for boundaries:** Exported functions, component props,
   and API boundaries must use explicit `interface` declarations — not inline
   inference, not `type` for object shapes.
