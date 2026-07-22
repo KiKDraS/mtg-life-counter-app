@@ -40,6 +40,12 @@ export function useSwipe(
     const el = ref.current;
     if (!el) return;
 
+    /* Prevent the mobile browser from intercepting horizontal swipes for
+     * back/forward navigation. pan-y = "the browser owns vertical panning;
+     * we own horizontal gestures like swipe left/right." */
+    const previousTouchAction = el.style.touchAction;
+    el.style.touchAction = "pan-y";
+
     const handlePointerDown = (e: PointerEvent) => {
       const isPrimaryClick = e.button === 0;
       if (!isPrimaryClick) return;
@@ -80,6 +86,7 @@ export function useSwipe(
     el.addEventListener("pointerleave", handleCancel);
 
     return () => {
+      el.style.touchAction = previousTouchAction;
       el.removeEventListener("pointerdown", handlePointerDown);
       el.removeEventListener("pointerup", handlePointerUp);
       el.removeEventListener("pointercancel", handleCancel);
