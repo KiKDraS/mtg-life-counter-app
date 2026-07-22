@@ -3,6 +3,8 @@
 import type { ManaColor } from "@/shared/lib/constants/colors";
 import { MANA } from "@/shared/lib/constants/colors";
 import { MANA_LABELS } from "@/shared/lib/constants/labels";
+import { cn } from "@/shared/lib/cn";
+import { DialogShell } from "@/shared/components/DialogShell";
 import ManaSelector from "@/shared/components/icons/ManaSelector";
 import type { PlayerColor } from "@/features/life-counter/types/player";
 
@@ -13,6 +15,13 @@ interface ColorPickerProps {
 
 /* MANA keys are in WUBRG order — slice off Colorless for the 5-color wheel. */
 const MANA_KEYS = Object.keys(MANA).slice(0, 5) as ManaColor[];
+
+/* Repeated 5 times on the mana wheel — extracted per "extract 3+ repeats" rule. */
+const manaWheelBtnClass = cn(
+  "absolute -translate-x-1/2 -translate-y-1/2 rounded-full",
+  "transition-transform hover:scale-110",
+  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+);
 
 /*
  * §6.5 — Mana wheel: 5 symbols in WUBRG order arranged clockwise
@@ -42,12 +51,7 @@ function polarTop(index: number): string {
  */
 export function ColorPicker({ dialogRef, onSelect }: ColorPickerProps) {
   return (
-    <dialog
-      ref={dialogRef}
-      aria-modal="true"
-      aria-labelledby="color-picker-title"
-      className="absolute top-0 left-0 m-0 w-full h-full open:flex flex-col border-0 rounded-none bg-black/80 text-ui-textLight"
-    >
+    <DialogShell dialogRef={dialogRef} ariaLabelledBy="color-picker-title">
       {/* 80% — color selection area */}
       {/* keep: exact width for color wheel centering */}
       <div className="relative flex items-center justify-center w-81.25 h-full m-auto ">
@@ -57,7 +61,7 @@ export function ColorPicker({ dialogRef, onSelect }: ColorPickerProps) {
             type="button"
             aria-label={MANA_LABELS[color]}
             onClick={() => onSelect(color)}
-            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+            className={manaWheelBtnClass}
             style={{ left: polarLeft(i), top: polarTop(i) }}
           >
             <ManaSelector color={color} size={72} />
@@ -85,6 +89,6 @@ export function ColorPicker({ dialogRef, onSelect }: ColorPickerProps) {
           Colorless
         </button>
       </div>
-    </dialog>
+    </DialogShell>
   );
 }
