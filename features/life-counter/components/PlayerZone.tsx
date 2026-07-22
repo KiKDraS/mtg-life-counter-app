@@ -10,10 +10,12 @@ import {
 import {
   usePlayerState,
   adjustLife,
+  setLife,
   setColor,
 } from "@/features/life-counter/hooks/use-player-state";
 import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
 import { ColorPicker } from "./ColorPicker";
+import { LifeNumpad } from "./LifeNumpad";
 import type { PlayerColor } from "@/features/life-counter/types/player";
 import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 
@@ -44,8 +46,14 @@ export function PlayerZone({
   const [state, dispatch] = usePlayerState(initialLife, color);
 
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const numpadRef = useRef<HTMLDialogElement | null>(null);
 
   const adjustment = useLifeAdjustment((delta) => dispatch(adjustLife(delta)));
+
+  const handleNumpadConfirm = useCallback(
+    (value: number) => dispatch(setLife(value)),
+    [dispatch],
+  );
 
   const handleColorSelect = useCallback(
     (result: PlayerColor) => {
@@ -78,7 +86,12 @@ export function PlayerZone({
           −
         </button>
 
-        <div className="flex h-full items-center justify-center">
+        <div
+          className="flex h-full items-center justify-center"
+          onClick={(e) => {
+            if (e.detail === 2) numpadRef.current?.show();
+          }}
+        >
           <p
             aria-live="polite"
             aria-atomic="true"
@@ -116,6 +129,7 @@ export function PlayerZone({
        * One dialog per player zone — each zone manages its own color locally.
        */}
       <ColorPicker dialogRef={dialogRef} onSelect={handleColorSelect} />
+      <LifeNumpad dialogRef={numpadRef} onConfirm={handleNumpadConfirm} />
     </div>
   );
 }

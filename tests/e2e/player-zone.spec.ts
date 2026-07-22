@@ -264,10 +264,13 @@ test.describe("Player Zone — Keyboard & Focus", () => {
 
     const p1 = zone(page, 1);
     const p2 = zone(page, 2);
+    // The "Change color" button (§6.5) sits between "-1 life" and "+1 life" in DOM order
     const order = [
       p1.getByRole("button", { name: "-1 life" }),
+      p1.getByRole("button", { name: "Change color" }),
       p1.getByRole("button", { name: "+1 life" }),
       p2.getByRole("button", { name: "-1 life" }),
+      p2.getByRole("button", { name: "Change color" }),
       p2.getByRole("button", { name: "+1 life" }),
     ];
     for (const button of order) {
@@ -289,6 +292,8 @@ test.describe("Player Zone — Keyboard & Focus", () => {
 
     const p1 = zone(page, 1);
     const p2 = zone(page, 2);
+    // Tab past P1 "-1 life" → Tab past P1 "Change color" → Tab to P1 "+1 life"
+    await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     await expect(p1.getByRole("button", { name: "+1 life" })).toBeFocused();
@@ -366,5 +371,216 @@ test.describe("Player Zone — Contrast & Touch Targets", () => {
         expect(box.height).toBeGreaterThanOrEqual(100);
       }
     }
+  });
+});
+
+/* ── §8 helpers — Numpad dialog (DESIGN.md §7.1) ── */
+
+function numpadDialog(zoneLocator: Locator): Locator {
+  // The <dialog> is a sibling of the zone <section>, both inside the same
+  // player wrapper.  Query page-level since at most one dialog is open.
+  return zoneLocator.page().getByRole("dialog", { name: "Set life total" });
+}
+
+function numpadDisplay(dialogLocator: Locator): Locator {
+  return dialogLocator.locator("output");
+}
+
+async function typeNumpad(dialogLocator: Locator, digits: string): Promise<void> {
+  for (const d of digits) {
+    await dialogLocator.getByRole("button", { name: d }).click();
+  }
+}
+
+test.describe("Player Zone — Double-tap Numpad", () => {
+  test("8.1. Double-tap life total opens the numpad dialog", async ({ page }) => {
+    // 1. Navigate to `/`; life total reads 40; no dialog before gesture
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    await expect(lifeTotal(p1)).toHaveText("40");
+    await expect(page.getByRole("dialog", { name: "Set life total" })).toHaveCount(0);
+
+    // 2. Double-click P1 life total; dialog appears with —; dialog inside zone
+    await lifeTotal(p1).dblclick();
+    const dlg = numpadDialog(p1);
+    await expect(dlg).toBeVisible();
+    await expect(numpadDisplay(dlg)).toHaveText("\u2014");
+
+    const dlgBox = await dlg.boundingBox();
+    const p1Box = await p1.boundingBox();
+    if (!dlgBox || !p1Box) throw new Error("cannot measure bounding boxes");
+    expect(dlgBox.x).toBeGreaterThanOrEqual(p1Box.x);
+    expect(dlgBox.y).toBeGreaterThanOrEqual(p1Box.y);
+    expect(dlgBox.x + dlgBox.width).toBeLessThanOrEqual(p1Box.x + p1Box.width + 1);
+    expect(dlgBox.y + dlgBox.height).toBeLessThanOrEqual(p1Box.y + p1Box.height + 1);
+  });
+
+  test("8.2. Numpad displays typed digits and shows — when empty", async ({ page }) => {
+    // 1. Open numpad; status shows — initially; type 1 → 15 → 150
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    await lifeTotal(p1).dblclick();
+    const dlg = numpadDialog(p1);
+    const status = numpadDisplay(dlg);
+
+    await expect(status).toHaveText("\u2014");
+    await typeNumpad(dlg, "1");
+    await expect(status).toHaveText("1");
+    await typeNumpad(dlg, "5");
+    await expect(status).toHaveText("15");
+    await typeNumpad(dlg, "0");
+    await expect(status).toHaveText("150");
+
+    // 2. Close (Cancel) and reopen; status resets to —
+    await dlg.getByRole("button", { name: "Cancel" }).click();
+    await expect(dlg).not.toBeVisible();
+    await lifeTotal(p1).dblclick();
+    await expect(numpadDisplay(dlg)).toHaveText("\u2014");
+  });
+
+  test("8.3. Backspace removes the last digit", async ({ page }) => {
+    // 1. Open numpad; type 257
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    await lifeTotal(p1).dblclick();
+    const dlg = numpadDialog(p1);
+    const status = numpadDisplay(dlg);
+    const backspace = dlg.getByRole("button", { name: "Backspace" });
+
+    await typeNumpad(dlg, "257");
+    await expect(status).toHaveText("257");
+
+    // 2. Click Backspace three times; status: 25 → 2 → —
+    await backspace.click();
+    await expect(status).toHaveText("25");
+    await backspace.click();
+    await expect(status).toHaveText("2");
+    await backspace.click();
+    await expect(status).toHaveText("\u2014");
+
+    // 3. Backspace again on empty; still —, no error
+    await backspace.click();
+    await expect(status).toHaveText("\u2014");
+  });
+
+  test("8.4. Confirm sets the life total to the entered value", async ({ page }) => {
+    // 1. Open numpad; type 37 and Confirm; dialog closes; P1 = 37, P2 = 40
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    const p2 = zone(page, 2);
+    await lifeTotal(p1).dblclick();
+    const dlg = numpadDialog(p1);
+
+    await typeNumpad(dlg, "37");
+    await dlg.getByRole("button", { name: "Confirm" }).click();
+    await expect(dlg).not.toBeVisible();
+    await expect(lifeTotal(p1)).toHaveText("37");
+    await expect(lifeTotal(p2)).toHaveText("40");
+
+    // 2. Reopen; type 0 and Confirm; P1 = 0, turns danger red
+    await lifeTotal(p1).dblclick();
+    await typeNumpad(numpadDialog(p1), "0");
+    await numpadDialog(p1)
+      .getByRole("button", { name: "Confirm" })
+      .click();
+    await expect(lifeTotal(p1)).toHaveText("0");
+    await expect(lifeTotal(p1)).toHaveCSS("color", "rgb(213, 0, 0)");
+  });
+
+  test("8.5. Cancel (\u2715) closes dialog without changing life total", async ({ page }) => {
+    // 1. Open numpad; type 99; click Cancel; dialog closes; life totals unchanged
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    const p2 = zone(page, 2);
+    await lifeTotal(p1).dblclick();
+    const dlg = numpadDialog(p1);
+
+    await typeNumpad(dlg, "99");
+    await dlg.getByRole("button", { name: "Cancel" }).click();
+    await expect(dlg).not.toBeVisible();
+    await expect(lifeTotal(p1)).toHaveText("40");
+    await expect(lifeTotal(p2)).toHaveText("40");
+
+    // 2. Reopen numpad; status shows — (fresh start)
+    await lifeTotal(p1).dblclick();
+    await expect(numpadDisplay(numpadDialog(p1))).toHaveText("\u2014");
+  });
+
+  test("8.6. Escape key closes dialog without changing life total", async ({ page }) => {
+    // 1. Open numpad; type 50; press Escape; dialog closes; life totals unchanged
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    const p2 = zone(page, 2);
+    await lifeTotal(p1).dblclick();
+    const dlg = numpadDialog(p1);
+
+    await typeNumpad(dlg, "50");
+    await page.keyboard.press("Escape");
+    await expect(dlg).not.toBeVisible();
+    await expect(lifeTotal(p1)).toHaveText("40");
+    await expect(lifeTotal(p2)).toHaveText("40");
+
+    // 2. Reopen numpad; status shows — (fresh start)
+    await lifeTotal(p1).dblclick();
+    await expect(numpadDisplay(numpadDialog(p1))).toHaveText("\u2014");
+  });
+
+  test("8.7. Numpad is scoped to the player zone", async ({ page }) => {
+    // 1. Double-click P2 life total; type 25; Confirm; P2 = 25, P1 = 40
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    const p2 = zone(page, 2);
+
+    await lifeTotal(p2).dblclick();
+    const dlg2 = numpadDialog(p2);
+    // Verify dialog is within P2 zone
+    let dlgBox = await dlg2.boundingBox();
+    let zoneBox = await p2.boundingBox();
+    if (!dlgBox || !zoneBox) throw new Error("cannot measure P2 dialog bounds");
+    expect(dlgBox.x).toBeGreaterThanOrEqual(zoneBox.x);
+    expect(dlgBox.y).toBeGreaterThanOrEqual(zoneBox.y);
+
+    await typeNumpad(dlg2, "25");
+    await dlg2.getByRole("button", { name: "Confirm" }).click();
+    await expect(lifeTotal(p2)).toHaveText("25");
+    await expect(lifeTotal(p1)).toHaveText("40");
+
+    // 2. Double-click P1 life total; type 50; Confirm; P1 = 50, P2 = 25
+    await lifeTotal(p1).dblclick();
+    const dlg1 = numpadDialog(p1);
+    // Verify dialog is within P1 zone
+    dlgBox = await dlg1.boundingBox();
+    zoneBox = await p1.boundingBox();
+    if (!dlgBox || !zoneBox) throw new Error("cannot measure P1 dialog bounds");
+    expect(dlgBox.x).toBeGreaterThanOrEqual(zoneBox.x);
+    expect(dlgBox.y).toBeGreaterThanOrEqual(zoneBox.y);
+
+    await typeNumpad(dlg1, "50");
+    await dlg1.getByRole("button", { name: "Confirm" }).click();
+    await expect(lifeTotal(p1)).toHaveText("50");
+    await expect(lifeTotal(p2)).toHaveText("25");
+  });
+
+  test("8.8. Leading zeros preserved in display but stripped on confirm", async ({ page }) => {
+    // 1. Open numpad; type 005; status reads 005
+    await page.goto("/");
+
+    const p1 = zone(page, 1);
+    await lifeTotal(p1).dblclick();
+    const dlg = numpadDialog(p1);
+
+    await typeNumpad(dlg, "005");
+    await expect(numpadDisplay(dlg)).toHaveText("005");
+
+    // 2. Click Confirm; P1 life reads 5, not 005
+    await dlg.getByRole("button", { name: "Confirm" }).click();
+    await expect(lifeTotal(p1)).toHaveText("5");
   });
 });
