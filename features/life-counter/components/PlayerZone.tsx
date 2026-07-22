@@ -34,7 +34,7 @@ const buttonClass = cn(
   "flex h-full w-full items-center justify-center text-4xl font-bold leading-none",
   "select-none touch-manipulation",
   "transition-shadow duration-150 active:shadow-[inset_0_0_0_9999px_rgba(0,0,0,0.08)]",
-  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
+  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current",
 );
 
 /**
@@ -71,23 +71,24 @@ export function PlayerZone({
     [dispatch],
   );
 
-  const handleSwipeLeft = useCallback(() => {
-    /* If any overlay is open, close it regardless of swipe direction */
+  /* Helper shared by both swipe directions — closes both overlays if any is open */
+  const closeOverlays = () => {
     if (commanderRef.current?.open || countersRef.current?.open) {
       commanderRef.current?.close();
       countersRef.current?.close();
-    } else {
-      commanderRef.current?.show();
+      return true;
     }
+    return false;
+  };
+
+  const handleSwipeLeft = useCallback(() => {
+    if (closeOverlays()) return;
+    commanderRef.current?.show();
   }, []);
 
   const handleSwipeRight = useCallback(() => {
-    if (commanderRef.current?.open || countersRef.current?.open) {
-      commanderRef.current?.close();
-      countersRef.current?.close();
-    } else {
-      countersRef.current?.show();
-    }
+    if (closeOverlays()) return;
+    countersRef.current?.show();
   }, []);
 
   /* §7.2 — full-zone swipe gestures */
