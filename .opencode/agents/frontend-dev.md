@@ -102,6 +102,13 @@ execution across all four layers simultaneously:
 - **Utility-first.** All styling via Tailwind classes directly in `className`.
   No separate CSS files per component unless absolutely required for complex
   keyframe animations.
+- **Class composition with `cn()`:** Use `shared/lib/cn.ts` for all className
+  composition. Extract repeated patterns into constants, compose variants with
+  `cn(base, variantClasses)`. Never concatenate class strings manually.
+- **Extract repeated markup:** When the same className pattern repeats 3+ times
+  across the file, extract it into a local component or a file-level constant
+  composed with `cn()`. For patterns shared across features, extract to
+  `shared/components/`.
 - **Design tokens** in `globals.css` via `@theme` directive and CSS custom
   properties. Every color, spacing, and type value must reference these tokens.
 - **No hardcoded color hex values.** Always reference `var(--color-*)` from
