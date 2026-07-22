@@ -14,9 +14,12 @@ import {
   setLife,
   setColor,
 } from "@/features/life-counter/hooks/use-player-state";
+import { useSwipe } from "@/features/life-counter/hooks/use-swipe";
 import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
 import { ColorPicker } from "./ColorPicker";
 import { LifeNumpad } from "./LifeNumpad";
+import { CommanderDamage } from "./CommanderDamage";
+import { Counters } from "./Counters";
 import type { PlayerColor } from "@/features/life-counter/types/player";
 import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 
@@ -31,7 +34,7 @@ const buttonClass = cn(
   "flex h-full w-full items-center justify-center text-4xl font-bold leading-none",
   "select-none touch-manipulation",
   "transition-shadow duration-150 active:shadow-[inset_0_0_0_9999px_rgba(0,0,0,0.08)]",
-  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
+  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current",
 );
 
 /**
@@ -49,6 +52,9 @@ export function PlayerZone({
 
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const numpadRef = useRef<HTMLDialogElement | null>(null);
+  const commanderRef = useRef<HTMLDialogElement | null>(null);
+  const countersRef = useRef<HTMLDialogElement | null>(null);
+  const zoneRef = useRef<HTMLDivElement | null>(null);
 
   const adjustment = useLifeAdjustment((delta) => dispatch(adjustLife(delta)));
 
@@ -65,15 +71,41 @@ export function PlayerZone({
     [dispatch],
   );
 
+  /* Helper shared by both swipe directions — closes both overlays if any is open */
+  const closeOverlays = () => {
+    if (commanderRef.current?.open || countersRef.current?.open) {
+      commanderRef.current?.close();
+      countersRef.current?.close();
+      return true;
+    }
+    return false;
+  };
+
+  const handleSwipeLeft = useCallback(() => {
+    if (closeOverlays()) return;
+    commanderRef.current?.show();
+  }, []);
+
+  const handleSwipeRight = useCallback(() => {
+    if (closeOverlays()) return;
+    countersRef.current?.show();
+  }, []);
+
+  /* §7.2 — full-zone swipe gestures */
+  useSwipe(zoneRef as React.RefObject<HTMLElement | null>, {
+    onSwipeLeft: handleSwipeLeft,
+    onSwipeRight: handleSwipeRight,
+  });
+
   const isLethal = state.life <= 0;
   const { background, textColor } = zoneStylesFor(state.color);
 
   return (
     <div
+      ref={zoneRef}
       className="relative h-full w-full"
       style={{ transform: `rotate(${rotation}deg)` }}
     >
-      {/* §4.2 swipe gestures: deferred to overlays feature */}
       <section
         aria-label={`Player ${playerNumber}: ${state.life} life`}
         className="grid h-full w-full grid-cols-3"
@@ -88,11 +120,26 @@ export function PlayerZone({
           −
         </button>
 
+        {/*
+         * §4.2 life total — native <button> for a11y compliance.
+         * tabIndex={-1}: not in sequential Tab order because single Enter/Space
+         * does nothing (the gesture is double-click/tap). Keyboard users reach
+         * exact life entry via the +/- buttons (hold → accelerate), so no
+         * functionality is lost.
+         */}
         <button
+          type="button"
+          tabIndex={-1}
           className="flex h-full items-center justify-center"
           onClick={(e) => {
             const isDoubleClick = e.detail === 2;
             if (isDoubleClick) numpadRef.current?.show();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              numpadRef.current?.show();
+              e.preventDefault();
+            }
           }}
         >
           <p
@@ -133,6 +180,24 @@ export function PlayerZone({
        */}
       <ColorPicker dialogRef={dialogRef} onSelect={handleColorSelect} />
       <LifeNumpad dialogRef={numpadRef} onConfirm={handleNumpadConfirm} />
+
+      {/*
+       * §7.3 — Commander Damage overlay.
+       * §7.4 — Counters overlay.
+       * Each manages its own `useSwipe` to support close-on-swipe.
+       */}
+      <CommanderDamage
+        dialogRef={commanderRef}
+        onClose={() => {
+          /* ponytail: placeholder — no cleanup needed yet */
+        }}
+      />
+      <Counters
+        dialogRef={countersRef}
+        onClose={() => {
+          /* ponytail: placeholder — no cleanup needed yet */
+        }}
+      />
     </div>
   );
 }

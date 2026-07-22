@@ -29,29 +29,50 @@ export function DialogShell({
   children,
   onClose,
 }: DialogShellProps) {
+  const close = useCallback(() => {
+    dialogRef.current?.close();
+  }, [dialogRef]);
+
+  /* §6.1 — backdrop tap dismisses the dialog */
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent<HTMLDialogElement>) => {
-      /* When the click lands directly on the <dialog> element (not a child),
-       * the user tapped the empty backdrop area. Close the dialog — the native
-       * close event fires, which triggers onClose for cleanup. */
       const isBackdropClick = e.target === e.currentTarget;
-      if (isBackdropClick) {
-        dialogRef.current?.close();
+      if (isBackdropClick) close();
+    },
+    [close],
+  );
+
+  /* §6.1 — Escape key dismisses the dialog */
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDialogElement>) => {
+      const isEscape = e.key === "Escape";
+      if (isEscape) {
+        e.preventDefault();
+        close();
       }
     },
-    [dialogRef],
+    [close],
   );
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <dialog
       ref={dialogRef}
       aria-modal="true"
       aria-labelledby={ariaLabelledBy}
       onClose={onClose}
+      /* The jsx-a11y plugin does not list <dialog> as interactive, but the
+       * HTML spec defines it as such — it is the correct host for these
+       * handlers. Disabled the rule above for this element. */
+      onCancel={(e) => {
+        e.preventDefault();
+        close();
+      }}
+      onKeyDown={handleKeyDown}
       onClick={handleBackdropClick}
       className={cn(
         "absolute top-0 left-0 m-0 w-full h-full open:flex flex-col",
-        "border-0 rounded-none bg-black/80 text-ui-textLight"
+        "border-0 rounded-none bg-black/80 text-ui-textLight",
       )}
     >
       {children}
