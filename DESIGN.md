@@ -690,12 +690,7 @@ These are recognized in the design but deferred:
 | Guild color combos (10 2-color blends) | Phase 2 |
 | Voice input for AI Judge               | Phase 2 |
 | Card art backgrounds from Scryfall     | Phase 2 |
-| Match history & statistics             | Phase 2 |
-| Turn tracker / timer                   | Phase 2 |
-| Dice roller (D6, D20, coin flip)       | Phase 2 |
-| Game state undo/redo stack             | Phase 2 |
 | Offline AI rules engine                | Phase 3 |
-| Planechase / Archenemy support         | Phase 3 |
 
 ---
 
