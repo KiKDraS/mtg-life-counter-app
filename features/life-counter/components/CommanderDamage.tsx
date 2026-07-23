@@ -2,9 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import { DialogShell } from "@/shared/components/DialogShell";
-import {
-  useLifeAdjustment,
-} from "@/features/life-counter/hooks/use-life-adjustment";
+import { useLifeAdjustment } from "@/features/life-counter/hooks/use-life-adjustment";
 import { INCREMENT_LIFE } from "@/features/life-counter/constants/life";
 import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
 import { UI } from "@/shared/lib/constants/colors";
@@ -57,21 +55,35 @@ export function CommanderDamage({
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     pointerDownOnButtonRef.current = !!(e.target as HTMLElement).closest(
-      "button, [role=\"button\"]",
+      'button, [role="button"]',
     );
   }, []);
 
-  const handleClick = useCallback((_e: React.MouseEvent) => {
-    if (!pointerDownOnButtonRef.current) {
-      close();
-    }
-  }, [close]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        close();
+      }
+    },
+    [close],
+  );
+
+  const handleClick = useCallback(
+    (_e: React.MouseEvent) => {
+      if (!pointerDownOnButtonRef.current) {
+        close();
+      }
+    },
+    [close],
+  );
 
   /* + button with hold acceleration — reuses useLifeAdjustment */
   const adjustment = useLifeAdjustment(onAdjust);
 
   const isLethal = damage >= 21;
-  const { background: pillBg, textColor: pillFg } = zoneStylesFor(opponentColor);
+  const { background: pillBg, textColor: pillFg } =
+    zoneStylesFor(opponentColor);
 
   return (
     <DialogShell
@@ -83,9 +95,17 @@ export function CommanderDamage({
        * z-30 ensures the overlay content stacks above the player zone's
        * gear icon (z-10) so the close-on-tap target isn't intercepted.
        */}
+      {/*
+       * ponytail: non-native click handler (S6848/S1082).
+       * Can't use <button> because it wraps heading/list/button children.
+       * Keyboard support added via onKeyDown + tabIndex.
+       * Refactor when a dialog-backdrop-only close pattern is available.
+       */}
       <div
         className="relative z-30 flex flex-1 flex-col items-center justify-center gap-8 px-6 bg-ui-overlay"
+        tabIndex={-1}
         onPointerDown={handlePointerDown}
+        onKeyDown={handleKeyDown}
         onClick={handleClick}
       >
         <h2
