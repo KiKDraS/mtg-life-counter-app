@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useLayoutEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /* §4.2 — Minimum horizontal movement (in pixels) required to qualify as a swipe. */
 const SWIPE_THRESHOLD_PX = 10;
@@ -40,16 +40,16 @@ export function useSwipe(
 ): void {
   /*
    * Latest Callback Pattern: Store callbacks in a mutable ref.
-   * This prevents unnecessary teardown/setup of event listeners when callback references change.
+   * Also stores transient gesture state — merged into one ref to reduce hook count.
    */
-  const callbacksRef = useRef({ onSwipeLeft, onSwipeRight });
+  const stateRef = useRef({
+    callbacks: { onSwipeLeft, onSwipeRight },
+    gesture: null as { startX: number; startTime: number } | null,
+  });
 
-  useLayoutEffect(() => {
-    callbacksRef.current = { onSwipeLeft, onSwipeRight };
+  useEffect(() => {
+    stateRef.current.callbacks = { onSwipeLeft, onSwipeRight };
   }, [onSwipeLeft, onSwipeRight]);
-
-  /* Single ref object for gesture state to minimize useRef hook memory overhead. */
-  const gestureRef = useRef<{ startX: number; startTime: number } | null>(null);
 
   useEffect(() => {
     const el = ref.current;
@@ -67,15 +67,15 @@ export function useSwipe(
       const isPrimaryClick = e.button === 0;
       if (!isPrimaryClick) return;
 
-      gestureRef.current = { startX: e.clientX, startTime: performance.now() };
+      stateRef.current.gesture = { startX: e.clientX, startTime: performance.now() };
     };
 
     const handlePointerUp = (e: PointerEvent) => {
-      const gesture = gestureRef.current;
+      const gesture = stateRef.current.gesture;
       if (!gesture) return;
 
       /* Immediately clear gesture state to prevent double-firing or stale state. */
-      gestureRef.current = null;
+      stateRef.current.gesture = null;
 
       /* Calculate raw physical and temporal vectors. */
       const distanceX = e.clientX - gesture.startX;
@@ -96,15 +96,15 @@ export function useSwipe(
 
       /* Trigger appropriate callback using the latest reference. */
       if (isSwipeLeft) {
-        callbacksRef.current.onSwipeLeft();
+        stateRef.current.callbacks.onSwipeLeft();
       } else {
-        callbacksRef.current.onSwipeRight();
+        stateRef.current.callbacks.onSwipeRight();
       }
     };
 
     /* Abort in-progress gestures safely if the pointer leaves the element or is canceled by the OS. */
     const handleCancel = () => {
-      gestureRef.current = null;
+      stateRef.current.gesture = null;
     };
 
     /* Use passive listeners to ensure native scrolling performance is not degraded. */
