@@ -27,7 +27,14 @@
   --font-sans: var(--font-archivo);
   --font-mono: var(--font-archivo);
   --text-life: clamp(4rem, 15vw, 12rem);
+  --text-display: clamp(2.5rem, 6vw, 5rem);
+  --text-heading: clamp(1.5rem, 3vw, 2.5rem);
+  --text-body: 1rem;
+  --text-body-sm: 0.875rem;
+  --text-caption: 0.75rem;
   --leading-none: 0.9;
+  --leading-tight: 1.1;
+  --leading-base: 1.4;
 }
 
 /* ── Native dialog reset (§6.1) ── */

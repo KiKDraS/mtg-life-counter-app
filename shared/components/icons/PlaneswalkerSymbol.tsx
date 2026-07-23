@@ -1,11 +1,11 @@
 import type { SVGAttributes } from "react";
 import { UI } from "@/shared/lib/constants/colors";
 
-type PlaneswalkerSymbolProps = {
+interface PlaneswalkerSymbolProps extends SVGAttributes<SVGSVGElement> {
   size?: number;
   className?: string;
   fill?: string;
-} & SVGAttributes<SVGSVGElement>;
+}
 
 function PlaneswalkerSymbol({ size = 48, className, fill = UI.iconLight, ...props }: PlaneswalkerSymbolProps) {
   return (

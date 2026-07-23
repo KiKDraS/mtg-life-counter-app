@@ -61,7 +61,7 @@ export function CommanderDamage({
     >
       <div
         ref={contentRef}
-        className="flex flex-1 flex-col items-center justify-center gap-8 px-6"
+        className="flex flex-1 flex-col items-center justify-center gap-8 px-6 bg-ui-overlay"
       >
         <h2
           id="commander-damage-title"
@@ -74,11 +74,8 @@ export function CommanderDamage({
          * ponytail: single column for 2-player.
          * Convert to CSS grid with auto-fill columns when multi-player lands.
          */}
-        <div className="flex flex-col items-center gap-4" role="list">
-          <div
-            role="listitem"
-            className="flex items-center gap-4"
-          >
+        <ul className="flex flex-col items-center gap-4">
+          <li className="flex items-center gap-4">
             {/* Pill — opponent's mana color with PlaneswalkerSymbol */}
             <span
               className="flex size-14 items-center justify-center rounded-full"
@@ -111,8 +108,8 @@ export function CommanderDamage({
             >
               +
             </button>
-          </div>
-        </div>
+          </li>
+        </ul>
 
         {/* Lethal badge */}
         {isLethal && (
