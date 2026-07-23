@@ -64,6 +64,8 @@ execution across all four layers simultaneously:
   - Eliminate data waterfalls with `Promise.all()`.
   - Wrap heavy or async sections in `<Suspense>` boundaries.
   - Use `next/dynamic` for lazy-loaded, non-critical components.
+  - For effects attaching browser event listeners, use the Latest Callback
+    Pattern — store dependencies in mutable refs to avoid re-binding.
 - **Never write tests.** Do not create, modify, or maintain `.spec.ts` or
   `.test.ts` files. Test generation and maintenance is handled exclusively by
   the Playwright pipeline (planner → generator → healer). If the healer
@@ -79,6 +81,9 @@ execution across all four layers simultaneously:
 - **Explicit interfaces** for exported functions, component props, and API
   boundaries. Use discriminated unions for state machines per
   `typescript-advanced-types`.
+- **JSDoc on exported functions:** Every exported function, hook, and utility
+  must have a JSDoc block (`@description`, `@param`, `@returns`). Include a
+  usage example and `@see` DESIGN.md reference where applicable.
 - **No magic strings.** Never hardcode domain strings anywhere in the
   codebase. Import shared values (colors, labels, mana) from
   `shared/lib/constants/` and feature-specific values from
