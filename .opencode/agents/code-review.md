@@ -48,6 +48,8 @@ quality gates. If a single item fails, the submission must be rejected.
 - **Explicit interfaces for boundaries:** Exported functions, component props,
   and API boundaries must use explicit `interface` declarations — not inline
   inference, not `type` for object shapes.
+- **JSDoc on exports:** Flag exported functions, hooks, and utilities missing
+  a JSDoc block with `@description`, `@param`, and `@returns`.
 - **Read-only component props:** All component prop interfaces must use
   `readonly` on each property or `Readonly<Props>` at the component
   signature. Flag mutable props.
@@ -122,6 +124,9 @@ quality gates. If a single item fails, the submission must be rejected.
   `next/dynamic` with `ssr: false`.
 - **No barrel imports:** Flag any import from an `index.ts` or `index.tsx`
   that re-exports sibling modules. Demand direct module source imports.
+- **Callback stability in effects:** Flag effects that re-bind browser event
+  listeners on every render due to callback dependency changes. Suggest the
+  Latest Callback Pattern (mutable refs) when applicable.
 
 ### 6. Accessibility Gate
 

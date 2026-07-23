@@ -124,7 +124,9 @@ The agent must strictly respect the following file architecture:
   no `forwardRef`, use `use()` over `useContext()`.
 - **Performance (per `react-best-practices`):** Eliminate data waterfalls with
   `Promise.all`, wrap heavy sections in Suspense boundaries, use `next/dynamic`
-  for lazy-loaded components.
+  for lazy-loaded components. When effects attach browser event listeners,
+  prefer the Latest Callback Pattern — store callback dependencies in mutable
+  refs to avoid unnecessary teardown/setup cycles.
 - **No barrel imports (per `bundle-barrel-imports`):** A barrel file is an
   `index.ts`/`index.tsx` that only re-exports sibling modules (e.g.,
   `export { Foo } from './foo'`). Import directly from the source file instead:
@@ -184,6 +186,10 @@ not generic rules.
   narrowing instead.
 - **Explicit interfaces** for exported functions, component props, and API
   boundaries.
+- **JSDoc on exported functions:** Every exported function, hook, and utility
+  must have a JSDoc block with `@description`, `@param` for each parameter,
+  `@returns`, and a usage example where non-trivial. Link to DESIGN.md
+  sections with `@see` when applicable.
 - **Per `typescript-advanced-types`:** Discriminated unions for state machines,
   generics for reusable utilities, `satisfies` for config objects.
 - **No magic strings anywhere:** All domain/business values must come from
