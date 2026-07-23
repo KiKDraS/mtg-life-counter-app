@@ -90,6 +90,12 @@ execution across all four layers simultaneously:
   `features/<name>/constants/`. No hardcoded color hexes, labels, or
   domain terms like `"#D50000"`, `"White mana"`, `"wubrg"`, or `"poison"`.
   `shared/lib/constants/colors.ts` is the single source of truth for colors.
+- **Constants per domain:** `shared/lib/constants/` is organized by domain —
+  one file per concept. No catch-all `constants.ts`.
+- **Feature-specific constants/types:** When a type or constant is used in
+  more than one file within the same feature, promote it to
+  `features/<name>/types/` or `features/<name>/constants/`. Single-file
+  types and constants stay inline.
 - **Named predicate variables:** Compare against a literal only through a
   named `const`. `const isLethal = life <= 0` then `if (isLethal)`. Never
   anonymous inline comparisons like `if (life <= 0)`.
