@@ -13,6 +13,7 @@ import {
   adjustLife,
   setLife,
   setColor,
+  adjustCommanderDamage,
 } from "@/features/life-counter/hooks/use-player-state";
 import { useSwipe } from "@/features/life-counter/hooks/use-swipe";
 import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
@@ -26,6 +27,7 @@ import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 interface PlayerZoneProps {
   readonly playerNumber: 1 | 2 | 3 | 4 | 5 | 6;
   readonly color: PlayerColor;
+  readonly opponentColor: PlayerColor;
   readonly rotation?: 0 | 90 | -90 | 180;
   readonly initialLife?: number;
 }
@@ -47,6 +49,7 @@ const buttonClass = cn(
 export function PlayerZone({
   playerNumber,
   color,
+  opponentColor,
   rotation = 0,
   initialLife = 40,
 }: PlayerZoneProps) {
@@ -99,7 +102,8 @@ export function PlayerZone({
     onSwipeRight: handleSwipeRight,
   });
 
-  const isLethal = state.life <= 0;
+  /* §7.3 — lethal if life ≤ 0 OR commander damage ≥ 21 */
+  const isLethal = state.life <= 0 || state.commanderDamage >= 21;
   const { background, textColor } = zoneStylesFor(state.color);
 
   return (
@@ -190,8 +194,11 @@ export function PlayerZone({
        */}
       <CommanderDamage
         dialogRef={commanderRef}
+        opponentColor={opponentColor}
+        damage={state.commanderDamage}
+        onAdjust={(delta) => dispatch(adjustCommanderDamage(delta))}
         onClose={() => {
-          /* ponytail: placeholder — no cleanup needed yet */
+          /* ponytail: no cleanup needed yet */
         }}
       />
       <Counters

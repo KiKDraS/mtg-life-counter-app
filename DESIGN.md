@@ -588,6 +588,9 @@ Each column:
   warm white (`#FAF8F5`) or warm near-black (`#1A1A1A`) per luminance.
 - **+ button:** Tap = +1 commander damage. Hold = accelerate (+10 after 1s) —
   same criteria as §7.1 life adjustment.
+- **Life reduction:** Each point of commander damage also reduces the current
+  player's life total by the same amount. `adjustCommanderDamage(+3)` → life −3,
+  commander damage +3.
 - **Lethal indicator:** When any opponent's commander damage reaches 21+, the
   current player loses the game — both the commander damage value and the
   current player's life total turn lethal red (`#D50000`).
