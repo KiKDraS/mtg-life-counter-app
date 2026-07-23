@@ -60,6 +60,12 @@ quality gates. If a single item fails, the submission must be rejected.
   an app-level concept (color hexes, labels, mana names, domain terms like
   `"wubrg"`, `"poison"`). Must import from the appropriate constants file
   (`shared/lib/constants/` or `features/<name>/constants/`).
+- **Constants per domain:** Flag any catch-all `constants.ts` or `types.ts`
+  that aggregates unrelated definitions. `shared/lib/constants/` must be
+  organized by domain — one file per concept.
+- **Feature-specific constants/types:** Flag types or constants used in
+  multiple files within a feature but left inline. Must promote to
+  `features/<name>/types/` or `features/<name>/constants/`.
 - **No barrel imports:** Flag imports from barrel files (`index.ts` re-exports).
   Demand direct module imports per `bundle-barrel-imports`.
 - **No catch-all `utils.ts`:** Flag any `utils.ts` or `helpers.ts` that
@@ -127,6 +133,9 @@ quality gates. If a single item fails, the submission must be rejected.
 - **Callback stability in effects:** Flag effects that re-bind browser event
   listeners on every render due to callback dependency changes. Suggest the
   Latest Callback Pattern (mutable refs) when applicable.
+- **Performance budgets:** Flag builds exceeding budgets: JS <100 KB gzipped,
+  CSS <20 KB gzipped, LCP <2.5s, INP <200ms, CLS <0.1, Lighthouse Performance
+  ≥90, Accessibility 100.
 
 ### 6. Accessibility Gate
 
