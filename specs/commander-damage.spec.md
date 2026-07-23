@@ -336,19 +336,20 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
 
 **Seed:** `tests/seed.spec.ts`
 
-### 6.1. Swipe left on overlay content closes the dialog
+### 6.1. Swipe on overlay content closes the dialog (both directions)
 
 **File:** `tests/e2e/commander-damage.spec.ts`
 
 **Steps:**
-  1. Navigate to `/`
-  2. Swipe left on P1 zone → Commander Damage dialog opens
-    - expect: Dialog is open
-  3. Perform a swipe left on the overlay content (the `<div>` inside the dialog)
-    - expect: Dialog closes
-    - expect: P1 life unchanged by the swipe gesture itself
-  4. Swipe left on P1 zone to reopen, then swipe right on overlay content
-    - expect: Dialog also closes (both directions close)
+   1. Navigate to `/`
+   2. Swipe left on P1 zone → Commander Damage dialog opens
+     - expect: Dialog is open
+   3. Perform a swipe left on the overlay content (the `<div>` inside the dialog)
+     - expect: Dialog closes (overlay content stops propagation so zone behind doesn't react)
+     - expect: P1 life unchanged by the swipe gesture itself
+   4. Swipe left on P1 zone to reopen, then swipe right on overlay content
+     - expect: Dialog also closes (both directions close)
+   5. Expect: Counters overlay was NOT opened (zone behind didn't react)
 
 ### 6.2. Escape key closes the dialog
 
@@ -363,7 +364,20 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
   4. Reopen and press Escape again
     - expect: Dialog closes
 
-### 6.3. Commander Damage overlay is scoped to its player zone
+### 6.3. ✕ close button dismisses the dialog
+
+**File:** `tests/e2e/commander-damage.spec.ts`
+
+**Steps:**
+   1. Navigate to `/`
+   2. Swipe left on P1 zone → Commander Damage dialog opens
+   3. Click the ✕ close button (`aria-label="Close commander damage"`)
+     - expect: Dialog closes
+     - expect: P1 life unchanged
+   4. Reopen and click ✕ again
+     - expect: Dialog closes
+
+### 6.4. Commander Damage overlay is scoped to its player zone
 
 **File:** `tests/e2e/commander-damage.spec.ts`
 
@@ -376,7 +390,7 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
     - expect: Dialog bounding box is within P2's viewport half (bottom half)
     - expect: P2 damage counter shows opponent pill for blue (P2's opponent is blue `u`)
 
-### 6.4. Overlay does not interfere with other zone interactivity
+### 6.5. Overlay does not interfere with other zone interactivity
 
 **File:** `tests/e2e/commander-damage.spec.ts`
 

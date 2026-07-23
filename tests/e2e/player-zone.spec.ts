@@ -696,7 +696,7 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
     await expect(countersDlg).not.toBeVisible();
   });
 
-  test("9.5. Swipe right on open Commander Damage closes it and opens Counters", async ({ page }) => {
+  test("9.5. Swipe right on open Commander Damage closes it without opening Counters", async ({ page }) => {
     await page.goto("/");
 
     // Open Commander Damage via swipe left on zone
@@ -706,14 +706,12 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
     });
     await expect(commanderDlg).toBeVisible();
 
-    // Swipe directly on the dialog content fires BOTH the dialog's own swipe
-    // handler (which closes Commander Damage) AND the zone's swipe handler
-    // (which opens Counters — because Commander Damage is already closed by
-    // the time the zone handler checks closeOverlays()).
+    // Swipe directly on the dialog content — overlay's pointer handlers
+    // call stopPropagation() so the zone behind doesn't react.
     await swipeOn(commanderDlg, "right");
 
     await expect(commanderDlg).not.toBeVisible();
-    await expect(page.getByRole("dialog", { name: "Counters" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Counters" })).not.toBeVisible();
   });
 
   test("9.6. Swipe left on open Counters closes it without opening Commander Damage", async ({ page }) => {

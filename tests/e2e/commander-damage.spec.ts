@@ -101,16 +101,18 @@ test.describe("Commander Damage — Opening the Overlay", () => {
     const dlg = commanderDlg(page);
     await expect(dlg).toBeVisible();
 
-    // 3. Swipe left on P1 zone again → both the dialog's swipe handler (closes)
-    //    and the zone's swipe handler (reopens) fire. The dialog stays open.
+    // 3. Swipe left on P1 zone again → dialog closes cleanly (overlay's pointer
+    //    handlers call stopPropagation, zone behind doesn't react)
+    await swipeOn(zone(page, 1), "left");
+    await expect(dlg).not.toBeVisible();
+
+    // 4. Swipe left again to reopen
     await swipeOn(zone(page, 1), "left");
     await expect(dlg).toBeVisible();
 
-    // 4. Close via Escape, then reopen via swipe
+    // 5. Close via Escape
     await page.keyboard.press("Escape");
     await expect(dlg).not.toBeVisible();
-    await swipeOn(zone(page, 1), "left");
-    await expect(dlg).toBeVisible();
   });
 
   test("1.3. Short vertical jab (<10px) does not trigger the overlay", async ({ page }) => {
@@ -655,7 +657,7 @@ test.describe("Commander Damage — Lethal State", () => {
  * ─────────────────────────────────────────────── */
 
 test.describe("Commander Damage — Closing the Overlay", () => {
-  test("6.1. Swipe on overlay content: left keeps dialog open, right opens Counters", async ({ page }) => {
+  test("6.1. Swipe on overlay content closes the dialog (both directions)", async ({ page }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -665,27 +667,21 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     // expect: Dialog is open
     await expect(dlg).toBeVisible();
 
-    // 3. Perform a swipe left on the overlay content (the div inside the dialog)
-    //    This fires BOTH the dialog's swipe handler (closes) AND the zone's swipe
-    //    handler (handleSwipeLeft → reopens Commander Damage). The dialog stays open.
-    await swipeOn(dlg, "left");
-    await expect(dlg).toBeVisible();
-
-    // 4. Close via Escape
-    await page.keyboard.press("Escape");
+    // 3. Perform a swipe left on the overlay content → dialog closes cleanly.
+    //    stopPropagation prevents the zone behind from reacting.
+    await swipeOn(commanderDlg(page), "left");
     await expect(dlg).not.toBeVisible();
-    // expect: P1 life unchanged by any gesture
+    // expect: P1 life unchanged by the swipe
     await expect(lifeTotal(zone(page, 1))).toHaveText("40");
 
-    // 5. Reopen, then swipe right on overlay content → Commander Damage closes
-    //    and Counters opens (zone's handleSwipeRight opens Counters instead)
+    // 4. Reopen, then swipe right on overlay content → also closes
     await swipeOn(zone(page, 1), "left");
+    await expect(dlg).toBeVisible();
     await swipeOn(commanderDlg(page), "right");
-    await expect(commanderDlg(page)).not.toBeVisible();
-    await expect(page.getByRole("dialog", { name: "Counters" })).toBeVisible();
+    await expect(dlg).not.toBeVisible();
 
-    // 6. Close via Escape
-    await page.keyboard.press("Escape");
+    // 5. Cleanup: verify Counters was NOT opened by the swipe
+    await expect(page.getByRole("dialog", { name: "Counters" })).not.toBeVisible();
   });
 
   test("6.2. Escape key closes the dialog", async ({ page }) => {
@@ -712,7 +708,30 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await expect(dlg).not.toBeVisible();
   });
 
-  test("6.3. Commander Damage overlay is scoped to its player zone", async ({ page }) => {
+  test("6.3. ✕ close button dismisses the dialog", async ({ page }) => {
+    // 1. Navigate to `/`
+    await page.goto("/");
+
+    // 2. Swipe left on P1 zone → Commander Damage dialog opens
+    await swipeOn(zone(page, 1), "left");
+    const dlg = commanderDlg(page);
+    await expect(dlg).toBeVisible();
+
+    // 3. Click the ✕ close button
+    await dlg.getByRole("button", { name: "Close commander damage" }).click();
+    // expect: Dialog closes
+    await expect(dlg).not.toBeVisible();
+    // expect: P1 life unchanged
+    await expect(lifeTotal(zone(page, 1))).toHaveText("40");
+
+    // 4. Reopen and click ✕ again
+    await swipeOn(zone(page, 1), "left");
+    await expect(dlg).toBeVisible();
+    await dlg.getByRole("button", { name: "Close commander damage" }).click();
+    await expect(dlg).not.toBeVisible();
+  });
+
+  test("6.4. Commander Damage overlay is scoped to its player zone", async ({ page }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -741,7 +760,7 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await expect(pill).toHaveCSS("background-color", "rgb(193, 215, 233)");
   });
 
-  test("6.4. Overlay does not interfere with other zone interactivity", async ({ page }) => {
+  test("6.5. Overlay does not interfere with other zone interactivity", async ({ page }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
