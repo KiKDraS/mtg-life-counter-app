@@ -84,6 +84,11 @@ execution across all four layers simultaneously:
 - **JSDoc on exported functions:** Every exported function, hook, and utility
   must have a JSDoc block (`@description`, `@param`, `@returns`). Include a
   usage example and `@see` DESIGN.md reference where applicable.
+- **JSDoc exceptions:** Skip JSDoc when the function name + TypeScript
+  signature make the behavior self-evident. Single-line wrappers, simple
+  action creators (`adjustLife`, `setLife`), and well-known utility aliases
+  (`cn`) are exempt. Functions with non-obvious logic, side effects, or
+  DESIGN.md coupling still require JSDoc.
 - **No magic strings.** Never hardcode domain strings anywhere in the
   codebase. Import shared values (colors, labels, mana) from
   `shared/lib/constants/` and feature-specific values from
