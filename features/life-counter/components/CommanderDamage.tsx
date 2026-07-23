@@ -54,25 +54,10 @@ export function CommanderDamage({
   const pointerDownOnButtonRef = useRef(false);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    /*
-     * Only check for native <button> — the wrapper div has role="button"
-     * for SonarQube compliance (S6848), so checking [role="button"] would
-     * always match the wrapper itself and prevent closing.
-     */
     pointerDownOnButtonRef.current = !!(e.target as HTMLElement).closest(
       "button",
     );
   }, []);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        close();
-      }
-    },
-    [close],
-  );
 
   const handleClick = useCallback(
     (_e: React.MouseEvent) => {
@@ -100,19 +85,10 @@ export function CommanderDamage({
        * z-30 ensures the overlay content stacks above the player zone's
        * gear icon (z-10) so the close-on-tap target isn't intercepted.
        */}
-      {/*
-       * ponytail: non-native click handler (S6848/S1082).
-       * Can't use <button> because it wraps heading/list/button children.
-       * role="button" + aria-label satisfy the rule's fallback path.
-       * Refactor when a dialog-backdrop-only close pattern is available.
-       */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions — ponytail: intentional tap-to-close on the overlay background. Keyboard users can close via Escape (DialogShell). */}
       <div
-        role="button"
-        aria-label="Close commander damage overlay"
         className="relative z-30 flex flex-1 flex-col items-center justify-center gap-8 px-6 bg-ui-overlay"
-        tabIndex={-1}
         onPointerDown={handlePointerDown}
-        onKeyDown={handleKeyDown}
         onClick={handleClick}
       >
         <h2
