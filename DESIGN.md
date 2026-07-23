@@ -586,8 +586,8 @@ Each column:
   `PlaneswalkerSymbol` (inline SVG, white fill on opponent's color background).
 - **Damage total:** Alongside the pill. Archivo Bold. Text color auto-selects
   warm white (`#FAF8F5`) or warm near-black (`#1A1A1A`) per luminance.
-- **+ button:** Tap = +1 commander damage. Hold = accelerate (±5 → +10 after 1s)
-  — same criteria as §7.1 life adjustment.
+- **+ button:** Tap = +1 commander damage. Hold = accelerate (+10 after 1s) —
+  same criteria as §7.1 life adjustment.
 - **Lethal indicator:** When any opponent's commander damage reaches 21+, the
   current player loses the game — both the commander damage value and the
   current player's life total turn lethal red (`#D50000`).
@@ -623,7 +623,7 @@ damage overlay (§7.3).
   container.
 - **Value:** Alongside the icon. Archivo Bold. Text color auto-selects warm
   white (`#FAF8F5`) per luminance.
-- **[-] [+] buttons:** Tap = ±1. Hold = accelerate (±5 → ±10 after 1s).
+- **[-] [+] buttons:** Tap = ±1. Hold = accelerate (±10 after 1s).
 - **[✕] delete button:** Removes the counter column. Shown on every counter.
 - **+ button (bottom-right):** Opens a prompt asking for the custom counter name
   (initial value is always 0). Custom counters use a rounded pill — background
