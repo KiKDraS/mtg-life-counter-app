@@ -28,6 +28,8 @@ interface UseSwipeOptions {
  * const zoneRef = useRef<HTMLDivElement>(null);
  * useSwipe(zoneRef, { onSwipeLeft: () => ..., onSwipeRight: () => ... });
  * ```
+ *
+ * @see DESIGN.md §7.2
  */
 export function useSwipe(
   ref: React.RefObject<HTMLElement | null>,

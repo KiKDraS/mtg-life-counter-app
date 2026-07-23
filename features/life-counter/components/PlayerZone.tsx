@@ -41,6 +41,8 @@ const buttonClass = cn(
  * §4.2 Player Zone — three-column grid: [-] | life | [+].
  * Rotation is applied to the outer wrapper (§4.3) so the interior layout is
  * identical for every orientation.
+ *
+ * @see DESIGN.md §4 — Player Zone
  */
 export function PlayerZone({
   playerNumber,

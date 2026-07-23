@@ -5,7 +5,10 @@ import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
-import { INCREMENT_LIFE, DECREMENT_LIFE } from "@/features/life-counter/constants/life";
+import {
+  INCREMENT_LIFE,
+  DECREMENT_LIFE,
+} from "@/features/life-counter/constants/life";
 
 type LifeSign = typeof INCREMENT_LIFE | typeof DECREMENT_LIFE;
 
@@ -40,6 +43,8 @@ const HOLD_STEP = 10;
  * no pointer events precede it.
  *
  * Returns a factory: pass a direction, spread the result onto a `<button>`.
+ *
+ * @see DESIGN.md §7.1
  */
 export function useLifeAdjustment(
   onAdjust: AdjustCallback,

@@ -6,10 +6,14 @@
  *
  * Faction color tuples define gradient stops ordered top-left → bottom-right.
  * Shards (3-color) use an allied-color triad; guilds (2-color) use their color pair.
+ *
+ * @see DESIGN.md §2
  */
 
-/* ── Player identity colors (§2.1) ── */
-/* Keys are in WUBRG order (White → Blue → Black → Red → Green → Colorless). */
+/* 
+  ── Player identity colors (§2.1) ── 
+  Keys are in WUBRG order (White → Blue → Black → Red → Green → Colorless). 
+*/
 export const MANA = {
   w: "#F8F6D8" as const, // White  — warm, sheltering
   u: "#C1D7E9" as const, // Blue   — electric, intellectual

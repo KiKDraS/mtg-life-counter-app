@@ -20,7 +20,7 @@ const MANA_KEYS = Object.keys(MANA).slice(0, 5) as ManaColor[];
 const manaWheelBtnClass = cn(
   "absolute -translate-x-1/2 -translate-y-1/2 rounded-full",
   "transition-transform hover:scale-110",
-  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white",
 );
 
 /*
@@ -48,6 +48,8 @@ function polarTop(index: number): string {
  *
  * Tap any mana symbol / button → calls onSelect(result) which the
  * parent handles (dispatch + dialog.close()).
+ *
+ * @see DESIGN.md §6.5
  */
 export function ColorPicker({ dialogRef, onSelect }: ColorPickerProps) {
   return (

@@ -10,7 +10,7 @@ const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const digitBtnClass = cn(
   "flex h-14 items-center justify-center rounded-lg font-bold",
   "transition-colors hover:bg-white/10",
-  "text-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+  "text-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
 );
 
 interface LifeNumpadProps {
@@ -24,6 +24,8 @@ interface LifeNumpadProps {
  * Native `<dialog>` with a 3×4 phone-style keypad.
  * Double-tap the life total → call `dialogRef.show()` to open.
  * Confirm (✓) → calls `onConfirm(enteredValue)`.
+ *
+ * @see DESIGN.md §7.1
  */
 export function LifeNumpad({ dialogRef, onConfirm }: LifeNumpadProps) {
   const [value, setValue] = useState("");

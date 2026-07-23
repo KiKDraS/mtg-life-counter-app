@@ -15,11 +15,7 @@ interface CountersProps {
  *
  * @see DESIGN.md §7.4
  */
-export function Counters({
-  dialogRef,
-  onClose,
-}: CountersProps) {
-
+export function Counters({ dialogRef, onClose }: CountersProps) {
   return (
     <DialogShell
       dialogRef={dialogRef}
