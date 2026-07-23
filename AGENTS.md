@@ -103,6 +103,15 @@ classes with separate CSS files per component.
 
 ---
 
+## Framework & Library Docs (Context7)
+
+Before implementing any feature involving a library, framework, SDK, or API
+(React, Next.js, Tailwind, OpenRouter, etc.), fetch current documentation
+via Context7 MCP — your training data may not reflect recent changes. Do not
+use Context7 for general programming concepts or business logic.
+
+---
+
 ## Useful Commands
 
 - `pnpm dev` — Next.js dev server on port 3000.
