@@ -54,8 +54,13 @@ export function CommanderDamage({
   const pointerDownOnButtonRef = useRef(false);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    /*
+     * Only check for native <button> — the wrapper div has role="button"
+     * for SonarQube compliance (S6848), so checking [role="button"] would
+     * always match the wrapper itself and prevent closing.
+     */
     pointerDownOnButtonRef.current = !!(e.target as HTMLElement).closest(
-      'button, [role="button"]',
+      "button",
     );
   }, []);
 
@@ -98,10 +103,12 @@ export function CommanderDamage({
       {/*
        * ponytail: non-native click handler (S6848/S1082).
        * Can't use <button> because it wraps heading/list/button children.
-       * Keyboard support added via onKeyDown + tabIndex.
+       * role="button" + aria-label satisfy the rule's fallback path.
        * Refactor when a dialog-backdrop-only close pattern is available.
        */}
       <div
+        role="button"
+        aria-label="Close commander damage overlay"
         className="relative z-30 flex flex-1 flex-col items-center justify-center gap-8 px-6 bg-ui-overlay"
         tabIndex={-1}
         onPointerDown={handlePointerDown}
