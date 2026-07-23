@@ -50,6 +50,11 @@ quality gates. If a single item fails, the submission must be rejected.
   inference, not `type` for object shapes.
 - **JSDoc on exports:** Flag exported functions, hooks, and utilities missing
   a JSDoc block with `@description`, `@param`, and `@returns`.
+- **JSDoc exceptions:** Skip JSDoc for trivially self-explanatory functions
+  where the function name + TypeScript signature fully describe the behavior
+  (e.g., simple action creators like `adjustLife`, well-known stdlib aliases
+  like `cn`). Err on the side of documenting non-obvious logic, side effects,
+  or DESIGN.md-coupled behavior.
 - **Read-only component props:** All component prop interfaces must use
   `readonly` on each property or `Readonly<Props>` at the component
   signature. Flag mutable props.
