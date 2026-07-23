@@ -364,18 +364,19 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
   4. Reopen and press Escape again
     - expect: Dialog closes
 
-### 6.3. ✕ close button dismisses the dialog
+### 6.3. Tap background closes the dialog; tap [+] does not
 
 **File:** `tests/e2e/commander-damage.spec.ts`
 
 **Steps:**
    1. Navigate to `/`
    2. Swipe left on P1 zone → Commander Damage dialog opens
-   3. Click the ✕ close button (`aria-label="Close commander damage"`)
-     - expect: Dialog closes
+   3. Tap the heading (a non-interactive area of the overlay)
+     - expect: Dialog closes (tap on background = close)
      - expect: P1 life unchanged
-   4. Reopen and click ✕ again
-     - expect: Dialog closes
+   4. Reopen and tap [+] button
+     - expect: Damage counter reads `1` (damage was added)
+     - expect: Dialog stays open (tap on button = button action)
 
 ### 6.4. Commander Damage overlay is scoped to its player zone
 

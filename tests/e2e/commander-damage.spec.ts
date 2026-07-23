@@ -667,8 +667,8 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     // expect: Dialog is open
     await expect(dlg).toBeVisible();
 
-    // 3. Perform a swipe left on the overlay content → dialog closes cleanly.
-    //    stopPropagation prevents the zone behind from reacting.
+    // 3. Perform a swipe left on the overlay content → dialog closes cleanly
+    //    (zone's useSwipe + closeOverlays() handles it without reopening).
     await swipeOn(commanderDlg(page), "left");
     await expect(dlg).not.toBeVisible();
     // expect: P1 life unchanged by the swipe
@@ -708,7 +708,7 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await expect(dlg).not.toBeVisible();
   });
 
-  test("6.3. ✕ close button dismisses the dialog", async ({ page }) => {
+  test("6.3. Tap background closes the dialog; tap [+] does not", async ({ page }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -717,18 +717,21 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     const dlg = commanderDlg(page);
     await expect(dlg).toBeVisible();
 
-    // 3. Click the ✕ close button
-    await dlg.getByRole("button", { name: "Close commander damage" }).click();
+    // 3. Tap the heading (a non-interactive area of the overlay)
+    await dlg.getByRole("heading", { name: "Commander Damage" }).click();
     // expect: Dialog closes
     await expect(dlg).not.toBeVisible();
-    // expect: P1 life unchanged
+    // expect: P1 life unchanged (not a damage tap)
     await expect(lifeTotal(zone(page, 1))).toHaveText("40");
 
-    // 4. Reopen and click ✕ again
+    // 4. Reopen and tap [+] — should add damage, NOT close
     await swipeOn(zone(page, 1), "left");
     await expect(dlg).toBeVisible();
-    await dlg.getByRole("button", { name: "Close commander damage" }).click();
-    await expect(dlg).not.toBeVisible();
+    await plusButton(dlg).click();
+    // expect: Damage was added
+    await expect(damageCounter(dlg)).toHaveText("1");
+    // expect: Dialog stays open after [+] tap
+    await expect(dlg).toBeVisible();
   });
 
   test("6.4. Commander Damage overlay is scoped to its player zone", async ({ page }) => {
