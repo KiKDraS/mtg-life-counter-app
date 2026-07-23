@@ -10,6 +10,16 @@ export interface ZoneStyles {
   readonly textColor: string;
 }
 
+/**
+ * @description Resolve background color + auto-contrast text color for a player zone.
+ * WUBRG identity returns the 5-color diagonal-strip gradient; single-mana colors
+ * return a solid background with a WCAG-computed light or dark text.
+ *
+ * @param color — the player's color identity (`ManaColor` or `"wubrg"`).
+ * @returns `{ background, textColor }` CSS values.
+ *
+ * @see DESIGN.md §6.5 — Color Picker / Zone Colors
+ */
 export function zoneStylesFor(color: PlayerColor): ZoneStyles {
   const isWubrg = color === "wubrg";
   if (isWubrg) {

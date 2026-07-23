@@ -20,14 +20,30 @@ type PlayerAction =
   | { type: typeof SET_COLOR; color: PlayerColor };
 
 /* ── Action creators ── */
+
+/**
+ * @description Dispatch an adjust-life action (±delta from current).
+ * @param delta — signed integer to add to the player's life total.
+ * @returns A `PlayerAction` consumable by `playerReducer`.
+ */
 export function adjustLife(delta: number): PlayerAction {
   return { type: ADJUST_LIFE, delta };
 }
 
+/**
+ * @description Dispatch a set-life action (absolute value, replaces current).
+ * @param value — new life total (e.g. entered via numpad).
+ * @returns A `PlayerAction` consumable by `playerReducer`.
+ */
 export function setLife(value: number): PlayerAction {
   return { type: SET_LIFE, value };
 }
 
+/**
+ * @description Dispatch a set-color action.
+ * @param color — the new player identity color (single mana color or "wubrg").
+ * @returns A `PlayerAction` consumable by `playerReducer`.
+ */
 export function setColor(color: PlayerColor): PlayerAction {
   return { type: SET_COLOR, color };
 }
@@ -45,6 +61,19 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
 }
 
 /* ── Hook ── */
+
+/**
+ * @description Player state reducer hook.
+ * Manages life total and color identity per player zone via `useReducer`.
+ * Callers dispatch `adjustLife`, `setLife`, or `setColor`.
+ *
+ * @param initialLife — starting life total (defaults to 40 in PlayerZone).
+ * @param initialColor — starting player color identity.
+ * @returns A tuple of `[PlayerState, React.Dispatch<PlayerAction>]`.
+ *
+ * @see DESIGN.md §4 — Player Zone
+ * @see DESIGN.md §6.5 — Color Picker
+ */
 export function usePlayerState(
   initialLife: number,
   initialColor: PlayerColor,
