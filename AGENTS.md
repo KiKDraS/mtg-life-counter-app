@@ -100,9 +100,9 @@ The agent must strictly respect the following file architecture:
   Component unless explicitly marked with `'use client'`. Keep data fetching and
   heavy logic in server components.
 - **File naming convention:** React component files (`.tsx`) use PascalCase
-  (`PlayerZone.tsx`, `ManaSelector.tsx`). Hooks use `use-` prefix with kebab-case
-  (`use-life-adjustment.ts`). Non-component `.ts` files (utilities, constants,
-  types, services) use kebab-case (`text-color-for.ts`, `colors.ts`).
+  (`PlayerZone.tsx`, `ManaSelector.tsx`). Hooks use `use-` prefix with
+  kebab-case (`use-life-adjustment.ts`). Non-component `.ts` files (utilities,
+  constants, types, services) use kebab-case (`text-color-for.ts`, `colors.ts`).
   Directories use kebab-case (`life-counter/`, `player-actions/`).
 - **Client boundary discipline.** Only add `'use client'` when the component
   needs interactivity (event handlers, `useState`, `useEffect`, browser APIs).
@@ -129,17 +129,17 @@ The agent must strictly respect the following file architecture:
   `index.ts`/`index.tsx` that only re-exports sibling modules (e.g.,
   `export { Foo } from './foo'`). Import directly from the source file instead:
   `import { Button } from './shared/components/ui/button'`, never
-  `import { Button } from './components/ui'`. Barrels load unused modules,
-  cause circular dependencies, and hurt tree-shaking. The only exception is a
-  public library API that explicitly needs a single entry point.
+  `import { Button } from './components/ui'`. Barrels load unused modules, cause
+  circular dependencies, and hurt tree-shaking. The only exception is a public
+  library API that explicitly needs a single entry point.
 - **Read-only component props:** All component prop interfaces must use
-  `readonly` on each property, or wrap with `Readonly<Props>` at the
-  component signature. No mutable props.
-- **Extract repeated markup:** When the same element with the same class
-  pattern appears 3+ times, extract it into a component — locally in the file,
-  in `features/<name>/components/`, or in `shared/components/` depending on
-  scope. Combine with `cn()` for variant variations. Do not copy-paste
-  className strings.
+  `readonly` on each property, or wrap with `Readonly<Props>` at the component
+  signature. No mutable props.
+- **Extract repeated markup:** When the same element with the same class pattern
+  appears 3+ times, extract it into a component — locally in the file, in
+  `features/<name>/components/`, or in `shared/components/` depending on scope.
+  Combine with `cn()` for variant variations. Do not copy-paste className
+  strings.
 - **Keep markers:** Lines marked with `// keep: <reason>` must not be modified
   by any agent. Use for values that break conventions intentionally — precise
   dimensions, hardcoded values with a verified source, manual spacing.
@@ -149,8 +149,8 @@ The agent must strictly respect the following file architecture:
 - **Utility-first.** Style components with Tailwind utility classes directly in
   JSX `className`. No separate CSS files per component unless for complex
   keyframe animations or third-party overrides.
-- **Class composition with `cn()`:** Use `cn()` from `shared/lib/cn.ts` for
-  all className composition — conditionals, merging, and variant construction.
+- **Class composition with `cn()`:** Use `cn()` from `shared/lib/cn.ts` for all
+  className composition — conditionals, merging, and variant construction.
   Extract repeated class patterns into constants. Never concatenate class
   strings manually. `cn()` wraps `clsx` + `tailwind-merge` and deduplicates
   conflicting Tailwind classes automatically.
@@ -165,8 +165,8 @@ The agent must strictly respect the following file architecture:
   stacks. No purple gradients on white.
 - **No hardcoded hex values:** Always reference CSS custom properties from
   `globals.css` via `var(--color-*)`. Design tokens are the only valid color
-  source. If a color isn't tokenized yet, add it to `shared/lib/constants/colors.ts`
-  first, then mirror to `globals.css`.
+  source. If a color isn't tokenized yet, add it to
+  `shared/lib/constants/colors.ts` first, then mirror to `globals.css`.
 - **Motion:** Prefer Tailwind's `animate-*` utilities and CSS keyframes.
 
 ### DESIGN.md as Authoritative Source
@@ -187,40 +187,38 @@ not generic rules.
 - **Per `typescript-advanced-types`:** Discriminated unions for state machines,
   generics for reusable utilities, `satisfies` for config objects.
 - **No magic strings anywhere:** All domain/business values must come from
-  constants. Shared values (colors, labels, mana) go in
-  `shared/lib/constants/`. Feature-specific values go in
-  `features/<name>/constants/`. No hardcoded string literals representing
-  app-level concepts (e.g., `"#D50000"`, `"White mana"`, `"wubrg"`,
-  `"poison"`). Literal strings are only permitted for one-off, non-reusable,
-  presentation-only values (e.g., an `aria-label` describing a specific
-  element). When DESIGN.md §2 changes, update `shared/lib/constants/colors.ts`
-  first, then mirror to `globals.css`.
-- **Constants per domain:** `shared/lib/constants/` is organized by domain — one file
-  per concept. No catch-all `constants.ts`. A new constant goes in a new or
+  constants. Shared values (colors, labels, mana) go in `shared/lib/constants/`.
+  Feature-specific values go in `features/<name>/constants/`. No hardcoded
+  string literals representing app-level concepts (e.g., `"#D50000"`,
+  `"White mana"`, `"wubrg"`, `"poison"`). Literal strings are only permitted for
+  one-off, non-reusable, presentation-only values (e.g., an `aria-label`
+  describing a specific element). When DESIGN.md §2 changes, update
+  `shared/lib/constants/colors.ts` first, then mirror to `globals.css`.
+- **Constants per domain:** `shared/lib/constants/` is organized by domain — one
+  file per concept. No catch-all `constants.ts`. A new constant goes in a new or
   existing domain file (e.g., `mana.ts`, `guilds.ts`, `labels.ts`).
-- **Feature-specific constants/types:** When a type or constant is used in
-  more than one file within a feature, move it to `features/<name>/types/`
-  or `features/<name>/constants/`. Single-file types and constants stay inline.
-- **Utilities per file:** No catch-all `utils.ts` or `helpers.ts`. Each
-  utility function gets its own file (e.g., `shared/lib/cn.ts`,
-  `shared/lib/format-mana.ts`).
-  If a utility needs internal helpers, promote to a folder with a single entry
-  point.
+- **Feature-specific constants/types:** When a type or constant is used in more
+  than one file within a feature, move it to `features/<name>/types/` or
+  `features/<name>/constants/`. Single-file types and constants stay inline.
+- **Utilities per file:** No catch-all `utils.ts` or `helpers.ts`. Each utility
+  function gets its own file (e.g., `shared/lib/cn.ts`,
+  `shared/lib/format-mana.ts`). If a utility needs internal helpers, promote to
+  a folder with a single entry point.
 - **No barrel imports** (per `bundle-barrel-imports`). Import directly from
   module files — never from an `index.ts` re-export barrel.
-- **Named predicate variables:** Never compare against a literal directly
-  in a conditional. Assign the comparison to a named `const` that explains
-  what is being checked. `const isLethal = life <= 0` instead of
-  `if (life <= 0)`. The variable name IS the documentation.
+- **Named predicate variables:** Never compare against a literal directly in a
+  conditional. Assign the comparison to a named `const` that explains what is
+  being checked. `const isLethal = life <= 0` instead of `if (life <= 0)`. The
+  variable name IS the documentation.
 - **Early return over if/else:** Prefer guard clauses that bail out early.
-  Flatten conditionals instead of nesting. `if (!valid) return;` then the
-  happy path, not `if (valid) { ... } else { return; }`.
+  Flatten conditionals instead of nesting. `if (!valid) return;` then the happy
+  path, not `if (valid) { ... } else { return; }`.
 
 ### 4. Asset Management
 
-- **`public/`**: Assets served as-is — service worker, PWA icon images.
-  Favicon, app icons, Apple touch icon, manifest.json, and robots.txt follow
-  Next.js file conventions in `app/`.
+- **`public/`**: Assets served as-is — service worker, PWA icon images. Favicon,
+  app icons, Apple touch icon, manifest.json, and robots.txt follow Next.js file
+  conventions in `app/`.
 - **Fonts:** Via `next/font` — `localFont` for local files, `next/font/google`
   for fonts available there (Next.js downloads and self-hosts at build time).
   Reference the CSS variable in `app/layout.tsx`.
@@ -254,12 +252,13 @@ not generic rules.
   (`route.ts` with named exports for HTTP methods).
 - **AI Judge** (`app/api/judge/route.ts`) uses `@openrouter/sdk` exclusively.
   ZDR enabled. Streaming via async iterator. `OPENROUTER_API_KEY` server-only.
-- **Scryfall integration** (`shared/lib/services/scryfall.ts`) for card art search and
-  autocomplete. Server-side caching. Rate limit awareness.
+- **Scryfall integration** (`shared/lib/services/scryfall.ts`) for card art
+  search and autocomplete. Server-side caching. Rate limit awareness.
 - **No user accounts or auth.** The app is session-only. No `/api/profiles`, no
   database, no authentication layer.
-- **Game state** (`shared/lib/state/`) is session-local. Discriminated union state
-  machine. Undo/redo stack. Life totals, poison counters, commander damage.
+- **Game state** (`shared/lib/state/`) is session-local. Discriminated union
+  state machine. Undo/redo stack. Life totals, poison counters, commander
+  damage.
 - **AI Judge UI** (`features/ai-judge/components/`): `'use client'` chat
   interface with streaming response display, message bubbles, and text input.
   Maximized modal for readability per DESIGN.md §6.4.
@@ -433,14 +432,6 @@ Tailwind classes with separate CSS files per component.
 - `pnpm build`: Generates production build in the `.next/` folder.
 - `pnpm start`: Starts the production server.
 - `pnpm lint`: Runs ESLint across the project.
-
----
-
-## CHANGELOG
-
-| Version | Date       | Author        | Changes                                            |
-| ------- | ---------- | ------------- | -------------------------------------------------- |
-| 1.0     | 2026-07-16 | @orchestrator | Initial design contract from Design Thinking phase |
 
 ---
 
