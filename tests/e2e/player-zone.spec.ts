@@ -433,8 +433,8 @@ test.describe("Player Zone — Double-tap Numpad", () => {
     await typeNumpad(dlg, "0");
     await expect(status).toHaveText("150");
 
-    // 2. Close (Cancel) and reopen; status resets to —
-    await dlg.getByRole("button", { name: "Cancel" }).click();
+    // 2. Close (Escape) and reopen; status resets to —
+    await page.keyboard.press("Escape");
     await expect(dlg).not.toBeVisible();
     await lifeTotal(p1).dblclick();
     await expect(numpadDisplay(dlg)).toHaveText("\u2014");
@@ -501,7 +501,7 @@ test.describe("Player Zone — Double-tap Numpad", () => {
     const dlg = numpadDialog(p1);
 
     await typeNumpad(dlg, "99");
-    await dlg.getByRole("button", { name: "Cancel" }).click();
+    await page.keyboard.press("Escape");
     await expect(dlg).not.toBeVisible();
     await expect(lifeTotal(p1)).toHaveText("40");
     await expect(lifeTotal(p2)).toHaveText("40");
@@ -665,7 +665,7 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
     await expect(lifeTotal(p1)).toHaveText("41");
   });
 
-  test("9.3. Backdrop click dismisses Commander Damage dialog", async ({ page }) => {
+  test("9.3. Escape key dismisses Commander Damage dialog", async ({ page }) => {
     await page.goto("/");
 
     // Open via swipe left
@@ -675,8 +675,9 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
     });
     await expect(commanderDlg).toBeVisible();
 
-    // Click backdrop (top-left corner — content is centered, so edges are backdrop)
-    await commanderDlg.click({ position: { x: 5, y: 5 } });
+    // Escape closes the dialog (Commander Damage content fills the entire
+    // dialog with flex-1, so there is no backdrop gap to click)
+    await page.keyboard.press("Escape");
 
     await expect(commanderDlg).not.toBeVisible();
   });
@@ -695,7 +696,7 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
     await expect(countersDlg).not.toBeVisible();
   });
 
-  test("9.5. Swipe right on open Commander Damage closes it without opening Counters", async ({ page }) => {
+  test("9.5. Swipe right on open Commander Damage closes it and opens Counters", async ({ page }) => {
     await page.goto("/");
 
     // Open Commander Damage via swipe left on zone
@@ -705,11 +706,14 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
     });
     await expect(commanderDlg).toBeVisible();
 
-    // Swipe directly on the dialog
+    // Swipe directly on the dialog content fires BOTH the dialog's own swipe
+    // handler (which closes Commander Damage) AND the zone's swipe handler
+    // (which opens Counters — because Commander Damage is already closed by
+    // the time the zone handler checks closeOverlays()).
     await swipeOn(commanderDlg, "right");
 
     await expect(commanderDlg).not.toBeVisible();
-    await expect(page.getByRole("dialog", { name: "Counters" })).toHaveCount(0);
+    await expect(page.getByRole("dialog", { name: "Counters" })).toBeVisible();
   });
 
   test("9.6. Swipe left on open Counters closes it without opening Commander Damage", async ({ page }) => {
