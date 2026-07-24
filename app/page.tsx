@@ -14,12 +14,13 @@ export default function Home() {
         <PlayerZone
           playerNumber={1}
           color="u"
+          opponentColor="r"
           rotation={180}
           initialLife={40}
         />
       </div>
       <div className="flex-1">
-        <PlayerZone playerNumber={2} color="r" initialLife={40} />
+        <PlayerZone playerNumber={2} color="r" opponentColor="u" initialLife={40} />
       </div>
     </main>
   );

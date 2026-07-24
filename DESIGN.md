@@ -587,10 +587,22 @@ Each column:
 - **Damage total:** Alongside the pill. Archivo Bold. Text color auto-selects
   warm white (`#FAF8F5`) or warm near-black (`#1A1A1A`) per luminance.
 - **+ button:** Tap = +1 commander damage. Hold = accelerate (+10 after 1s) —
-  same criteria as §7.1 life adjustment.
+  same criteria as §7.1 life adjustment. The [+] button is **borderless** —
+  no `border-radius`, no background highlight, no `transition-colors`. Matches
+  the same borderless treatment as the zone ± buttons in §4.2. The only visual
+  distinction is the `+` label itself and the keyboard focus ring.
+- **Life reduction:** Each point of commander damage also reduces the current
+  player's life total by the same amount. `adjustCommanderDamage(+3)` → life −3,
+  commander damage +3.
 - **Lethal indicator:** When any opponent's commander damage reaches 21+, the
-  current player loses the game — both the commander damage value and the
-  current player's life total turn lethal red (`#D50000`).
+  current player loses the game. Both the commander damage value and the current
+  player's life total turn lethal red (`#D50000`). The overlay shows a
+  **"Lethal — Game Over"** badge below the counter.
+- **Player zone lethal label:** When commander damage ≥ 21 and the player still
+  has life remaining (`life > 0`), the main life view shows a small
+  **"Commander Damage Lethal"** label in danger red beneath the life total.
+  This ensures the player sees the lethal threat without needing the overlay
+  open.
 
 ### 7.4 Counters Overlay
 
@@ -623,15 +635,23 @@ damage overlay (§7.3).
   container.
 - **Value:** Alongside the icon. Archivo Bold. Text color auto-selects warm
   white (`#FAF8F5`) per luminance.
-- **[-] [+] buttons:** Tap = ±1. Hold = accelerate (±10 after 1s).
+- **[-] [+] buttons:** Tap = ±1. Hold = accelerate (±10 after 1s). All
+  adjustment buttons are **borderless** — no `border-radius`, no background
+  highlight, no `transition-colors`. Matches the borderless treatment in §4.2
+  and §7.3.
 - **[✕] delete button:** Removes the counter column. Shown on every counter.
 - **+ button (bottom-right):** Opens a prompt asking for the custom counter name
   (initial value is always 0). Custom counters use a rounded pill — background
   `#CAC5C0` (colorless), icon `iconDark` (`#0D0F0F`) — displaying the first
   letter of their name. This visually distinguishes custom counters from the
   pill-free default counters.
-- **Lethal indicator:** Poison at 10+ turns both the poison counter value
-  **and** the player's life total lethal red (`#D50000`).
+- **Poison Lethal (life view, not overlay):** When the Poison counter reaches
+  10+, the player loses the game. The player zone life view shows a small
+  **"Poison Lethal"** label in danger red (`#D50000`) beneath the life total,
+  and the life total itself turns lethal red. This mirrors the Commander Damage
+  Lethal pattern in §7.3. The **poison counter value inside the Counters
+  overlay keeps its normal color** — only the life view reflects the lethal
+  state. The "Poison Lethal" text does NOT appear inside the Counters dialog.
 
 **Grid:** Always 2 columns. Rows fill left-to-right, top-to-bottom. The 4
 defaults occupy the first 2 rows. Custom counters fill subsequent rows.

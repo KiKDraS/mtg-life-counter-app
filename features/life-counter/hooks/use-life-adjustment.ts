@@ -91,11 +91,17 @@ export function useLifeAdjustment(
   );
 
   const handleClick = useCallback(
-    (direction: LifeSign, _event: ReactMouseEvent<HTMLButtonElement>) => {
+    (direction: LifeSign, event: ReactMouseEvent<HTMLButtonElement>) => {
       /* If the hold timer already fired ±10, suppress the click's ±1 (both
-       * firing on release would be ±11, confusing UX). Keyboard activation
-       * (no pointerdown) always fires ±1 since holdFiredRef is untouched. */
-      if (holdFiredRef.current) return;
+       * firing on release would be ±11, confusing UX) AND stop propagation
+       * so CommanderDamage's background onClick doesn't close the dialog
+       * when a layout shift (damage text widening) moves the button away
+       * from the pointer's elementFromPoint. Keyboard activation (no
+       * pointerdown) always fires ±1 since holdFiredRef is untouched. */
+      if (holdFiredRef.current) {
+        event.stopPropagation();
+        return;
+      }
       onAdjustRef.current(direction);
     },
     [],

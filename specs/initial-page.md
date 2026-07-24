@@ -1,0 +1,23 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - 'region "Player 1: 40 life" [ref=e5]':
+      - button "-1 life" [ref=e6]: −
+      - button "40" [ref=e7]:
+        - paragraph [ref=e8]: "40"
+      - generic [ref=e9]:
+        - button "Change color" [ref=e10]:
+          - img "Color Settings" [ref=e11]:
+            - img [ref=e12]
+        - button "+1 life" [ref=e14]: +
+    - 'region "Player 2: 40 life" [ref=e17]':
+      - button "-1 life" [ref=e18]: −
+      - button "40" [ref=e19]:
+        - paragraph [ref=e20]: "40"
+      - generic [ref=e21]:
+        - button "Change color" [ref=e22]:
+          - img "Color Settings" [ref=e23]:
+            - img [ref=e24]
+        - button "+1 life" [ref=e26]: +
+  - button "Open Next.js Dev Tools" [ref=e33] [cursor=pointer]:
+    - img [ref=e34]
+  - alert [ref=e27]
