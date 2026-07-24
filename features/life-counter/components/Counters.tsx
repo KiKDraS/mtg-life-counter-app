@@ -1,6 +1,7 @@
 "use client";
 
 import { DialogShell } from "@/shared/components/DialogShell";
+import { OverlaySurface } from "@/shared/components/OverlaySurface";
 
 interface CountersProps {
   readonly dialogRef: React.RefObject<HTMLDialogElement | null>;
@@ -8,10 +9,10 @@ interface CountersProps {
 }
 
 /**
- * §7.4 — Counters overlay (placeholder).
+ * §7.4 — Counters overlay (placeholder, WIP).
  *
  * Full-screen dialog showing poison, energy, experience, time counters.
- * Close via swipe (zone-level), backdrop click, or Escape.
+ * Close via tap-to-close (background), swipe (zone-level), or Escape.
  *
  * @see DESIGN.md §7.4
  */
@@ -22,7 +23,7 @@ export function Counters({ dialogRef, onClose }: CountersProps) {
       ariaLabelledBy="counters-title"
       onClose={onClose}
     >
-      <div className="m-auto flex flex-col items-center gap-6 py-16">
+      <OverlaySurface dialogRef={dialogRef}>
         <h2
           id="counters-title"
           className="text-heading font-bold text-ui-textLight"
@@ -33,7 +34,7 @@ export function Counters({ dialogRef, onClose }: CountersProps) {
         <p className="text-body text-ui-textLight/60">
           Swipe to close · Placeholder for poison, energy, experience, time
         </p>
-      </div>
+      </OverlaySurface>
     </DialogShell>
   );
 }
