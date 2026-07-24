@@ -93,7 +93,7 @@ export function CommanderDamage({
             <button
               type="button"
               aria-label="+1 commander damage"
-              className="flex size-14 items-center justify-center text-4xl font-bold leading-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white select-none touch-manipulation"
+              className="flex size-14 items-center justify-center text-4xl font-bold leading-none focus-visible:outline-0 select-none touch-manipulation"
               style={{ color: UI.textLight }}
               {...adjustment(INCREMENT_LIFE)}
             >
