@@ -129,11 +129,11 @@ export function CommanderDamage({
               {damage}
             </span>
 
-            {/* [+] button — tap=+1, hold=+10 after 1s */}
+            {/* [+] button — tap=+1, hold=+10 after 1s. Borderless — matches §4.2 zone buttons. */}
             <button
               type="button"
               aria-label="+1 commander damage"
-              className="flex size-14 items-center justify-center rounded-lg text-4xl font-bold leading-none transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white select-none touch-manipulation"
+              className="flex size-14 items-center justify-center text-4xl font-bold leading-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white select-none touch-manipulation"
               style={{ color: UI.textLight }}
               {...adjustment(INCREMENT_LIFE)}
             >
@@ -148,7 +148,7 @@ export function CommanderDamage({
             className="text-body font-bold uppercase tracking-wider"
             style={{ color: UI.danger }}
           >
-            Lethal — Player loses
+            Lethal — Game Over
           </p>
         )}
       </div>

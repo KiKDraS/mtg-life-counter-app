@@ -104,6 +104,7 @@ export function PlayerZone({
 
   /* §7.3 — lethal if life ≤ 0 OR commander damage ≥ 21 */
   const isLethal = state.life <= 0 || state.commanderDamage >= 21;
+  const isCommanderLethal = state.commanderDamage >= 21;
   const { background, textColor } = zoneStylesFor(state.color);
 
   return (
@@ -136,7 +137,7 @@ export function PlayerZone({
         <button
           type="button"
           tabIndex={-1}
-          className="flex h-full items-center justify-center"
+          className="flex h-full flex-col items-center justify-center"
           onClick={(e) => {
             const isDoubleClick = e.detail === 2;
             if (isDoubleClick) numpadRef.current?.show();
@@ -156,6 +157,14 @@ export function PlayerZone({
           >
             {state.life}
           </p>
+          {isCommanderLethal && state.life > 0 && (
+            <span
+              className="text-caption font-bold uppercase tracking-wider leading-tight"
+              style={{ color: UI.danger }}
+            >
+              Commander Damage Lethal
+            </span>
+          )}
         </button>
 
         <div className="relative flex h-full">

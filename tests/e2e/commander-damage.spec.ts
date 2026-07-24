@@ -543,8 +543,8 @@ test.describe("Commander Damage — Lethal State", () => {
     const counter = damageCounter(dlg);
     // expect: Damage counter text color is NOT danger red
     await expect(counter).not.toHaveCSS("color", "rgb(213, 0, 0)");
-    // expect: "Lethal — Player loses" badge is NOT visible
-    await expect(dlg.getByText("Lethal — Player loses")).toHaveCount(0);
+    // expect: "Lethal — Game Over" badge is NOT visible
+    await expect(dlg.getByText("Lethal — Game Over")).toHaveCount(0);
 
     // 3. Tap [+] once more (damage=21)
     await btn.click();
@@ -553,8 +553,8 @@ test.describe("Commander Damage — Lethal State", () => {
     // expect: Damage counter computed color equals danger red
     await expect(counter).toHaveCSS("color", "rgb(213, 0, 0)");
 
-    // expect: A paragraph with text "Lethal — Player loses" appears
-    const badge = dlg.getByText("Lethal — Player loses");
+    // expect: A paragraph with text "Lethal — Game Over" appears
+    const badge = dlg.getByText("Lethal — Game Over");
     await expect(badge).toBeVisible();
     // expect: The paragraph color equals danger red
     await expect(badge).toHaveCSS("color", "rgb(213, 0, 0)");
@@ -594,7 +594,7 @@ test.describe("Commander Damage — Lethal State", () => {
       await plusButton(dlg).click();
     }
     // expect: Lethal badge visible, damage is danger red
-    await expect(dlg.getByText("Lethal — Player loses")).toBeVisible();
+    await expect(dlg.getByText("Lethal — Game Over")).toBeVisible();
     await expect(damageCounter(dlg)).toHaveCSS("color", "rgb(213, 0, 0)");
 
     // 3. Note: The overlay has no [-] button to reduce commander damage (by design)
@@ -637,7 +637,7 @@ test.describe("Commander Damage — Lethal State", () => {
       await plusButton(commanderDlg(page)).click();
     }
     // expect: Lethal badge appears, damage is danger red
-    await expect(commanderDlg(page).getByText("Lethal — Player loses")).toBeVisible();
+    await expect(commanderDlg(page).getByText("Lethal — Game Over")).toBeVisible();
     await expect(damageCounter(commanderDlg(page))).toHaveCSS("color", "rgb(213, 0, 0)");
 
     // 5. Close and reopen
@@ -646,7 +646,7 @@ test.describe("Commander Damage — Lethal State", () => {
     // expect: Damage still reads `21`
     await expect(damageCounter(commanderDlg(page))).toHaveText("21");
     // expect: Lethal badge still visible
-    await expect(commanderDlg(page).getByText("Lethal — Player loses")).toBeVisible();
+    await expect(commanderDlg(page).getByText("Lethal — Game Over")).toBeVisible();
     // expect: Life total still red
     await expect(lifeTotal(zone(page, 1))).toHaveCSS("color", "rgb(213, 0, 0)");
   });
