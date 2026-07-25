@@ -18,9 +18,19 @@ interface CounterRowProps {
   readonly onRemove: (id: string) => void;
 }
 
-/* - / + button shared — borderless, matches §4.2 / §7.3 / §7.4 */
-const borderlessBtn =
+/*
+ * Shared Tailwind classes for layout elements.
+ * Extracted to a constant to maintain JSX clean.
+ */
+const BORDERLESS_BTN_CLASS =
   "flex size-14 items-center justify-center text-4xl font-bold leading-none select-none touch-manipulation focus-visible:outline-none";
+
+/*
+ * Static style objects hoisted outside the component.
+ * This prevents React from allocating new memory objects on every render.
+ */
+const CUSTOM_PILL_STYLE = { backgroundColor: MANA.c, color: UI.iconDark };
+const LIGHT_TEXT_STYLE = { color: UI.textLight };
 
 /* Map counter type to its icon component + label */
 const COUNTER_ICON: Record<
@@ -37,82 +47,88 @@ const COUNTER_ICON: Record<
 };
 
 /**
+ * @description
  * §7.4 — A single counter row inside the Counters overlay.
  *
- * Layout: [icon] [value] [−] [+] [✕]
- *
- * - Default counters show their SVG icon (no pill). Custom counters show the
- *   first letter of their name in a `#CAC5C0` pill with `iconDark` text.
- * - [-]/[+] are borderless with hold acceleration (useLifeAdjustment).
- * - [✕] removes custom counters / resets defaults to 0.
- *
- * @see DESIGN.md §7.4
+ * Context & Architecture:
+ * - Hoists static style objects to module scope to reduce memory pressure.
+ * - Eliminates Immediately Invoked Function Expressions (IIFEs) in JSX for cleaner rendering.
+ * - Pre-computes derived states (e.g., accessible names) to avoid inline evaluation overhead.
  */
 export function CounterRow({ counter, onAdjust, onRemove }: CounterRowProps) {
   const adjustment = useLifeAdjustment((delta) => onAdjust(counter.id, delta));
-  const isCustom = counter.type === "custom";
 
-  return (
-    <div className="flex items-center gap-3">
-      {/* Icon / pill */}
-      {isCustom ? (
+  /* Self-documenting pre-computed values */
+  const isCustom = counter.type === "custom";
+  const accessibleName = counter.name ?? counter.type;
+
+  /*
+   * Sub-render function for the Icon/Pill.
+   * Keeps the main return statement flat, declarative, and easy to read.
+   */
+  const renderIcon = () => {
+    if (isCustom) {
+      const initial = counter.name?.charAt(0).toUpperCase() ?? "?";
+      return (
         <span
           className="flex size-14 items-center justify-center rounded-full text-2xl font-bold leading-none"
-          style={{
-            backgroundColor: MANA.c,
-            color: UI.iconDark,
-          }}
-          aria-label={`${counter.name} counter`}
+          style={CUSTOM_PILL_STYLE}
+          aria-label={`${accessibleName} counter`}
         >
-          {counter.name?.charAt(0).toUpperCase() ?? "?"}
+          {initial}
         </span>
-      ) : (
-        (() => {
-          const icon = COUNTER_ICON[counter.type];
-          if (!icon) return null;
-          const { Component, label } = icon;
-          return <Component size={28} aria-label={label} />;
-        })()
-      )}
+      );
+    }
+
+    const iconData = COUNTER_ICON[counter.type];
+    if (!iconData) return null;
+
+    const { Component, label } = iconData;
+    return <Component size={28} aria-label={label} />;
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      {renderIcon()}
 
       {/* Value */}
       <span
-        className="min-w-[3ch] text-center text-display font-black tabular-nums leading-tight"
-        style={{ color: UI.textLight }}
+        className="min-w-[1.5ch] text-center text-display font-black tabular-nums leading-tight"
+        style={LIGHT_TEXT_STYLE}
         aria-live="polite"
         aria-atomic="true"
       >
         {counter.value}
       </span>
 
-      {/* [-] button — borderless */}
+      {/* [-] button */}
       <button
         type="button"
-        aria-label={`-1 ${counter.name ?? counter.type} counter`}
-        className={borderlessBtn}
-        style={{ color: UI.textLight }}
+        aria-label={`-1 ${accessibleName} counter`}
+        className={BORDERLESS_BTN_CLASS}
+        style={LIGHT_TEXT_STYLE}
         {...adjustment(DECREMENT_COUNTER)}
       >
         −
       </button>
 
-      {/* [+] button — borderless */}
+      {/* [+] button */}
       <button
         type="button"
-        aria-label={`+1 ${counter.name ?? counter.type} counter`}
-        className={borderlessBtn}
-        style={{ color: UI.textLight }}
+        aria-label={`+1 ${accessibleName} counter`}
+        className={BORDERLESS_BTN_CLASS}
+        style={LIGHT_TEXT_STYLE}
         {...adjustment(INCREMENT_COUNTER)}
       >
         +
       </button>
 
-      {/* [✕] delete — removes custom, resets default to 0 */}
+      {/* [✕] delete */}
       <button
         type="button"
-        aria-label={`Remove ${counter.name ?? counter.type} counter`}
+        aria-label={`Remove ${accessibleName} counter`}
         className="flex size-11 items-center justify-center text-xl leading-none select-none focus-visible:outline-none"
-        style={{ color: UI.textLight }}
+        style={LIGHT_TEXT_STYLE}
         onClick={() => onRemove(counter.id)}
       >
         ✕
