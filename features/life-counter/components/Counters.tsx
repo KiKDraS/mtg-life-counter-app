@@ -13,7 +13,6 @@ interface CountersProps {
   readonly counters: Counter[];
   readonly onAdjust: (id: string, delta: number) => void;
   readonly onAdd: (id: string, name: string) => void;
-  readonly onRemove: (id: string) => void;
 }
 
 /** Smallest unique suffix counter for custom counter ids. */
@@ -38,7 +37,6 @@ export function Counters({
   counters,
   onAdjust,
   onAdd,
-  onRemove,
 }: CountersProps) {
   /*
    * Handle adding a custom counter.
@@ -74,13 +72,12 @@ export function Counters({
          * Architecture upgrade: CSS Grid handles the 2-column layout natively.
          * 'grid-cols-2' replaces the manual JS grouping and nested flexbox wrappers.
          */}
-        <div className="grid w-full max-w-lg grid-cols-2 gap-6 px-4">
+        <div className="grid w-full max-w-lg grid-cols-2 gap-x-10 gap-y-6 px-4">
           {counters.map((counter) => (
             <CounterRow
               key={counter.id}
               counter={counter}
               onAdjust={onAdjust}
-              onRemove={onRemove}
             />
           ))}
         </div>

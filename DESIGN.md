@@ -625,9 +625,9 @@ damage overlay (§7.3).
 **Layout per column:**
 
 ```
-┌────────────────────────────────────────────┐
-│  ☠️    3    [-]  [+]  [✕]                   │  ← Icon, value, controls, delete
-└────────────────────────────────────────────┘
+┌──────────────────────────────────────────┐
+│  ☠️    3    [-]  [+]                      │  ← Icon, value, controls
+└──────────────────────────────────────────┘
 ```
 
 - **Icon:** Counter symbol drawn with `iconLight` (`#FAF8F5`) silhouette. Sits
@@ -639,19 +639,16 @@ damage overlay (§7.3).
   adjustment buttons are **borderless** — no `border-radius`, no background
   highlight, no `transition-colors`. Matches the borderless treatment in §4.2
   and §7.3.
-- **[✕] delete button:** Removes the counter column. Shown on every counter.
 - **+ button (bottom-right):** Opens a prompt asking for the custom counter name
   (initial value is always 0). Custom counters use a rounded pill — background
   `#CAC5C0` (colorless), icon `iconDark` (`#0D0F0F`) — displaying the first
   letter of their name. This visually distinguishes custom counters from the
   pill-free default counters.
-- **Poison Lethal (life view, not overlay):** When the Poison counter reaches
-  10+, the player loses the game. The player zone life view shows a small
-  **"Poison Lethal"** label in danger red (`#D50000`) beneath the life total,
-  and the life total itself turns lethal red. This mirrors the Commander Damage
-  Lethal pattern in §7.3. The **poison counter value inside the Counters
-  overlay keeps its normal color** — only the life view reflects the lethal
-  state. The "Poison Lethal" text does NOT appear inside the Counters dialog.
+- **Poison Lethal:** When the Poison counter reaches 10+, the player loses the
+  game. Both the poison counter value inside the Counters overlay and the life
+  total turn lethal red (`#D50000`). The player zone life view also shows a small
+  **"Poison Lethal"** label in danger red beneath the life total. The "Poison
+  Lethal" text does NOT appear inside the Counters dialog.
 
 **Grid:** Always 2 columns. Rows fill left-to-right, top-to-bottom. The 4
 defaults occupy the first 2 rows. Custom counters fill subsequent rows.
