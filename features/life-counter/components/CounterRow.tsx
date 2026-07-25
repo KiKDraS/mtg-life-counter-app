@@ -6,6 +6,7 @@ import {
   DECREMENT_COUNTER,
 } from "@/features/life-counter/constants/counter";
 import { UI, MANA } from "@/shared/lib/constants/colors";
+import { POISON_LETHAL } from "@/features/life-counter/constants/counter";
 import PoisonSymbol from "@/shared/components/icons/counters/PoisonSymbol";
 import EnergySymbol from "@/shared/components/icons/counters/EnergySymbol";
 import ExperienceSymbol from "@/shared/components/icons/counters/ExperienceSymbol";
@@ -60,6 +61,7 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
   /* Self-documenting pre-computed values */
   const isCustom = counter.type === "custom";
   const accessibleName = counter.name ?? counter.type;
+  const isLethal = counter.type === "poison" && counter.value >= POISON_LETHAL;
 
   /*
    * Sub-render function for the Icon/Pill.
@@ -93,7 +95,7 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
       {/* Value */}
       <span
         className="min-w-[2ch] text-center text-display font-black tabular-nums leading-tight"
-        style={LIGHT_TEXT_STYLE}
+        style={{ color: isLethal ? UI.danger : UI.textLight }}
         aria-live="polite"
         aria-atomic="true"
       >
