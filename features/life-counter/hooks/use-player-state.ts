@@ -75,7 +75,9 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
       return {
         ...state,
         counters: state.counters.map((c) =>
-          c.id === action.id ? { ...c, value: c.value + action.delta } : c,
+          c.id === action.id
+            ? { ...c, value: Math.max(0, c.value + action.delta) }
+            : c,
         ),
       };
     case ADD_COUNTER:
