@@ -10,6 +10,9 @@ verify that recent code submissions by `@frontend-dev` comply perfectly with the
 project's technical architecture, active design aesthetics, TypeScript
 strictness, and installed skills.
 
+Use `caveman-review` skill for one-line feedback. See AGENTS.md for full caveman
+levels.
+
 ---
 
 ## Systemic Audit Checklist
