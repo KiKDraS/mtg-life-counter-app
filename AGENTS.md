@@ -10,11 +10,10 @@ the source of truth.
 
 # Agent Context
 
-**MTG Life Counter App** — a Progressive Web Application for Magic: The
-Gathering players, featuring life total tracking and an AI-powered Judge to
-resolve rules questions. Built with **Next.js 16** (App Router), **React 19**
-(RSC by default), **TypeScript 5** (strict), **Tailwind CSS 4** (utility-first),
-**@openrouter/sdk**, **pnpm**, **ESLint** (eslint-config-next), **Playwright**.
+**MTG Life Counter App** — PWA for Magic: The Gathering. Life total tracking
+and AI-powered Judge. **Next.js 16** (App Router), **React 19** (RSC by
+default), **TypeScript 5** (strict), **Tailwind CSS 4**, **@openrouter/sdk**,
+**pnpm**, **ESLint**, **Playwright**.
 
 ---
 
@@ -50,10 +49,9 @@ resolve rules questions. Built with **Next.js 16** (App Router), **React 19**
 
 ## DESIGN.md as Authoritative Source
 
-When DESIGN.md specifies an aesthetic decision that conflicts with a generic
-skill rule, **DESIGN.md wins.** All agents must read DESIGN.md before
-implementing any UI, and `@code-review` must verify against DESIGN.md's specific
-constraints, not generic rules.
+When DESIGN.md conflicts with a generic skill rule, **DESIGN.md wins.** All
+agents read DESIGN.md before implementing UI. `@code-review` verifies against
+DESIGN.md, not generic rules.
 
 ---
 
@@ -65,8 +63,7 @@ constraints, not generic rules.
 - **`release/*`** — from `develop`, merge to `main` + back-merge to `develop`.
 - **`hotfix/*`** — from `main`, merge to `main` + back-merge to `develop`.
 
-All merges via Pull Requests only. Branch management is handled by
-`@release-manager`.
+All merges via Pull Requests only. Branch management by `@release-manager`.
 
 ---
 
@@ -87,89 +84,37 @@ All merges via Pull Requests only. Branch management is handled by
 
 ## Ponytail + Skills (Intersectional Golden Rule)
 
-Ponytail's "lazy" philosophy and the design rules do not contradict each other;
-they enhance one another. When building the interface:
+> Do not create complex abstractions. Rely on platform, Next.js, or standard
+> library natively. RSC for static content, native `<dialog>` for modals, CSS
+> scroll-snap for carousels, TypeScript stdlib before custom code or npm deps.
 
-> _"Do not create complex abstractions in React or add dependencies for elements
-> that the platform, Next.js, or the standard library can resolve natively. Rely
-> on React Server Components for static content, native `<dialog>` for modals,
-> CSS scroll-snap for carousels, and the TypeScript standard library before
-> writing custom abstractions or pulling in npm packages."_
-
-**Architectural Override:** Tailwind's utility-first model is the mandatory
-styling contract. Ponytail's _'fewest files possible'_ applies to preventing
-unrequested features or redundant helpers. It **MUST NOT** replace Tailwind
-classes with separate CSS files per component.
+**Override:** Tailwind utility-first is mandatory styling. Ponytail's _fewest
+files possible_ prevents unrequested features, redundant helpers. Must NOT
+replace Tailwind classes with separate CSS per component.
 
 ---
 
-## Caveman (Communication Mode)
+## Caveman Mode
 
-Caveman mode active in this project unless user says "stop caveman" or "normal
-mode".
+Caveman active unless user says "stop caveman" or "normal mode".
 
-Respond terse like smart caveman. Technical substance exact. Only fluff die.
+Respond terse. Technical substance exact. Drop articles, filler, hedging.
+Fragments OK. Pattern: `[thing] [action] [reason]. [next step].`
 
-Drop articles, filler, pleasantries, and hedging. Fragments OK. Use short
-synonyms. Keep code, commands, quoted errors, identifiers, and security warnings
-exact.
+Default: full. `/caveman lite|full|ultra|wenyan|wenyan-lite|wenyan-ultra` switch
+intensity. Code, commits, PRs, destructive actions, security — normal clarity
+when compression risks misread.
 
-Pattern: `[thing] [action] [reason]. [next step].`
-
-Default mode: full. `/caveman lite`, `/caveman full`, `/caveman ultra`,
-`/caveman wenyan`, `/caveman wenyan-lite`, and `/caveman wenyan-ultra` switch
-intensity for current session.
-
-Code, commits, PR descriptions, destructive confirmations, and security findings
-use normal clarity when compression risks misread.
-
-Available skills:
-- `caveman`: persistent terse communication mode.
-- `caveman-commit`: terse Conventional Commit messages.
-- `caveman-review`: one-line code review comments.
-- `caveman-help`: quick reference card.
-- `caveman-compress`: compress markdown memory files while preserving technical
-  content.
+Skills: `caveman`, `caveman-commit`, `caveman-review`, `caveman-help`,
+`caveman-compress`.
 
 ---
 
 ## Framework & Library Docs (Context7)
 
-Before implementing any feature involving a library, framework, SDK, or API
-(React, Next.js, Tailwind, OpenRouter, etc.), fetch current documentation via
-Context7 MCP — your training data may not reflect recent changes. Do not use
-Context7 for general programming concepts or business logic.
-
----
-
-## Caveman OpenCode Rules
-
-Caveman mode active in this project unless user says "stop caveman" or "normal
-mode".
-
-Respond terse like smart caveman. Technical substance exact. Only fluff die.
-
-Drop articles, filler, pleasantries, and hedging. Fragments OK. Use short
-synonyms. Keep code, commands, quoted errors, identifiers, and security warnings
-exact.
-
-Pattern: `[thing] [action] [reason]. [next step].`
-
-Default mode: full. `/caveman lite`, `/caveman full`, `/caveman ultra`,
-`/caveman wenyan`, `/caveman wenyan-lite`, and `/caveman wenyan-ultra` switch
-intensity for current session.
-
-Code, commits, PR descriptions, destructive confirmations, and security findings
-use normal clarity when compression risks misread.
-
-Available OpenCode skills:
-
-- `caveman`: persistent terse communication mode.
-- `caveman-commit`: terse Conventional Commit messages.
-- `caveman-review`: one-line code review comments.
-- `caveman-help`: quick reference card.
-- `caveman-compress`: compress markdown memory files while preserving technical
-  content.
+Fetch current docs via Context7 MCP before implementing any library/framework
+feature. Training data may be stale. Don't use for business logic or general
+programming.
 
 ---
 
@@ -184,10 +129,9 @@ Available OpenCode skills:
 
 ## Enforcement
 
-> **This document and DESIGN.md are binding contracts.** Any agent violating
-> these rules will have its output rejected by `@code-review` and the pipeline
-> will halt. No exceptions.
+> **This document and DESIGN.md are binding contracts.** Violations rejected by
+> `@code-review`. Pipeline halts. No exceptions.
 
-**To propose a change:** `@orchestrator` presents the change to the user,
-receives explicit approval ("Approved" or "Aprobado"), then updates the relevant
-document and notifies all agents.
+**To propose a change:** `@orchestrator` presents to user, gets explicit
+approval ("Approved" or "Aprobado"), then updates the relevant document and
+notifies all agents.
