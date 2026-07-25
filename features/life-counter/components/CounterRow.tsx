@@ -18,6 +18,10 @@ interface CounterRowProps {
   readonly onRemove: (id: string) => void;
 }
 
+/* - / + button shared — borderless, matches §4.2 / §7.3 / §7.4 */
+const borderlessBtn =
+  "flex size-14 items-center justify-center text-4xl font-bold leading-none select-none touch-manipulation focus-visible:outline-none";
+
 /* Map counter type to its icon component + label */
 const COUNTER_ICON: Record<
   string,
@@ -44,19 +48,9 @@ const COUNTER_ICON: Record<
  *
  * @see DESIGN.md §7.4
  */
-export function CounterRow({
-  counter,
-  onAdjust,
-  onRemove,
-}: CounterRowProps) {
-  const adjustment = useLifeAdjustment((delta) =>
-    onAdjust(counter.id, delta),
-  );
+export function CounterRow({ counter, onAdjust, onRemove }: CounterRowProps) {
+  const adjustment = useLifeAdjustment((delta) => onAdjust(counter.id, delta));
   const isCustom = counter.type === "custom";
-
-  /* - / + button shared — borderless, matches §4.2 / §7.3 / §7.4 */
-  const borderlessBtn =
-    "flex size-14 items-center justify-center text-4xl font-bold leading-none select-none touch-manipulation focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
 
   return (
     <div className="flex items-center gap-3">
@@ -117,7 +111,7 @@ export function CounterRow({
       <button
         type="button"
         aria-label={`Remove ${counter.name ?? counter.type} counter`}
-        className="flex size-11 items-center justify-center text-xl leading-none select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        className="flex size-11 items-center justify-center text-xl leading-none select-none focus-visible:outline-none"
         style={{ color: UI.textLight }}
         onClick={() => onRemove(counter.id)}
       >

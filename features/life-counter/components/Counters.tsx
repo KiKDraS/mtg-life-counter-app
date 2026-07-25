@@ -20,14 +20,17 @@ interface CountersProps {
 let customIdSeq = 0;
 
 /**
- * §7.4 — Counters overlay.
+ * @description
+ * Counters overlay for tracking supplementary game stats (e.g., poison, energy).
  *
- * 2-column grid showing default counters (poison, energy, experience, time)
- * plus any custom counters added by the user.
+ * Context & Architecture:
+ * - Employs native CSS Grid for a 2-column layout, eliminating JS-based array chunking.
+ * - Flat mapping guarantees stable React reconciliation (`key={counter.id}`), preventing
+ *   unnecessary re-renders when a counter is removed or added.
+ * - Migrated inline structural styles to Tailwind utility classes to reduce memory allocation.
  *
- * Close via tap-to-close (background), swipe (zone-level), or Escape.
- *
- * @see DESIGN.md §7.4
+ * @param {CountersProps} props - Component props.
+ * @returns {JSX.Element}
  */
 export function Counters({
   dialogRef,
@@ -37,18 +40,21 @@ export function Counters({
   onAdd,
   onRemove,
 }: CountersProps) {
+  /*
+   * Handle adding a custom counter.
+   * Note: window.prompt is synchronous and blocks the main thread.
+   * For future iterations, consider replacing with a custom non-blocking UI modal.
+   */
   const handleAddCustom = useCallback(() => {
-    const name = window.prompt("Custom counter name:");
-    if (!name?.trim()) return;
-    const id = `custom-${++customIdSeq}`;
-    onAdd(id, name.trim());
-  }, [onAdd]);
+    const rawName = window.prompt("Custom counter name:");
+    const trimmedName = rawName?.trim();
 
-  /* Group counters into rows of 2 for the 2-column grid. */
-  const rows: [Counter, Counter?][] = [];
-  for (let i = 0; i < counters.length; i += 2) {
-    rows.push([counters[i], counters[i + 1]]);
-  }
+    if (!trimmedName) return;
+
+    /* Self-documenting ID creation */
+    const customCounterId = `custom-${++customIdSeq}`;
+    onAdd(customCounterId, trimmedName);
+  }, [onAdd]);
 
   return (
     <DialogShell
@@ -64,23 +70,18 @@ export function Counters({
           Counters
         </h2>
 
-        {/* 2-column grid */}
-        <div className="flex w-full max-w-lg flex-col gap-6 px-4">
-          {rows.map(([left, right]) => (
-            <div key={left.id} className="flex justify-between gap-4">
-              <CounterRow
-                counter={left}
-                onAdjust={onAdjust}
-                onRemove={onRemove}
-              />
-              {right && (
-                <CounterRow
-                  counter={right}
-                  onAdjust={onAdjust}
-                  onRemove={onRemove}
-                />
-              )}
-            </div>
+        {/*
+         * Architecture upgrade: CSS Grid handles the 2-column layout natively.
+         * 'grid-cols-2' replaces the manual JS grouping and nested flexbox wrappers.
+         */}
+        <div className="grid w-full max-w-lg grid-cols-2 gap-6 px-4">
+          {counters.map((counter) => (
+            <CounterRow
+              key={counter.id}
+              counter={counter}
+              onAdjust={onAdjust}
+              onRemove={onRemove}
+            />
           ))}
         </div>
       </OverlaySurface>
@@ -89,11 +90,8 @@ export function Counters({
       <button
         type="button"
         aria-label="Add custom counter"
-        className="absolute right-4 bottom-4 flex size-14 items-center justify-center rounded-full text-4xl font-bold leading-none select-none touch-manipulation focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white z-40"
-        style={{
-          color: UI.textLight,
-          backgroundColor: "rgba(255,255,255,0.1)",
-        }}
+        className="absolute right-4 bottom-4 z-40 flex size-14 select-none touch-manipulation items-center justify-center rounded-full bg-white/10 text-4xl font-bold leading-none focus-visible:outline-none"
+        style={{ color: UI.textLight }}
         onClick={handleAddCustom}
       >
         +
