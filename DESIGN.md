@@ -625,9 +625,9 @@ damage overlay (§7.3).
 **Layout per column:**
 
 ```
-┌────────────────────────────────────────────┐
-│  ☠️    3    [-]  [+]  [✕]                   │  ← Icon, value, controls, delete
-└────────────────────────────────────────────┘
+┌──────────────────────────────────────────┐
+│  ☠️    3    [-]  [+]                      │  ← Icon, value, controls
+└──────────────────────────────────────────┘
 ```
 
 - **Icon:** Counter symbol drawn with `iconLight` (`#FAF8F5`) silhouette. Sits
@@ -639,7 +639,6 @@ damage overlay (§7.3).
   adjustment buttons are **borderless** — no `border-radius`, no background
   highlight, no `transition-colors`. Matches the borderless treatment in §4.2
   and §7.3.
-- **[✕] delete button:** Removes the counter column. Shown on every counter.
 - **+ button (bottom-right):** Opens a prompt asking for the custom counter name
   (initial value is always 0). Custom counters use a rounded pill — background
   `#CAC5C0` (colorless), icon `iconDark` (`#0D0F0F`) — displaying the first

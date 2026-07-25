@@ -15,7 +15,6 @@ import type { Counter } from "@/features/life-counter/types/counter";
 interface CounterRowProps {
   readonly counter: Counter;
   readonly onAdjust: (id: string, delta: number) => void;
-  readonly onRemove: (id: string) => void;
 }
 
 /*
@@ -55,7 +54,7 @@ const COUNTER_ICON: Record<
  * - Eliminates Immediately Invoked Function Expressions (IIFEs) in JSX for cleaner rendering.
  * - Pre-computes derived states (e.g., accessible names) to avoid inline evaluation overhead.
  */
-export function CounterRow({ counter, onAdjust, onRemove }: CounterRowProps) {
+export function CounterRow({ counter, onAdjust }: CounterRowProps) {
   const adjustment = useLifeAdjustment((delta) => onAdjust(counter.id, delta));
 
   /* Self-documenting pre-computed values */
@@ -121,17 +120,6 @@ export function CounterRow({ counter, onAdjust, onRemove }: CounterRowProps) {
         {...adjustment(INCREMENT_COUNTER)}
       >
         +
-      </button>
-
-      {/* [✕] delete */}
-      <button
-        type="button"
-        aria-label={`Remove ${accessibleName} counter`}
-        className="flex size-11 items-center justify-center text-xl leading-none select-none focus-visible:outline-none"
-        style={LIGHT_TEXT_STYLE}
-        onClick={() => onRemove(counter.id)}
-      >
-        ✕
       </button>
     </div>
   );

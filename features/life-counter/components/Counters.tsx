@@ -13,7 +13,6 @@ interface CountersProps {
   readonly counters: Counter[];
   readonly onAdjust: (id: string, delta: number) => void;
   readonly onAdd: (id: string, name: string) => void;
-  readonly onRemove: (id: string) => void;
 }
 
 /** Smallest unique suffix counter for custom counter ids. */
@@ -38,7 +37,6 @@ export function Counters({
   counters,
   onAdjust,
   onAdd,
-  onRemove,
 }: CountersProps) {
   /*
    * Handle adding a custom counter.
@@ -80,7 +78,6 @@ export function Counters({
               key={counter.id}
               counter={counter}
               onAdjust={onAdjust}
-              onRemove={onRemove}
             />
           ))}
         </div>

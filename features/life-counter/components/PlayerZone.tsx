@@ -16,7 +16,6 @@ import {
   adjustCommanderDamage,
   adjustCounter,
   addCounter,
-  removeCounter,
 } from "@/features/life-counter/hooks/use-player-state";
 import { POISON_LETHAL } from "@/features/life-counter/constants/counter";
 import { useSwipe } from "@/features/life-counter/hooks/use-swipe";
@@ -230,7 +229,6 @@ export function PlayerZone({
         counters={state.counters}
         onAdjust={(id, delta) => dispatch(adjustCounter(id, delta))}
         onAdd={(id, name) => dispatch(addCounter(id, name))}
-        onRemove={(id) => dispatch(removeCounter(id))}
         onClose={() => {
           /* ponytail: no cleanup needed yet */
         }}

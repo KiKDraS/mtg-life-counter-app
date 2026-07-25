@@ -22,7 +22,6 @@ const SET_COLOR = "SET_COLOR" as const;
 const ADJUST_COMMANDER_DAMAGE = "ADJUST_COMMANDER_DAMAGE" as const;
 const ADJUST_COUNTER = "ADJUST_COUNTER" as const;
 const ADD_COUNTER = "ADD_COUNTER" as const;
-const REMOVE_COUNTER = "REMOVE_COUNTER" as const;
 
 type PlayerAction =
   | { type: typeof ADJUST_LIFE; delta: number }
@@ -30,8 +29,7 @@ type PlayerAction =
   | { type: typeof SET_COLOR; color: PlayerColor }
   | { type: typeof ADJUST_COMMANDER_DAMAGE; delta: number }
   | { type: typeof ADJUST_COUNTER; id: string; delta: number }
-  | { type: typeof ADD_COUNTER; id: string; name: string }
-  | { type: typeof REMOVE_COUNTER; id: string };
+  | { type: typeof ADD_COUNTER; id: string; name: string };
 
 /* ── Action creators ── */
 export function adjustLife(delta: number): PlayerAction {
@@ -56,10 +54,6 @@ export function adjustCounter(id: string, delta: number): PlayerAction {
 
 export function addCounter(id: string, name: string): PlayerAction {
   return { type: ADD_COUNTER, id, name };
-}
-
-export function removeCounter(id: string): PlayerAction {
-  return { type: REMOVE_COUNTER, id };
 }
 
 /* ── Reducer ── */
@@ -92,23 +86,6 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
           { id: action.id, type: "custom" as const, value: 0, name: action.name },
         ],
       };
-    case REMOVE_COUNTER: {
-      /* ponytail: only custom counters are removable. Defaults reset to 0. */
-      const counter = state.counters.find((c) => c.id === action.id);
-      const isCustom = counter?.type === "custom";
-      if (!counter || isCustom) {
-        return {
-          ...state,
-          counters: state.counters.filter((c) => c.id !== action.id),
-        };
-      }
-      return {
-        ...state,
-        counters: state.counters.map((c) =>
-          c.id === action.id ? { ...c, value: 0 } : c,
-        ),
-      };
-    }
   }
 }
 
