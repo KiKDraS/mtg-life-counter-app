@@ -3,7 +3,7 @@
 import { useReducer } from "react";
 import type { PlayerColor } from "@/features/life-counter/types/player";
 import type { Counter } from "@/features/life-counter/types/counter";
-import { DEFAULT_COUNTERS } from "@/features/life-counter/types/counter";
+import { DEFAULT_COUNTERS } from "@/features/life-counter/constants/counter";
 
 /* ── State ── */
 export interface PlayerState {
@@ -95,7 +95,8 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
     case REMOVE_COUNTER: {
       /* ponytail: only custom counters are removable. Defaults reset to 0. */
       const counter = state.counters.find((c) => c.id === action.id);
-      if (!counter || counter.type === "custom") {
+      const isCustom = counter?.type === "custom";
+      if (!counter || isCustom) {
         return {
           ...state,
           counters: state.counters.filter((c) => c.id !== action.id),
@@ -112,6 +113,15 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
 }
 
 /* ── Hook ── */
+/**
+ * @description
+ * Manages a single player's state via useReducer: life, color, commander damage,
+ * and counters (default + custom). Action creators are exported for use with dispatch.
+ *
+ * @param initialLife - Starting life total (e.g. 40 for Commander).
+ * @param initialColor - Player's chosen mana color identity.
+ * @returns A tuple of [PlayerState, React.Dispatch<PlayerAction>].
+ */
 export function usePlayerState(
   initialLife: number,
   initialColor: PlayerColor,

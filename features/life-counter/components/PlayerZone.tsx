@@ -18,7 +18,7 @@ import {
   addCounter,
   removeCounter,
 } from "@/features/life-counter/hooks/use-player-state";
-import { POISON_LETHAL } from "@/features/life-counter/types/counter";
+import { POISON_LETHAL } from "@/features/life-counter/constants/counter";
 import { useSwipe } from "@/features/life-counter/hooks/use-swipe";
 import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
 import { ColorPicker } from "./ColorPicker";
@@ -109,9 +109,9 @@ export function PlayerZone({
   /* §7.3/§7.4 — lethal if life ≤ 0 OR commander damage ≥ 21 OR poison ≥ 10 */
   const poisonCounter = state.counters.find((c) => c.type === "poison");
   const isPoisonLethal = (poisonCounter?.value ?? 0) >= POISON_LETHAL;
-  const isLethal =
-    state.life <= 0 || state.commanderDamage >= 21 || isPoisonLethal;
   const isCommanderLethal = state.commanderDamage >= 21;
+  const isLifeZeroOrBelow = state.life <= 0;
+  const isLethal = isLifeZeroOrBelow || isCommanderLethal || isPoisonLethal;
   const { background, textColor } = zoneStylesFor(state.color);
 
   return (

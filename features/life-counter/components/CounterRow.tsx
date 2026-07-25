@@ -5,7 +5,7 @@ import {
   INCREMENT_COUNTER,
   DECREMENT_COUNTER,
 } from "@/features/life-counter/constants/counter";
-import { UI } from "@/shared/lib/constants/colors";
+import { UI, MANA } from "@/shared/lib/constants/colors";
 import PoisonSymbol from "@/shared/components/icons/counters/PoisonSymbol";
 import EnergySymbol from "@/shared/components/icons/counters/EnergySymbol";
 import ExperienceSymbol from "@/shared/components/icons/counters/ExperienceSymbol";
@@ -65,7 +65,7 @@ export function CounterRow({
         <span
           className="flex size-14 items-center justify-center rounded-full text-2xl font-bold leading-none"
           style={{
-            backgroundColor: "#CAC5C0",
+            backgroundColor: MANA.c,
             color: UI.iconDark,
           }}
           aria-label={`${counter.name} counter`}
@@ -117,7 +117,7 @@ export function CounterRow({
       <button
         type="button"
         aria-label={`Remove ${counter.name ?? counter.type} counter`}
-        className="flex size-10 items-center justify-center text-xl leading-none select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        className="flex size-11 items-center justify-center text-xl leading-none select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         style={{ color: UI.textLight }}
         onClick={() => onRemove(counter.id)}
       >
