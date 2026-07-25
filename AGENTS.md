@@ -93,14 +93,7 @@ features. Training data stale. Don't use for business logic.
 
 ---
 
-## Dev Commands
 
-- `pnpm dev` — dev server :3000
-- `pnpm build` — prod build
-- `pnpm start` — prod server
-- `pnpm lint` — ESLint
-
----
 
 ## Enforcement
 
