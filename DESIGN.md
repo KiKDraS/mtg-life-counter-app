@@ -1,62 +1,36 @@
 # DESIGN.md — Project Design Contract
 
-**Version:** 1.0  
-**Date:** 2026-07-16  
-**Status:** Active Contract — All agents MUST comply  
-**Location:** `/DESIGN.md` (project root)
+**Status:** Active Contract — All agents MUST comply
 
-> **Scope:** This document defines the visual and interaction design contract.
-> For project structure, configuration, workflows, and agent protocols, see
-> `AGENTS.md`.
+> Scope: visual & interaction design. For workflow/agent protocols see AGENTS.md.
 
 ---
 
 ## 1. PROJECT IDENTITY & DESIGN PHILOSOPHY
 
-### 1.1 Project Purpose
+### 1.1 Purpose
+PWA for MTG. Track life 2-6 players. Dynamic layouts, per-player color identity, AI Judge. Session-only. No accounts.
 
-**MTG Life Counter App** — A Progressive Web Application for Magic: The
-Gathering players. Tracks life totals for 2-6 players with dynamic layouts,
-per-player MTG color identity, and an AI-powered Judge for rules resolution. No
-accounts, no cloud — the app is session-only, disappears into the table, and
-leaves only the numbers and colors.
+### 1.2 Core Premise
+**"Typographic Brutalism + Color Identity"** — life total IS interface. Massive geometric numbers, no chrome, no noise. Faster than dice.
 
-### 1.2 Primary Audience
+| Principle              | Decision                                                                 |
+|------------------------|--------------------------------------------------------------------------|
+| Aesthetic              | Typographic Brutalism + MTG Color Identity                               |
+| Font                   | **Archivo** — Black 900 life totals, Medium 500 UI                       |
+| Color                  | Warm parchment base. Player identity via mana colors.                    |
+| Layout                 | Grid-based zones. 2p vertical, 4p 2×2, 6p 2×3. Top rows rotated 180°.    |
+| BG Treatment           | Solid mana color per zone. Base = warm parchment.                        |
+| Motion                 | Minimal. Opacity/scale for modals. Staggered reveal. Swipe spring physics. |
+| Differentiation        | Massive typography + mana color blocks. AI Judge = secret weapon.        |
 
-MTG players aged 16-40+ — casual kitchen-table pods, Commander nights at LGS,
-tournament grinders. They want something that _feels_ like the game they love,
-not a spreadsheet.
-
-### 1.3 Core Action
-
-Track life totals and resolve rules disputes without breaking the game's flow.
-The app should be _faster than dice._
-
-### 1.4 Design Philosophy
-
-> **"Typographic Brutalism + Color Identity"** — The life total IS the
-> interface. Massive, unapologetic geometric numbers. The app disappears —
-> leaving only the numbers and each player's chosen color identity. No chrome,
-> no noise.
-
-| Principle                | Decision                                                                                                                                                                                                        |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Aesthetic Direction**  | Typographic Brutalism + MTG Color Identity                                                                                                                                                                      |
-| **Typography**           | **Archivo** (geometric sans-serif) — Black 900 for life totals, Medium 500 for UI, variable weight                                                                                                              |
-| **Color Strategy**       | Warm parchment base. Player identity via MTG mana colors.                                                                                                                                                       |
-| **Layout Approach**      | Grid-based player zones. 2p (vertical split), 4p (2×2), 6p (2×3). Top/left rows rotated 180°. Responsive to orientation.                                                                                        |
-| **Background Treatment** | Solid block color per player zone — the color IS the background. Base shell is warm parchment.                                                                                                                  |
-| **Motion Choreography**  | Minimal. Fast opacity/scale transitions for modals. Staggered reveal of player zones on game start. Gesture-driven swipe overlays with spring physics.                                                          |
-| **Differentiation**      | **Massive typography + MTG mana color identity** — every player's zone is an uncompromising block of their chosen color with a life total you can read from across the room. The AI Judge is the secret weapon. |
-
-### 1.5 Anti-Patterns (Forbidden)
-
+### 1.3 Anti-Patterns (Forbidden)
 - ❌ Generic purple gradient on white
 - ❌ Inter / Roboto / Arial / System font stacks
 - ❌ Centered hero + 3-column card grid
 - ❌ Subtle gray-on-gray text
 - ❌ Generic rounded cards with soft shadows
-- ❌ Player names — color + position is the only identifier
+- ❌ Player names — color + position only identifier
 - ❌ Cookie-cutter "AI slop" aesthetics
 
 ---
@@ -64,140 +38,90 @@ The app should be _faster than dice._
 ## 2. COLOR PALETTE — MTG MANA COLORS
 
 ### 2.1 Player Identity Colors
+Color FILLS zone background. No name — color is identity.
 
-Each player selects a mana color. The color FILLS their zone background. No
-player name — the color is their identity.
+| Mana         | Hex       | Role                  |
+|-------------|-----------|-----------------------|
+| White (W)   | `#F8F6D8` | Warm, sheltering      |
+| Blue (U)    | `#C1D7E9` | Electric, intellectual |
+| Black (B)   | `#666565` | Ambitious, dark       |
+| Red (R)     | `#E49977` | Passionate, aggressive |
+| Green (G)   | `#A3C095` | Natural, wild         |
+| Colorless   | `#CAC5C0` | Neutral/eldrazi       |
 
-| Mana         | Hex       | Role                   |
-| ------------ | --------- | ---------------------- |
-| 🟡 White (W) | `#F8F6D8` | Warm, sheltering       |
-| 🔵 Blue (U)  | `#C1D7E9` | Electric, intellectual |
-| ⚫ Black (B) | `#666565` | Ambitious, dark        |
-| 🔴 Red (R)   | `#E49977` | Passionate, aggressive |
-| 🟢 Green (G) | `#A3C095` | Natural, wild          |
-| ✦ Colorless  | `#CAC5C0` | Neutral/eldrazi        |
-
-Text on these backgrounds auto-selects warm white (`#FAF8F5`) or warm near-black
-(`#1A1A1A`) based on luminance, maintaining WCAG 4.5:1 contrast.
+Text auto-selects `#FAF8F5` (warm white) or `#1A1A1A` (warm near-black) via luminance. WCAG 4.5:1.
 
 ### 2.2 UI & Shell Colors
 
-| Token                  | Hex                | Usage                                                      |
-| ---------------------- | ------------------ | ---------------------------------------------------------- |
-| Background overlay     | `#1a1a1a`          | Commander damage and counters overlay backgrounds          |
-| Belt / AI Judge        | `#000000`          | Spellbook belt, AI Judge modal backdrop                    |
-| Modal background       | `rgba(0,0,0,0.80)` | Config modals (life, players, color picker)                |
-| Danger red             | `#D50000`          | Life total ≤ 0, commander damage ≥ 21                      |
-| Warm white (text)      | `#FAF8F5`          | Life / UI text on overlay & belt backgrounds               |
-| Warm near-black (text) | `#1A1A1A`          | Life / UI text on light mana backgrounds                   |
-| Icon silhouette dark   | `#0D0F0F`          | Silhouette fill for mana, shards, clans, guild             |
-| Icon silhouette light  | `#FAF8F5`          | Silhouette fill for counters, player-actions, Planeswalker |
+| Token                | Hex                | Usage                                              |
+|----------------------|--------------------|----------------------------------------------------|
+| BG overlay           | `#1a1a1a`          | Commander damage & counters overlay BG              |
+| Belt / AI Judge      | `#000000`          | Spellbook belt, AI Judge modal backdrop            |
+| Modal BG             | `rgba(0,0,0,0.80)` | Config modals                                      |
+| Danger red           | `#D50000`          | Life ≤ 0, commander ≥ 21                           |
+| Text warm white      | `#FAF8F5`          | Life/UI text on overlay & belt BGs                 |
+| Text warm near-black | `#1A1A1A`          | Life/UI text on light mana BGs                     |
+| Icon silhouette dark | `#0D0F0F`          | Mana, shards, clans, guild fills                   |
+| Icon silhouette light| `#FAF8F5`          | Counters, player-actions, Planeswalker fills       |
 
-### 2.3 Guild & Clan Symbols (future scope — §10)
-
-Guild and clan color blends can be added as a secondary color mode once the 5
-base mana colors are stable.
+### 2.3 Guild & Clan Symbols
+Phase 2 (§10). Added after 5 base mana colors stable.
 
 ### 2.4 Icon System
+All MTG symbols = inline SVG React components. No external `.svg` imports.
 
-All MTG symbols are inline SVG React components. No external `.svg` imports.
-Silhouette colors use the `iconDark` and `iconLight` tokens from §2.2.
+| Icon type      | BG                        | Silhouette | Selector              |
+|----------------|---------------------------|------------|-----------------------|
+| Mana           | Solid color circle        | `iconDark` | `ManaSelector`        |
+| Guild          | 2-color split circle      | `iconDark` | `GuildSelector`       |
+| Clan / Shard   | 3-color split circle      | `iconDark` | `ClanSelector / ShardSelector` |
+| Counter        | None — on overlay         | `iconLight`| `CounterSelector`      |
+| Player-action  | None                      | `iconLight`| `PlayerActionSelector` |
+| Planeswalker   | None — on overlay         | `iconLight`| Direct import          |
 
-| Icon type                | Background                      | Silhouette fill | Selected via                     |
-| ------------------------ | ------------------------------- | --------------- | -------------------------------- |
-| Mana                     | Solid mana color circle         | `iconDark`      | `ManaSelector`                   |
-| Guild                    | 2-color hard-split circle       | `iconDark`      | `GuildSelector`                  |
-| Clan / Shard             | 3-color hard-split circle       | `iconDark`      | `ClanSelector` / `ShardSelector` |
-| Counter                  | None — sits directly on overlay | `iconLight`     | `CounterSelector`                |
-| Player-action            | None                            | `iconLight`     | `PlayerActionSelector`           |
-| Planeswalker (Commander) | None — sits directly on overlay | `iconLight`     | Direct import                    |
+Faction backgrounds: `linear-gradient(to bottom right, ...)` with **hard stops**:
+- **Guilds:** `color1 0% 50%, color2 50% 100%`
+- **Clans/Shards:** `color1 0% 33.3%, color2 33.3% 66.6%, color3 66.6% 100%`
 
-Faction backgrounds use `linear-gradient(to bottom right, ...)` with **hard
-color stops** — no blending:
+Stops in `GUILD_COLORS`, `CLAN_COLORS`, `SHARD_COLORS`.
 
-- **Guilds (2 colors):**
-  `linear-gradient(to bottom right, color1 0%, color1 50%, color2 50%, color2 100%)`
-  — diagonal split, colors meet along the center line.
-- **Clans / Shards (3 colors):**
-  `linear-gradient(to bottom right, color1 0%, color1 33.3%, color2 33.3%, color2 66.6%, color3 66.6%, color3 100%)`
-  — three diagonal bands, hard edges at 33.3% and 66.6%.
-
-Color stops are defined in `GUILD_COLORS`, `CLAN_COLORS`, and `SHARD_COLORS`.
-
-#### Mana Symbols (`shared/components/icons/mana/`)
-
-White, Blue, Black, Red, Green, Colorless. Used in color picker modals, player
-zone indicators, and mana-cost displays. Circle background filled with the mana
-color. Silhouette uses `iconDark`. Selected via `ManaSelector`.
-
-#### Counter Symbols (`shared/components/icons/counters/`)
-
-Poison, Energy, Experience, Time. Used in the counters overlay (§7.4). No
-background — the icon sits directly on the overlay surface. Silhouette uses
-`iconLight`. Selected via `CounterSelector`.
-
-#### Commander Symbol (`shared/components/icons/PlaneswalkerSymbol.tsx`)
-
-The MTG planeswalker icon. Used **exclusively** in the commander damage overlay
-(§7.3). **Not a counter** — it bypasses `CounterSelector` and is imported
-directly by the commander damage component. No background. Silhouette uses
-`iconLight`.
-
-#### Guild Symbols (`shared/components/icons/guilds/`)
-
-All 10 Ravnica guilds. Phase 2 (§10). Circle background with a 2-color hard
-diagonal split using each guild's color pair from `GUILD_COLORS`. Silhouette
-uses `iconDark`. Selected via `GuildSelector`.
-
-#### Clan Symbols (`shared/components/icons/clans/`)
-
-Abzan, Jeskai, Mardu, Sultai, Temur. Phase 2 (§10). Circle background with a
-3-color hard diagonal split from `CLAN_COLORS`. Silhouette uses `iconDark`.
-Selected via `ClanSelector`.
-
-#### Shard Symbols (`shared/components/icons/shards/`)
-
-Bant, Esper, Grixis, Jund, Naya. Phase 2 (§10). Circle background with a 3-color
-hard diagonal split from `SHARD_COLORS`. Silhouette uses `iconDark`. Selected
-via `ShardSelector`.
+### 2.5 Symbol Files
+- **Mana:** `shared/components/icons/mana/` — W,U,B,R,G,Colorless. Color-filled circle + iconDark silhouette. Used by ManaSelector.
+- **Counters:** `shared/components/icons/counters/` — Poison, Energy, Experience, Time. No BG, iconLight. Used by CounterSelector.
+- **Commander:** `shared/components/icons/PlaneswalkerSymbol.tsx` — exclusive to commander damage overlay. Not a counter. iconLight.
+- **Guilds (10):** `shared/components/icons/guilds/` — 2-color split circle. Phase 2.
+- **Clans (5):** `shared/components/icons/clans/` — 3-color split circle. Phase 2.
+- **Shards (5):** `shared/components/icons/shards/` — 3-color split circle. Phase 2.
 
 ---
 
 ## 3. TYPOGRAPHY
 
 ### 3.1 Font Loading
-
 ```tsx
-// app/layout.tsx
-import { Archivo } from "next/font/google";
-
 const archivo = Archivo({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-archivo",
+  subsets: ["latin"], display: "swap", variable: "--font-archivo",
   weight: ["400", "500", "600", "700", "800", "900"],
 });
 ```
 
 ### 3.2 Type Scale
+Life total = hero. All else secondary.
 
-The life total is the hero. Everything else is secondary.
-
-| Token            | Value                        | Weight      | Usage                       |
-| ---------------- | ---------------------------- | ----------- | --------------------------- |
-| `--text-life`    | `clamp(4rem, 15vw, 12rem)`   | Black 900   | Life total number           |
-| `--text-display` | `clamp(2.5rem, 6vw, 5rem)`   | Black 900   | Commander damage big number |
-| `--text-heading` | `clamp(1.5rem, 3vw, 2.5rem)` | Bold 700    | Modal titles                |
-| `--text-body`    | `1rem`                       | Medium 500  | UI labels, buttons          |
-| `--text-body-sm` | `0.875rem`                   | Regular 400 | Captions, secondary labels  |
-| `--text-caption` | `0.75rem`                    | Regular 400 | Small badges                |
+| Token              | Value                       | Weight     | Usage                        |
+|--------------------|-----------------------------|------------|------------------------------|
+| `--text-life`      | `clamp(4rem, 15vw, 12rem)`  | Black 900  | Life total number            |
+| `--text-display`   | `clamp(2.5rem, 6vw, 5rem)`  | Black 900  | Commander damage big number  |
+| `--text-heading`   | `clamp(1.5rem, 3vw, 2.5rem)`| Bold 700   | Modal titles                 |
+| `--text-body`      | `1rem`                      | Medium 500 | UI labels, buttons           |
+| `--text-body-sm`   | `0.875rem`                  | Regular 400| Captions                     |
+| `--text-caption`   | `0.75rem`                   | Regular 400| Small badges                 |
 
 ### 3.3 Line Heights
-
 ```css
---leading-none: 0.9; /* Life totals — tight, massive */
---leading-tight: 1.1; /* Commander damage */
---leading-base: 1.4; /* Body text */
+--leading-none: 0.9;  /* Life */
+--leading-tight: 1.1;  /* Commander damage */
+--leading-base: 1.4;   /* Body */
 ```
 
 ---
@@ -205,16 +129,12 @@ The life total is the hero. Everything else is secondary.
 ## 4. LAYOUT SYSTEM
 
 ### 4.1 Player Zone Grids
-
-The layout auto-adapts to player count and screen orientation. In all
-configurations, the spellbook belt (§5) divides the screen: top-row players sit
-above the line, bottom-row players sit below it.
+Auto-adapts to player count + orientation. Spellbook belt divides screen.
 
 **2 Players (Portrait)**
-
 ```
 ┌──────────────────┐
-│    Player 1      │  180° rotation
+│    Player 1      │ 180° rotation
 │   40 ★           │
 │  [+]  [-]        │
 ├──────────────────┤
@@ -224,11 +144,23 @@ above the line, bottom-row players sit below it.
 └──────────────────┘
 ```
 
-**4 Players (Landscape — 2×2)**
+**3 Players (Portrait — asymmetric)**
+```
+┌───────────────────────────────────┐
+│            Player 1               │ 180° → text faces TOP
+│              40 ★                 │
+│           [+]  [-]                │
+├────────────────┬──────────────────┤
+│   Player 2     │   Player 3       │
+│   37 ★         │   41 ★           │
+│  [+]  [-]      │  [+]  [-]        │ P2: −90°, P3: 90°
+└────────────────┴──────────────────┘
+```
 
+**4 Players (Landscape — 2×2)**
 ```
 ┌──────────┬──────────┐
-│ Player 1 │ Player 2 │  Top row: 180° rotation
+│ Player 1 │ Player 2 │ Top row: 180°
 │   40 ★   │   38 ★   │
 ├──────────┼──────────┤
 │ Player 3 │ Player 4 │
@@ -236,478 +168,273 @@ above the line, bottom-row players sit below it.
 └──────────┴──────────┘
 ```
 
-**6 Players (Landscape — 2×3 or 3×2)**
+**5 Players (Portrait — 1 full + 2×2)**
+```
+┌─────────────────────┐
+│      Player 5       │ 180° → text faces TOP
+│         40 ★        │
+│      [+]  [-]       │
+├──────────┬──────────┤
+│ Player 1 │ Player 2 │ P1: −90°, P2: 90°
+│   40 ★   │   38 ★   │
+├──────────┼──────────┤
+│ Player 3 │ Player 4 │ P3: −90°, P4: 90°
+│   32 ★   │   41 ★   │
+└──────────┴──────────┘
+```
 
+**6 Players (Landscape — 2×3)**
 ```
 ┌─────┬─────┬─────┐
-│ P1  │ P2  │ P3  │  Top row: 180° rotation
+│ P1  │ P2  │ P3  │ Top row: 180°
 ├─────┼─────┼─────┤
 │ P4  │ P5  │ P6  │
 └─────┴─────┴─────┘
 ```
 
-**3 Players (Portrait — asymmetric)**
-
-```
-┌───────────────────────────────────┐
-│                                   │
-│            Player 1               │  180° rotation
-│              40 ★                 │  → text faces TOP
-│           [+]  [-]                │
-│                                   │
-├────────────────┬──────────────────┤
-│   Player 2     │   Player 3       │
-│   37 ★         │   41 ★           │  P2: −90° rotation → faces LEFT
-│  [+]  [-]      │  [+]  [-]        │  P3: 90° rotation → faces RIGHT
-└────────────────┴──────────────────┘
-```
-
-**5 Players (Portrait — 1 full-width + 2×2 grid)**
-
-```
-┌─────────────────────┐
-│                     │
-│      Player 5       │  180° rotation
-│         40 ★        │  → text faces TOP
-│      [+]  [-]       │
-│                     │
-├──────────┬──────────┤
-│ Player 1 │ Player 2 │  P1: −90° rotation → faces LEFT
-│   40 ★   │   38 ★   │  P2: 90° rotation → faces RIGHT
-├──────────┼──────────┤
-│ Player 3 │ Player 4 │  P3: −90° rotation → faces LEFT
-│   32 ★   │   41 ★   │  P4: 90° rotation → faces RIGHT
-└──────────┴──────────┘
-```
-
-### 4.2 Player Zone Anatomy
-
-Each player zone is a three-column grid. The entire zone is interactive: each
-column handles taps and holds, while the full area detects swipe gestures.
+### 4.2 Zone Anatomy
+3-column grid. Each column = interactive. Full zone detects swipe.
 
 ```
 ┌───────────┬───────────┬───────────┐
 │           │           │      ⚙️   │
-│           │           │           │
 │    [-]    │    40     │    [+]    │
-│           │           │           │
-│           │           │           │
-│           │           │           │
 │           │           │           │
 └───────────┴───────────┴───────────┘
   ◄─────── full-zone swipe ───────►
 ```
 
-| Column | Width | Content                                                                                   |
-| ------ | ----- | ----------------------------------------------------------------------------------------- |
-| Left   | 33.3% | **[-]** — decrement life. No border, no rounded corners. The entire column is the button. |
-| Center | 33.3% | **Life total** — `--text-life`, Archivo Black 900, vertically and horizontally centered.  |
-| Right  | 33.3% | **[+]** — increment life. Same borderless treatment as [-]. Entire column is the button.  |
+| Col    | Width | Content                                                        |
+|--------|-------|----------------------------------------------------------------|
+| Left   | 33.3% | **[-]** decrement. Borderless. Entire col = button.             |
+| Center | 33.3% | **Life total** `--text-life`, Archivo Black 900, centered.     |
+| Right  | 33.3% | **[+]** increment. Borderless. Entire col = button.             |
 
-- **Top-right:** Gear icon (color picker trigger). Sits in the right column's
-  top corner, outside the button hit area.
-- **[-] / [+] buttons use the full column:** No border, no `border-radius`, no
-  background distinction from the player zone color. The button is
-  indistinguishable from the background — only the `-` / `+` label reveals the
-  hit area. Text color auto-selects warm white (`#FAF8F5`) or warm near-black
-  (`#1A1A1A`) based on the player's mana color luminance, matching the life
-  total.
-- **Press feedback:** On `pointerdown`, the touched column's background overlays
-  with `rgba(0, 0, 0, 0.08)` (8% black). The overlay fades in over 150ms and
-  fades out over 150ms on `pointerup`. Implemented as a CSS transition on the
-  column background — no additional DOM element, no `pointer-events`
-  interference. Hold and accelerate behaviors are unaffected since the overlay
-  is purely a visual property of the column itself, not a separate layer.
-- **Life adjustment:** Tap [-] or [+] → ±1. Hold → accelerate (±10 after 1s).
-  Double-tap the life total → opens numpad for exact entry.
-- **Lethal state:** Life total turns danger red (`#D50000`) when at 0 or below.
-  The +/- columns remain unaffected.
-- **Swipe gestures (full player zone):** Swipe left anywhere on the zone →
-  commander damage overlay. Swipe right → counters overlay. The gesture detector
-  differentiates swipes from taps: any horizontal movement ≥10px detected before
-  300ms is treated as a swipe. Vertical movement is ignored. Taps and holds on
-  the +/- buttons are unaffected since they involve no horizontal movement.
-- **After swipe (overlay open):** Swiping in either direction along the X-axis
-  closes the overlay and returns to the life total view.
+- **Gear icon (⚙️):** Top-right of right column. Outside button hit area.
+- **[-]/[+] buttons:** No border, no `border-radius`, no BG distinction from zone color. Text auto-selects per luminance.
+- **Press feedback:** `pointerdown` → col BG overlays `rgba(0,0,0,0.08)`. 150ms fade in/out on col BG itself — no extra DOM.
+- **Tap:** ±1. **Hold:** ±10 after 1s. **Double-tap life total:** numpad for exact entry.
+- **Lethal:** Life ≤ 0 → `#D50000`. ± cols unaffected.
+- **Swipe left:** Commander damage overlay. **Swipe right:** Counters overlay. Threshold: ≥10px horizontal before 300ms. Vertical ignored.
+- **Overlay open:** Either X-direction swipe closes overlay → return to life.
 
 ### 4.3 Zone Rotation
+Text readable from table side. Wrapper — interior layout identical.
 
-Player zones are rotated so text is readable from the table side each player
-occupies. Three rotation values are used:
-
-| Rotation | Angle              | CSS              | Applies to                                                       |
-| -------- | ------------------ | ---------------- | ---------------------------------------------------------------- |
-| 180°     | Full flip          | `rotate(180deg)` | Top-side players: P1 (2p, 3p), P1/P2 (4p), top row (6p), P5 (5p) |
-| −90°     | Quarter turn left  | `rotate(-90deg)` | Left-side players: P2 (3p), P1/P3 (5p)                           |
-| 90°      | Quarter turn right | `rotate(90deg)`  | Right-side players: P3 (3p), P2/P4 (5p)                          |
-| None     | —                  | —                | Bottom-side players facing the user                              |
-
-Rotation is applied to the zone container's wrapper — the interior layout is
-identical, just oriented for the player's side of the table.
+| Rotation | Angle              | CSS               | Applies                                              |
+|----------|--------------------|--------------------|------------------------------------------------------|
+| 180°     | Full flip          | `rotate(180deg)`   | Top-side: P1 (2p,3p), P1/P2 (4p), top row (6p), P5 (5p) |
+| −90°     | Quarter left       | `rotate(-90deg)`   | Left-side: P2 (3p), P1/P3 (5p)                       |
+| 90°      | Quarter right      | `rotate(90deg)`    | Right-side: P3 (3p), P2/P4 (5p)                      |
+| None     | —                  | —                  | Bottom-side facing user                              |
 
 ---
 
 ## 5. CENTRAL SPELLBOOK MENU
 
-### 5.1 Visual — The Stretched Rope
-
+### 5.1 Visual — Stretched Rope
 ```
 ┌──────────────────────────────────────────┐
-│             Player zones above           │
-│  ══════════════════●══════════════════   │  ← Horizontal line, full width
-│                     M                    │  ← M logo, 56×56px, centered
-│             Player zones below           │
+│            Player zones above            │
+│  ══════════════════●══════════════════   │  ← Full-width line, M at center
+│                     M                    │  ← 56×56px MTG logo
+│            Player zones below            │
 └──────────────────────────────────────────┘
 ```
+Line: dark stroke, low opacity, edge-to-edge. Permanent dividing boundary. Zones never cross it.
 
-A horizontal line spans the full screen width, broken at the center by a
-circular button displaying the MTG logo (`public/images/mtg-logo.png`). The
-visual metaphor is a stretched rope with an insignia at its midpoint — a subtle
-divider between top and bottom player zones.
+M logo: 56×56px (≥44px min touch target). Fixed screen center. Z-index: 50.
 
-**Line:** Dark stroke, low opacity. Extends edge-to-edge. The belt line is the
-permanent dividing boundary between top and bottom player zones — player zones
-never cross it, whether the belt is open or closed.
-
-**M Logo:** 56×56px (≥44px minimum touch target). Fixed at screen center.
-Z-index: 50 (above game board, below modals).
-
-### 5.2 Interaction — The Boxer Belt
-
-Tap M → a black horizontal band expands across the full screen width. The M
-stays anchored at center. Four action icons spread outward — two to the left,
-two to the right. The visual metaphor is a championship belt: an opaque black
-band creating stark contrast against the colored player zones behind it.
-
+### 5.2 Interaction — Boxer Belt
+Tap M → black belt expands full width. M stays centered. 4 icons spread:
 ```
-│            (Player zones above)          │
-┌──────────────────────────────────────────┐
-│  ██████████████████████████████████████  │  ← Black belt, full width (~72px)
-│  █  ⚙️    ⟳    ● M ●    ⚖️    👥  █   │  ← Icons flanking M
-│  ██████████████████████████████████████  │
-├──────────────────────────────────────────┤
-│            (Player zones below)          │
+         ╔═══ player zones above ═══╗
+┌══════════════════════════════════════┐
+│  ██████████████████████████████████  │  Black belt, ~72px
+│  █  ⚙️    ⟳    ● M ●    ⚖️    👥  █  │
+│  ██████████████████████████████████  │
+└══════════════════════════════════════┘
+         ╚═══ player zones below ═══╝
 ```
+- **Left (near→far):** ⟳ Restart Life, ⚙️ Initial Life
+- **Right (near→far):** ⚖️ AI Judge, 👥 Players
+- **Close:** Tap M or outside → icons collapse, belt retracts.
 
-- **Belt height:** ~72px. Opaque black (`#000000` or near-black).
-- **M stays centered.** Does not move — it anchors the composition.
-- **Left side (near → far):** ⟳ Restart Life, ⚙️ Initial Life
-- **Right side (near → far):** ⚖️ AI Judge, 👥 Players
-- **Close:** Tap M again or tap outside the belt → icons collapse back to
-  center, belt retracts.
+| Icon | Action       | Side        | Modal?       |
+|------|-------------|-------------|-------------|
+| ⟳    | Restart Life | Left, near  | No — instant |
+| ⚙️   | Initial Life | Left, far   | Yes — modal  |
+| ⚖️   | AI Judge     | Right, near | Yes — modal  |
+| 👥   | Players      | Right, far  | Yes — modal  |
 
-### 5.3 Menu Items
-
-| Icon | Action       | Side          | Modal?       |
-| ---- | ------------ | ------------- | ------------ |
-| ⟳    | Restart Life | Left, near M  | No — instant |
-| ⚙️   | Initial Life | Left, far     | Yes — modal  |
-| ⚖️   | AI Judge     | Right, near M | Yes — modal  |
-| 👥   | Players      | Right, far    | Yes — modal  |
-
-Gameplay actions (⟳ restart, ⚖️ judge) sit closer to center for quick thumb
-access. Setup actions (⚙️ life, 👥 players) sit on the outer edges.
+Gameplay (⟳, ⚖️) near center. Setup (⚙️, 👥) outer edges.
 
 ---
 
 ## 6. MODAL SYSTEM
 
 ### 6.1 Dialog Pattern
+Native `<dialog>` with `aria-modal="true"`. No modal library.
 
-All modals use the native `<dialog>` element with `aria-modal="true"`. No custom
-modal library.
-
-**Backdrop:**
-
-| Modal                                       | Backdrop                                              |
-| ------------------------------------------- | ----------------------------------------------------- |
-| Initial Life, Player Selector, Color Picker | Black at 35% opacity (`rgba(0,0,0,0.35)`)             |
-| AI Judge                                    | Solid black (`#000000`) — full focus, no game visible |
+| Modal                    | Backdrop                    |
+|--------------------------|-----------------------------|
+| Initial Life / Players / Color Picker | `rgba(0,0,0,0.35)` |
+| AI Judge                 | `#000000` solid — full focus |
 
 ```html
 <dialog aria-modal="true" aria-labelledby="dialog-title">
   <h2 id="dialog-title">Initial Life</h2>
-  <!-- content -->
   <button aria-label="Close" autofocus>✕</button>
 </dialog>
 ```
 
-### 6.2 Modal: Initial Life Selector
+### 6.2 Initial Life Selector
+Grid: **20** (Standard), **30** (2HG), **40** (Commander), **60** (2HG), **Custom** (numpad). Selected highlighted.
 
-- Grid of preset buttons: **20** (Standard), **30** (2HG), **40** (Commander),
-  **60** (Two-Headed Giant), **Custom** (numpad)
-- Each button shows the number large, with format label below
-- Selected state highlighted
+### 6.3 Player Selector
+Stepper/grid: 2-6. Each slot shows color picker (W,U,B,R,G). "Start Game" button.
 
-### 6.3 Modal: Player Selector
+### 6.4 AI Judge
+Chat-style. Message bubbles. Text input bottom. Streaming response. "Ask about a card or rule…" placeholder. Maximized modal, #000 backdrop.
 
-- Stepper or grid: 2 | 3 | 4 | 5 | 6 players
-- Each player slot shows a mana color picker (5 dots: W, U, B, R, G)
-- "Start Game" button to confirm
-
-### 6.4 Modal: AI Judge
-
-- Chat-style interface with message bubbles
-- Text input at bottom
-- Streaming response display
-- "Ask about a card or rule…" placeholder
-- Maximized modal — takes almost full screen for readability
-- Backdrop: solid black (`#000000`) — total focus on the Judge
-
-### 6.5 Modal: Color Picker (per player)
-
-Triggered by the gear icon on each player zone. 80/20 vertical split — a color
-selection area above, a fixed filter strip below.
+### 6.5 Color Picker (per player)
+Triggered by gear icon on zone. 80/20 vertical split.
 
 ```
 ┌──────────────────────────┐
-│                          │
-│    COLOR SELECTION AREA  │  ← 80% height
-│   (wheel or dual wheels) │
-│                          │
+│ COLOR SELECTION          │ 80%  │
+│ (wheel/dual wheels)      │      │
 ├──────────────────────────┤
-│ [mana] guild clan shard  │  ← 20% height, never changes
+│ [mana] guild clan shard  │ 20% — filter strip, never changes
 │      WUBRG  Colorless    │
 └──────────────────────────┘
 ```
 
 #### Filter Strip (bottom 20%)
+Six items row. Always visible. Active filter highlighted (filled BG, inverted text).
 
-Six fixed items in a horizontal row. This strip **never changes** — it is always
-visible regardless of which wheel is shown above. The active filter is visually
-highlighted (filled background, inverted text) so the user always knows which
-wheel they are viewing.
-
-| Item          | Type   | Action                                                         |
-| ------------- | ------ | -------------------------------------------------------------- |
-| **mana**      | Tab    | Shows the 5-color WUBRG mana wheel (default on open).          |
-| **guild**     | Tab    | Shows two 5-symbol wheels side-by-side (10 Ravnica guilds).    |
-| **clan**      | Tab    | Shows a single 5-symbol wheel (5 Tarkir clans).                |
-| **shard**     | Tab    | Shows a single 5-symbol wheel (5 Alara shards).                |
-| **WUBRG**     | Action | Applies 5-color gradient background. Closes modal immediately. |
-| **Colorless** | Action | Applies colorless solid background. Closes modal immediately.  |
+| Item      | Type   | Action                                                         |
+|-----------|--------|----------------------------------------------------------------|
+| **mana**  | Tab    | 5-color WUBRG wheel (default)                                  |
+| **guild** | Tab    | Two 5-symbol side-by-side wheels (10 guilds)                   |
+| **clan**  | Tab    | Single 5-symbol wheel (5 clans)                                |
+| **shard** | Tab    | Single 5-symbol wheel (5 shards)                               |
+| **WUBRG** | Action | 5-color gradient. Closes immediately.                         |
+| **Colorless** | Action | Solid `#CAC5C0`. Closes immediately.                       |
 
 #### Mana Tab (default)
-
-A circular wheel with the 5 mana symbols arranged clockwise in **WUBRG order**:
-White → Blue → Black → Red → Green. Each symbol is a tappable button (≥44px),
-rendered via `ManaSelector`.
-
-- **Tap a mana symbol** → the player zone background becomes that solid mana
-  color → modal closes immediately. No "Apply" button needed.
+Circular wheel, WUBRG order clockwise. Tap → solid color → close.
 
 #### Guild Tab
-
-Two 5-symbol wheels placed side-by-side (10 Ravnica guilds won't fit a single
-wheel). Each symbol is rendered via `GuildSelector`.
-
-- **Tap a guild symbol** → the player zone background becomes a
-  `linear-gradient(to bottom right, color1 0%, color1 50%, color2 50%, color2 100%)`
-  using that guild's two mana colors → modal closes immediately.
-- A small guild badge (24×24px) appears in the bottom‑right corner of the player
-  zone.
+Two 5-symbol wheels side-by-side. Tap → 2-color `linear-gradient` → close. 24×24px badge bottom-right.
 
 #### Clan Tab
-
-A single 5-symbol wheel (same circular layout as the mana tab). Each symbol is
-rendered via `ClanSelector`.
-
-- **Tap a clan symbol** → the player zone background becomes a
-  `linear-gradient(to bottom right, color1 0%, color1 33.3%, color2 33.3%, color2 66.6%, color3 66.6%, color3 100%)`
-  using that clan's three mana colors → modal closes immediately.
-- A small clan badge (24×24px) appears in the bottom‑right corner.
+Single 5-symbol wheel. Tap → 3-color gradient → close. Badge 24×24px bottom-right.
 
 #### Shard Tab
-
-Same as clan — single 5-symbol wheel, rendered via `ShardSelector`. Tap a shard
-→ 3-color `linear-gradient(to bottom right, ...)` → close. Shard badge (24×24px)
-in bottom‑right.
+Same as clan. 3-color gradient → close. Badge 24×24px bottom-right.
 
 #### Behavior Summary
-
-| Selection         | Closes modal? | Player zone result                                                                                               |
-| ----------------- | ------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Single mana color | On tap        | Solid mana color                                                                                                 |
-| WUBRG             | Immediately   | 5-color `linear-gradient(to bottom right, W 0%, W 20%, U 20%, U 40%, B 40%, B 60%, R 60%, R 80%, G 80%, G 100%)` |
-| Colorless         | Immediately   | Solid `#CAC5C0`                                                                                                  |
-| Guild             | On tap        | 2-color gradient + guild badge (bottom‑right)                                                                    |
-| Clan              | On tap        | 3-color gradient + clan badge (bottom‑right)                                                                     |
-| Shard             | On tap        | 3-color gradient + shard badge (bottom‑right)                                                                    |
-
-- No standalone "Apply" button — every selection confirms instantly.
-- The player zone previews the change in real-time inside the modal.
-- Faction badges are rendered via `GuildSelector`, `ClanSelector`, or
-  `ShardSelector` at 24×24px and placed in the bottom‑right corner of the player
-  zone.
-- The filter strip always shows the highlighted active tab — no mode is hidden
-  from the user.
+- **Any selection closes modal instantly.** No Apply button.
+- Zone previews change in real-time inside modal.
+- Filter strip always shows active tab highlighted.
+- Badges via `GuildSelector`, `ClanSelector`, `ShardSelector` at 24×24px.
 
 ---
 
 ## 7. GESTURES & INTERACTIONS
 
 ### 7.1 Life Adjustment
+| Gesture               | Result                          |
+|-----------------------|---------------------------------|
+| Tap [+] / [-]         | +1 / -1 life                    |
+| Hold [+] / [-]        | ±10 after 1s                    |
+| Double-tap life total | Opens numpad for exact entry    |
 
-| Gesture               | Result                         |
-| --------------------- | ------------------------------ |
-| Tap [+]               | +1 life                        |
-| Tap [-]               | -1 life                        |
-| Hold [+]              | Rapid increment (±10 after 1s) |
-| Hold [-]              | Rapid decrement (±10 after 1s) |
-| Double-tap life total | Opens numpad for exact entry   |
+### 7.2 Swipe
+| Gesture                    | Result                                           |
+|----------------------------|--------------------------------------------------|
+| Swipe left on zone         | Commander damage overlay                         |
+| Swipe right on zone        | Counters overlay                                 |
+| X-axis swipe on overlay    | Closes overlay, returns to life. Either direction |
 
-### 7.2 Swipe Gestures
-
-| Gesture                       | Result                                                           |
-| ----------------------------- | ---------------------------------------------------------------- |
-| Swipe left on zone            | Reveals commander damage overlay                                 |
-| Swipe right on zone           | Reveals counters overlay (poison, energy, etc.)                  |
-| Swipe along X-axis on overlay | Closes the overlay (returns to life) — works in either direction |
-
-### 7.3 Commander Damage Overlay
-
-Each player tracks how much commander damage they have taken from each
-commander. One column per commander (one per opponent). 2 columns for 2–4
-players, 3 columns for 5–6 players.
-
-**Background:** Solid `#1a1a1a` (near-black, warm undertone).
-
-Each column:
+### 7.3 Commander Damage
+One column per opponent commander.
+- BG: `#1a1a1a`
 
 ```
 ┌──────────────────────┐
 │   ┌──────┐           │
-│   │  ⚔️  │  12  [+]  │  ← Pill (opponent's color), symbol, total, + button
+│   │  ⚔️  │  12  [+]  │  Pill (opponent's color) + symbol + total + + button
 │   └──────┘           │
 └──────────────────────┘
 ```
-
-- **Pill:** Rounded pill. Background = opponent's mana color. Center =
-  `PlaneswalkerSymbol` (inline SVG, white fill on opponent's color background).
-- **Damage total:** Alongside the pill. Archivo Bold. Text color auto-selects
-  warm white (`#FAF8F5`) or warm near-black (`#1A1A1A`) per luminance.
-- **+ button:** Tap = +1 commander damage. Hold = accelerate (+10 after 1s) —
-  same criteria as §7.1 life adjustment. The [+] button is **borderless** —
-  no `border-radius`, no background highlight, no `transition-colors`. Matches
-  the same borderless treatment as the zone ± buttons in §4.2. The only visual
-  distinction is the `+` label itself and the keyboard focus ring.
-- **Life reduction:** Each point of commander damage also reduces the current
-  player's life total by the same amount. `adjustCommanderDamage(+3)` → life −3,
-  commander damage +3.
-- **Lethal indicator:** When any opponent's commander damage reaches 21+, the
-  current player loses the game. Both the commander damage value and the current
-  player's life total turn lethal red (`#D50000`). The overlay shows a
-  **"Lethal — Game Over"** badge below the counter.
-- **Player zone lethal label:** When commander damage ≥ 21 and the player still
-  has life remaining (`life > 0`), the main life view shows a small
-  **"Commander Damage Lethal"** label in danger red beneath the life total.
-  This ensures the player sees the lethal threat without needing the overlay
-  open.
+- **Pill:** Rounded. Opponent's mana color. `PlaneswalkerSymbol` inside (white fill).
+- **Total:** Archivo Bold. Text per luminance.
+- **+ button:** Tap +1, hold ±10 after 1s. Borderless.
+- **Life reduction:** Each commander damage point also −1 life. `adjustCommanderDamage(+3)` → life -3.
+- **Lethal:** Any opponent commander ≥21 → current player loses. Value + life total → `#D50000`. "Lethal — Game Over" badge below counter.
+- **Zone label:** When commander ≥21 & life >0 → small "Commander Damage Lethal" in danger red under life total.
 
 ### 7.4 Counters Overlay
+Always 2-column grid. BG: `#1a1a1a`.
 
-Always a 2-column grid. Each column is a counter type with an icon, value, +/-
-controls, and a delete button.
-
-**Background:** Solid `#1a1a1a` (near-black, warm undertone). Counter icons sit
-directly on the background — **no pill, no rounded container.**
-
-**Default counters (always present as placeholders):**
-
-- ☠️ Poison (max 10 = lethal)
-- ⚡ Energy
-- ✦ Experience
-- ⏳ Time / Suspend
-
-**Note:** `PlaneswalkerSymbol` is not a counter — it belongs to the commander
-damage overlay (§7.3).
-
-**Layout per column:**
+**Default counters (always present):** ☠️ Poison, ⚡ Energy, ✦ Experience, ⏳ Time
+- `PlaneswalkerSymbol` is NOT a counter — belongs to commander overlay only.
 
 ```
 ┌──────────────────────────────────────────┐
-│  ☠️    3    [-]  [+]                      │  ← Icon, value, controls
+│  ☠️    3    [-]  [+]                      │  Icon, value, controls
 └──────────────────────────────────────────┘
 ```
-
-- **Icon:** Counter symbol drawn with `iconLight` (`#FAF8F5`) silhouette. Sits
-  directly on the overlay background (`#1a1a1a`). No pill, no background
-  container.
-- **Value:** Alongside the icon. Archivo Bold. Text color auto-selects warm
-  white (`#FAF8F5`) per luminance.
-- **[-] [+] buttons:** Tap = ±1. Hold = accelerate (±10 after 1s). All
-  adjustment buttons are **borderless** — no `border-radius`, no background
-  highlight, no `transition-colors`. Matches the borderless treatment in §4.2
-  and §7.3.
-- **+ button (bottom-right):** Opens a prompt asking for the custom counter name
-  (initial value is always 0). Custom counters use a rounded pill — background
-  `#CAC5C0` (colorless), icon `iconDark` (`#0D0F0F`) — displaying the first
-  letter of their name. This visually distinguishes custom counters from the
-  pill-free default counters.
-- **Poison Lethal:** When the Poison counter reaches 10+, the player loses the
-  game. Both the poison counter value inside the Counters overlay and the life
-  total turn lethal red (`#D50000`). The player zone life view also shows a small
-  **"Poison Lethal"** label in danger red beneath the life total. The "Poison
-  Lethal" text does NOT appear inside the Counters dialog.
-
-**Grid:** Always 2 columns. Rows fill left-to-right, top-to-bottom. The 4
-defaults occupy the first 2 rows. Custom counters fill subsequent rows.
+- **Icon:** `iconLight` silhouette. No pill, no BG container.
+- **Value:** Archivo Bold, warm white per luminance.
+- **[-]/[+] buttons:** Tap ±1, hold ±10 after 1s. Borderless.
+- **New counter (+):** Bottom-right. Prompt for name, starts at 0. Custom counters: rounded pill `#CAC5C0`, `iconDark`, first letter displayed.
+- **Poison Lethal:** 10+ → player loses. Poison value + life total → `#D50000`. Zone shows small "Poison Lethal" under life total.
+- **Grid:** 2 columns. Left-to-right, top-to-bottom. Defaults fill rows 1-2.
 
 ---
 
-## 8. RESPONSIVE BEHAVIOR
+## 8. RESPONSIVE
 
-### 8.1 Breakpoints (via Tailwind)
+### 8.1 Breakpoints (Tailwind)
 
-| Breakpoint | Width    | Behavior                                  |
-| ---------- | -------- | ----------------------------------------- |
-| Default    | < 480px  | Single-column stack, portrait-only        |
-| `sm:`      | ≥ 480px  | 2-column grid possible                    |
-| `md:`      | ≥ 768px  | 2-column layouts, 2×2 grid for landscape  |
-| `lg:`      | ≥ 1024px | Full 2×3 grid for 6 players               |
-| `xl:`      | ≥ 1440px | Larger life totals, more generous spacing |
+| BP     | Width    | Behavior                               |
+|--------|----------|----------------------------------------|
+| Default| < 480px  | Single column, portrait                |
+| `sm:`  | ≥ 480px  | 2-column grid possible                 |
+| `md:`  | ≥ 768px  | 2×2 grid for landscape                 |
+| `lg:`  | ≥ 1024px | Full 2×3 grid for 6p                   |
+| `xl:`  | ≥ 1440px | Larger life, more spacing              |
 
 ### 8.2 Orientation
+- **Portrait:** 2p, 3p, 5p — stacked + asymmetric. Text rotated per position.
+- **Landscape:** 4p, 6p — grids. Top row 180°.
+- **Lock:** `"orientation": "portrait"` in manifest + `screen.orientation.lock()`. Player count determines internal layout.
 
-- **Portrait (2, 3, and 5 players):** Stacked and asymmetric split layouts. Text
-  rotated per player position using −90°, 90°, or 180° transforms.
-- **Landscape (4 and 6 players):** Grid layouts. Top row rotated 180°.
-- **Orientation lock:** The accelerometer is disabled — the app locks to
-  portrait via the PWA manifest (`"orientation": "portrait"`) and
-  `screen.orientation.lock()`. Player count determines whether the layout
-  renders as portrait or landscape within that locked viewport.
-
-### 8.3 Minimum Touch Targets
-
-Every interactive element: **≥ 44×44px** (48×48px preferred per WCAG).
+### 8.3 Touch Targets
+All interactive: ≥44×44px (48×48px preferred).
 
 ---
 
-## 9. ACCESSIBILITY REQUIREMENTS
-
-WCAG 2.2 Level AA:
-
-- **Color contrast:** 4.5:1 text, 3:1 large text. Auto-select white/black text
-  on mana-colored backgrounds based on luminance.
-- **Touch targets:** ≥ 44×44px minimum.
-- **Keyboard navigation:** Tab through all controls, visible focus rings.
-- **Screen reader:** Player zones announce "Player 1: 40 life" on focus. Buttons
-  announce "+1 life", "-1 life". Swipe gestures have button alternatives.
-- **Reduced motion:** `prefers-reduced-motion: reduce` disables ALL swipe
-  animations, uses instant show/hide.
+## 9. ACCESSIBILITY — WCAG 2.2 AA
+- **Contrast:** 4.5:1 text, 3:1 large text. Auto-select warm white/near-black via luminance.
+- **Touch:** ≥44×44px.
+- **Keyboard:** Tab through all controls. Visible focus rings.
+- **Screen reader:** Zone announces "Player 1: 40 life". Buttons: "+1 life", "-1 life". Swipes have button alternatives.
+- **Reduced motion:** `prefers-reduced-motion: reduce` → no swipe animations, instant show/hide.
 
 ---
 
-## 10. FUTURE SCOPE (Designated for Later Phases)
+## 10. FUTURE SCOPE
 
-These are recognized in the design but deferred:
-
-| Feature                                | Phase   |
-| -------------------------------------- | ------- |
-| Guild color combos (10 2-color blends) | Phase 2 |
-| Voice input for AI Judge               | Phase 2 |
-| Card art backgrounds from Scryfall     | Phase 2 |
-| Offline AI rules engine                | Phase 3 |
+| Feature                           | Phase |
+|-----------------------------------|-------|
+| Guild color combos (10 2-color)   | 2     |
+| AI Judge voice input              | 2     |
+| Card art BGs from Scryfall        | 2     |
+| Offline AI rules engine           | 3     |
 
 ---
 
