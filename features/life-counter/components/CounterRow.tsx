@@ -87,12 +87,12 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       {renderIcon()}
 
       {/* Value */}
       <span
-        className="min-w-[1.5ch] text-center text-display font-black tabular-nums leading-tight"
+        className="min-w-[2ch] text-center text-display font-black tabular-nums leading-tight"
         style={LIGHT_TEXT_STYLE}
         aria-live="polite"
         aria-atomic="true"
