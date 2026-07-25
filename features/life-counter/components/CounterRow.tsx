@@ -4,9 +4,9 @@ import { useLifeAdjustment } from "@/features/life-counter/hooks/use-life-adjust
 import {
   INCREMENT_COUNTER,
   DECREMENT_COUNTER,
+  POISON_LETHAL,
 } from "@/features/life-counter/constants/counter";
 import { UI, MANA } from "@/shared/lib/constants/colors";
-import { POISON_LETHAL } from "@/features/life-counter/constants/counter";
 import PoisonSymbol from "@/shared/components/icons/counters/PoisonSymbol";
 import EnergySymbol from "@/shared/components/icons/counters/EnergySymbol";
 import ExperienceSymbol from "@/shared/components/icons/counters/ExperienceSymbol";
