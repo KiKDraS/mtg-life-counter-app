@@ -14,7 +14,11 @@ import {
   setLife,
   setColor,
   adjustCommanderDamage,
+  adjustCounter,
+  addCounter,
+  removeCounter,
 } from "@/features/life-counter/hooks/use-player-state";
+import { POISON_LETHAL } from "@/features/life-counter/constants/counter";
 import { useSwipe } from "@/features/life-counter/hooks/use-swipe";
 import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
 import { ColorPicker } from "./ColorPicker";
@@ -102,9 +106,12 @@ export function PlayerZone({
     onSwipeRight: handleSwipeRight,
   });
 
-  /* §7.3 — lethal if life ≤ 0 OR commander damage ≥ 21 */
-  const isLethal = state.life <= 0 || state.commanderDamage >= 21;
+  /* §7.3/§7.4 — lethal if life ≤ 0 OR commander damage ≥ 21 OR poison ≥ 10 */
+  const poisonCounter = state.counters.find((c) => c.type === "poison");
+  const isPoisonLethal = (poisonCounter?.value ?? 0) >= POISON_LETHAL;
   const isCommanderLethal = state.commanderDamage >= 21;
+  const isLifeZeroOrBelow = state.life <= 0;
+  const isLethal = isLifeZeroOrBelow || isCommanderLethal || isPoisonLethal;
   const { background, textColor } = zoneStylesFor(state.color);
 
   return (
@@ -165,6 +172,14 @@ export function PlayerZone({
               Commander Damage Lethal
             </span>
           )}
+          {isPoisonLethal && state.life > 0 && (
+            <span
+              className="text-caption font-bold uppercase tracking-wider leading-tight"
+              style={{ color: UI.danger }}
+            >
+              Poison Lethal
+            </span>
+          )}
         </button>
 
         <div className="relative flex h-full">
@@ -212,8 +227,12 @@ export function PlayerZone({
       />
       <Counters
         dialogRef={countersRef}
+        counters={state.counters}
+        onAdjust={(id, delta) => dispatch(adjustCounter(id, delta))}
+        onAdd={(id, name) => dispatch(addCounter(id, name))}
+        onRemove={(id) => dispatch(removeCounter(id))}
         onClose={() => {
-          /* ponytail: placeholder — no cleanup needed yet */
+          /* ponytail: no cleanup needed yet */
         }}
       />
     </div>
