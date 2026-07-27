@@ -289,10 +289,47 @@ Native `<dialog>` with `aria-modal="true"`. No modal library.
 ```
 
 ### 6.2 Initial Life Selector
-Grid: **20** (Standard), **30** (2HG), **40** (Commander), **60** (2HG), **Custom** (numpad). Selected highlighted.
+2-column grid. Each cell = preset value. Tap selects.
+
+```
+┌──────────┬──────────┐
+│    20    │    30    │
+│ Standard │   2HG    │
+├──────────┼──────────┤
+│    40    │    60    │
+│ Commander│   2HG    │
+└──────────┴──────────┘
+    [+] Add custom value
+```
+
+- **Presets:** 20, 30, 40, 60. Each shows number large (--text-display) + format label below (--text-caption).
+- **[+] Add custom value:** Below grid. Opens numpad for exact entry.
+- **Selection:** Tap preset → value selected, modal closes. Tap [+] → numpad, Enter → closes.
+- **Close:** Tap backdrop or Escape. **No ✕ close button.**
 
 ### 6.3 Player Selector
-Stepper/grid: 2-6. Each slot shows color picker (W,U,B,R,G). "Start Game" button.
+2-column grid. Each cell = SVG layout preview. SVG IS the button — no text labels.
+
+```
+┌──────────┬──────────┐
+│          │          │
+│  [svg]   │  [svg]   │
+│   2p     │   3p     │
+│          │          │
+├──────────┼──────────┤
+│          │          │
+│  [svg]   │  [svg]   │
+│   4p     │   5p     │
+│          │          │
+└──────────┴──────────┘
+    [svg] 6p
+```
+
+- **SVGs:** Layout diagrams matching §4.1 (zone positions, rotation). Each SVG fills its cell. The SVG itself is the tap target (≥44×44px).
+- **No text:** SVG must communicate player count visually. No labels like "2 Players".
+- **Rows:** 2p, 3p in row 1. 4p, 5p in row 2. 6p centered below grid (odd column).
+- **Selection:** Tap SVG → player count selected, modal closes.
+- **Close:** Tap backdrop or Escape. **No ✕ close button.**
 
 ### 6.4 AI Judge
 Chat-style. Message bubbles. Text input bottom. Streaming response. "Ask about a card or rule…" placeholder. Maximized modal, #000 backdrop.
@@ -472,4 +509,43 @@ All interactive: ≥44×44px (48×48px preferred).
 
 ---
 
-_End of DESIGN.md_
+## 11. APPLICATION STATE & PERSISTENCE
+
+### 11.1 Default State (First Load)
+
+When app launches with no saved state, initialize:
+
+| Key | Value | Notes |
+|---|---|---|
+| Players | 2 | Determines layout (§4.1) |
+| Player colors | R (Red) for all | Each player defaults to red mana color (§2.1) |
+| Life | 40 | Commander default |
+| Counters | 0 (all four: poison, energy, experience, time) | §7.4 |
+| Commander damage | 0 (per opponent per player) | §7.3 |
+
+### 11.2 Persistence via IndexDB
+
+- **Every state change** (life, counters, commander damage, players, colors) → persist to IndexDB.
+- **App load → read IndexDB first:**
+  - Saved state exists → restore it.
+  - No saved state → use §11.1 defaults.
+- **Storage key:** Single record per game session. No user accounts — device-local only.
+
+### 11.3 What to Persist
+
+```
+{
+  players: number,
+  playerStates: [{
+    color: ManaColor,
+    life: number,
+    counters: { poison: number, energy: number, experience: number, time: number },
+    customCounters: [{ id: string, name: string, value: number }],
+    commanderDamage: { [opponentIndex: string]: number }
+  }]
+}
+```
+
+- Custom counters persisted by name + value.
+- No history/undo data (session-only).
+- No auth tokens, no cloud sync.
