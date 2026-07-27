@@ -36,7 +36,8 @@ export function CustomCounterModal({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") {
+      const isEnter = e.key === "Enter";
+      if (isEnter) {
         e.preventDefault();
         submit();
       }
@@ -70,6 +71,7 @@ export function CustomCounterModal({
             maxLength={35}
             autoFocus
             placeholder="Counter"
+            aria-label="Counter name"
             onKeyDown={handleKeyDown}
             className="mb-4 w-full rounded border-0 bg-white/10 px-3 py-2 text-body font-medium placeholder:text-white/50 focus:outline-none"
             style={{ color: UI.textLight }}
