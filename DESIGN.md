@@ -501,7 +501,8 @@ Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
 
 ### 7.3 Commander Damage
 
-One column per commander in play (every opponent + player's own). Tracks damage each commander deals to current player.
+One column per commander in play (every opponent + player's own). Tracks damage
+each commander deals to current player.
 
 - BG: `#1a1a1a`
 
@@ -514,12 +515,15 @@ One column per commander in play (every opponent + player's own). Tracks damage 
 ```
 
 Each entry = `{ playerId: number, value: number }`:
+
 - **playerId:** Which commander (matches the commander's owner's playerId).
 - **value:** Commander damage dealt by that commander to current player.
 
-Example: Player 1 (playerId: 0) sees columns for playerId 0 (own commander), 1, 2, 3 (opponents).
+Example: Player 1 (playerId: 0) sees columns for playerId 0 (own commander), 1,
+2, 3 (opponents).
 
-- **Pill:** Rounded. Commander owner's mana color. `PlaneswalkerSymbol` inside (white fill).
+- **Pill:** Rounded. Commander owner's mana color. `PlaneswalkerSymbol` inside
+  (white fill).
 - **Total:** Archivo Bold. Text per luminance.
 - **+ button:** Tap +1, hold ±10 after 1s. Borderless.
 - **Life reduction:** Each commander damage point also −1 life.
@@ -621,18 +625,6 @@ When app launches with no saved state, initialize:
 ### 10.3 What to Persist
 
 ```typescript
-interface CommanderDamage {
-  playerId: number;   // which commander (by owner's playerId) dealt the damage
-  value: number;      // total commander damage that commander dealt to this player
-}
-
-interface Counter {
-  id: string;         // "poison" | "energy" | "experience" | "time" | "custom-1" | ...
-  type: CounterType;  // "poison" | "energy" | "experience" | "time" | "custom"
-  value: number;
-  name?: string;      // only for custom counters — displayed as first-letter pill
-}
-
 {
   players: number,
   playerStates: [{
@@ -645,7 +637,8 @@ interface Counter {
 }
 ```
 
-- `playerId` equals array index (0 = Player 1). Used to match commander damage entries to the commander's owner.
+- `playerId` equals array index (0 = Player 1). Used to match commander damage
+  entries to the commander's owner.
 - No history/undo data. No multi-session.
 - No auth tokens, no cloud sync.
 
