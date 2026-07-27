@@ -84,7 +84,7 @@ Before step 5, classify change type and run required gates:
 |---|---|---|---|
 | **code** | .tsx, .ts, .css, layout, component | **MUST** pass code-review | **MUST** pass Playwright |
 | **design** | DESIGN.md, design contract | **MUST** pass code-review (verify design consistency) | Skipped |
-| **meta** | AGENTS.md, agent files, config | **MUST** pass code-review (verify rule consistency) | Skipped |
+| **meta** | AGENTS.md, agent files, config | Skipped (human-reviewed via PR) | Skipped |
 | **release** | version bump, changelog | Skipped (human-reviewed via PR) | Skipped |
 
 Audit = invoke `@code-review` → `APPROVED` or `REJECTED`. QA = full Playwright loop (§4 A→B→C). No merge until both pass for their type.
