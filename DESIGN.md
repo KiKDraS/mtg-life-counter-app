@@ -340,6 +340,40 @@ Same as clan. 3-color gradient → close. Badge 24×24px bottom-right.
 - Filter strip always shows active tab highlighted.
 - Badges via `GuildSelector`, `ClanSelector`, `ShardSelector` at 24×24px.
 
+### 6.6 Modal: Custom Counter Name
+
+Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
+
+```
+┌───────────────────────────────┐
+│    Custom Counter             │  ← --text-heading, Archivo Bold 700
+│                               │
+│ ┌─────────────────────────┐   │
+│ │  Counter                │   │  ← Input, auto-focused, placeholder
+│ └─────────────────────────┘   │
+│                               │
+│         [  + Add  ]           │  ← Confirm, borderless, warm white
+│                               │
+└───────────────────────────────┘
+```
+
+**Backdrop:** `rgba(0,0,0,0.35)` — matches §6.1 light modals.
+
+**Close mechanisms:**
+- Tap backdrop → cancel, no counter created
+- Escape key → cancel
+- Tap [+ Add] or Enter → name validated, dialog closes, counter added
+
+**Input:**
+- Placeholder: "Counter" (50% white opacity)
+- Text: warm white `#FAF8F5`, Archivo Medium 500, `1rem`
+- `maxlength="20"` via HTML attribute
+- Auto-focused on open
+
+**Validation:**
+- Name trimmed. Empty → button does nothing (no error UI).
+- Non-empty → dialog closes, counter appears in §7.4 grid.
+
 ---
 
 ## 7. GESTURES & INTERACTIONS
@@ -390,7 +424,7 @@ Always 2-column grid. BG: `#1a1a1a`.
 - **Icon:** `iconLight` silhouette. No pill, no BG container.
 - **Value:** Archivo Bold, warm white per luminance.
 - **[-]/[+] buttons:** Tap ±1, hold ±10 after 1s. Borderless.
-- **New counter (+):** Bottom-right. Prompt for name, starts at 0. Custom counters: rounded pill `#CAC5C0`, `iconDark`, first letter displayed.
+- **New counter (+):** Bottom-right → opens Custom Counter Name modal (§6.6). Starts at 0. Custom counters: rounded pill `#CAC5C0`, `iconDark`, first letter displayed.
 - **Poison Lethal:** 10+ → player loses. Poison value + life total → `#D50000`. Zone shows small "Poison Lethal" under life total.
 - **Grid:** 2 columns. Left-to-right, top-to-bottom. Defaults fill rows 1-2.
 
