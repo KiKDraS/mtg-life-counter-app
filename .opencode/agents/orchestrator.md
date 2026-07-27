@@ -40,8 +40,8 @@ Before any codebase change:
 1. **Git initialized?** Check `.git/`:
    - Yes → step 2.
    - No → stop. Inform user:
-     > "Git repo needed. Init (`git init && git checkout -b develop`) or do yourself?"
-   Wait for response.
+     > "Git repo needed. Init (`git init && git checkout -b develop`) or do
+     > yourself?" Wait for response.
 
 2. Create `feature/*` branch from `develop`
 3. Make changes
@@ -56,7 +56,8 @@ Never commit to `develop` or `main` directly.
 ## Operational pipeline
 
 1. **Planning (Design Thinking mandatory):**
-   - Read DESIGN.md. If absent or user wants new direction, brainstorm tone, get approval, write DESIGN.md.
+   - Read DESIGN.md. If absent or user wants new direction, brainstorm tone, get
+     approval, write DESIGN.md.
    - Mandated by `frontend-design`.
 
 2. **Action plan + delegation review (mandatory user sign-off):**
@@ -64,30 +65,38 @@ Never commit to `develop` or `main` directly.
    - Plan MUST include branch creation + merge protocol.
 
 3. **Consolidated development:**
-   - **Step 1a (UI + Data Shell):** `@frontend-dev` builds page shell, React components, Tailwind, game state, Scryfall client (Phase 1 — text only), PWA.
-   - **Step 1b (AI Judge):** If feature involves AI, `@ai-engineer` on same branch implements OpenRouter SDK, RAG, `/api/judge`, citations.
+   - **Step 1a (UI + Data Shell):** `@frontend-dev` builds page shell, React
+     components, Tailwind, game state, Scryfall client (Phase 1 — text only),
+     PWA.
+   - **Step 1b (AI Judge):** If feature involves AI, `@ai-engineer` on same
+     branch implements OpenRouter SDK, RAG, `/api/judge`, citations.
    - **Step 2 (Audit):** `@code-review` inspects full delivery.
-     - `STATUS: REJECTED` → pipe errors to responsible agent, loop until `APPROVED`.
+     - `STATUS: REJECTED` → pipe errors to responsible agent, loop until
+       `APPROVED`.
 
 4. **Automated QA (Playwright loop):**
-   - **A (Plan):** `@playwright-test-planner` explores app, generates scenarios in `specs/`.
-   - **B (Generate):** `@playwright-test-generator` turns scenarios into `.spec.ts` in `tests/`.
+   - **A (Plan):** `@playwright-test-planner` explores app, generates scenarios
+     in `specs/`.
+   - **B (Generate):** `@playwright-test-generator` turns scenarios into
+     `.spec.ts` in `tests/`.
    - **C (Execute + Self-Heal):** `@playwright-test-healer` runs suite.
      - Config fix → let pass.
-     - Real app bug → capture diagnostics, send to `@frontend-dev`, restart repair cycle.
+     - Real app bug → capture diagnostics, send to `@frontend-dev`, restart
+       repair cycle.
 
 ### Pre-merge gate (mandatory, all change types)
 
 Before step 5, classify change type and run required gates:
 
-| Change type | Examples | Audit (§3 Step 2) | QA (§4) |
-|---|---|---|---|
-| **code** | .tsx, .ts, .css, layout, component | **MUST** pass code-review | **MUST** pass Playwright |
-| **design** | DESIGN.md, design contract | **MUST** pass code-review (verify design consistency) | Skipped |
-| **meta** | AGENTS.md, agent files, config | Skipped (human-reviewed via PR) | Skipped |
-| **release** | version bump, changelog | Skipped (human-reviewed via PR) | Skipped |
+| Change type | Examples                           | Audit (§3 Step 2)               | QA (§4)                  |
+| ----------- | ---------------------------------- | ------------------------------- | ------------------------ |
+| **code**    | .tsx, .ts, .css, layout, component | **MUST** pass code-review       | **MUST** pass Playwright |
+| **design**  | DESIGN.md, design contract         | Skipped (human-reviewed via PR) | Skipped                  |
+| **meta**    | AGENTS.md, agent files, config     | Skipped (human-reviewed via PR) | Skipped                  |
+| **release** | version bump, changelog            | Skipped (human-reviewed via PR) | Skipped                  |
 
-Audit = invoke `@code-review` → `APPROVED` or `REJECTED`. QA = full Playwright loop (§4 A→B→C). No merge until both pass for their type.
+Audit = invoke `@code-review` → `APPROVED` or `REJECTED`. QA = full Playwright
+loop (§4 A→B→C). No merge until both pass for their type.
 
 5. **Branch merge (PR workflow):**
    - `@release-manager` creates PR from working branch into target.
@@ -108,7 +117,8 @@ Audit = invoke `@code-review` → `APPROVED` or `REJECTED`. QA = full Playwright
   5. Verify GitHub Release exists — create if missing
   6. Back-merge PR `release/*` → `develop` (user approval)
   7. Merge + delete temp branches
-- Coordinate micro-fixes with `@frontend-dev` via feature branches or direct commits to release line if instructed.
+- Coordinate micro-fixes with `@frontend-dev` via feature branches or direct
+  commits to release line if instructed.
 
 ---
 
