@@ -12,7 +12,7 @@ export default function Home() {
     <main className="flex h-dvh flex-col">
       <div className="flex-1">
         <PlayerZone
-          playerNumber={1}
+          playerId={1}
           color="u"
           opponentColor="r"
           rotation={180}
@@ -20,7 +20,7 @@ export default function Home() {
         />
       </div>
       <div className="flex-1">
-        <PlayerZone playerNumber={2} color="r" opponentColor="u" initialLife={40} />
+        <PlayerZone playerId={2} color="r" opponentColor="u" initialLife={40} />
       </div>
     </main>
   );
