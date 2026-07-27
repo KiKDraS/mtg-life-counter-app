@@ -367,7 +367,7 @@ Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
 **Input:**
 - Placeholder: "Counter" (50% white opacity)
 - Text: warm white `#FAF8F5`, Archivo Medium 500, `1rem`
-- `maxlength="20"` via HTML attribute
+- `maxlength="35"` via HTML attribute
 - Auto-focused on open
 
 **Validation:**

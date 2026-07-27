@@ -8,6 +8,7 @@ interface DialogShellProps {
   readonly ariaLabelledBy: string;
   readonly children: React.ReactNode;
   readonly onClose?: () => void;
+  readonly className?: string;
 }
 
 /**
@@ -28,6 +29,7 @@ export function DialogShell({
   ariaLabelledBy,
   children,
   onClose,
+  className,
 }: DialogShellProps) {
   const close = useCallback(() => {
     dialogRef.current?.close();
@@ -72,7 +74,8 @@ export function DialogShell({
       onClick={handleBackdropClick}
       className={cn(
         "absolute top-0 left-0 m-0 w-full h-full open:flex flex-col",
-        "border-0 rounded-none bg-black/80 text-ui-textLight",
+        "border-0 rounded-none text-ui-textLight",
+        className ?? "bg-black/80",
       )}
     >
       {children}
