@@ -84,6 +84,10 @@ Active unless "stop caveman". Default: full.
 Code/commits/PRs/security: normal clarity when compression risks misread.
 Skills: `caveman`, `caveman-commit`, `caveman-review`, `caveman-help`, `caveman-compress`.
 
+### Mandatory: ultra on core files
+
+Editing AGENTS.md, DESIGN.md, or `.opencode/agents/*.md` → **caveman ultra** forced. No lite, no full. Rationale: these files read every session. Token density matters.
+
 ---
 
 ## Context7 (Library Docs)
