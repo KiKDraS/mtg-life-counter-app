@@ -76,6 +76,19 @@ Never commit to `develop` or `main` directly.
      - Config fix → let pass.
      - Real app bug → capture diagnostics, send to `@frontend-dev`, restart repair cycle.
 
+### Pre-merge gate (mandatory, all change types)
+
+Before step 5, classify change type and run required gates:
+
+| Change type | Examples | Audit (§3 Step 2) | QA (§4) |
+|---|---|---|---|
+| **code** | .tsx, .ts, .css, layout, component | **MUST** pass code-review | **MUST** pass Playwright |
+| **design** | DESIGN.md, design contract | **MUST** pass code-review (verify design consistency) | Skipped |
+| **meta** | AGENTS.md, agent files, config | Skipped (human-reviewed via PR) | Skipped |
+| **release** | version bump, changelog | Skipped (human-reviewed via PR) | Skipped |
+
+Audit = invoke `@code-review` → `APPROVED` or `REJECTED`. QA = full Playwright loop (§4 A→B→C). No merge until both pass for their type.
+
 5. **Branch merge (PR workflow):**
    - `@release-manager` creates PR from working branch into target.
    - **Stop + Prompt:** Present PR URL. Wait for "Approved"/"Aprobado".
