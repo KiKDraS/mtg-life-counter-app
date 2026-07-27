@@ -28,7 +28,7 @@ import type { PlayerColor } from "@/features/life-counter/types/player";
 import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 
 interface PlayerZoneProps {
-  readonly playerId: 1 | 2 | 3 | 4 | 5 | 6;
+  readonly playerId: 0 | 1 | 2 | 3 | 4 | 5;
   readonly color: PlayerColor;
   readonly opponentColor: PlayerColor;
   readonly rotation?: 0 | 90 | -90 | 180;
@@ -120,7 +120,7 @@ export function PlayerZone({
       style={{ transform: `rotate(${rotation}deg)` }}
     >
       <section
-        aria-label={`Player ${playerId}: ${state.life} life`}
+        aria-label={`Player ${playerId + 1}: ${state.life} life`}
         className="grid h-full w-full grid-cols-3"
         style={{ background, color: textColor }}
       >
