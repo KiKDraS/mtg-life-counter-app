@@ -284,9 +284,10 @@ Native `<dialog>` with `aria-modal="true"`. No modal library.
 ```html
 <dialog aria-modal="true" aria-labelledby="dialog-title">
   <h2 id="dialog-title">Initial Life</h2>
-  <button aria-label="Close" autofocus>✕</button>
 </dialog>
 ```
+
+Selection modals omit ✕ close button — close via backdrop tap or Escape. Focus lands on first selectable item (`autofocus` on first preset cell or first SVG).
 
 ### 6.2 Initial Life Selector
 2-column grid. Each cell = preset value. Tap selects.
