@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { DialogShell } from "@/shared/components/DialogShell";
 import { OverlaySurface } from "@/shared/components/OverlaySurface";
 import { CounterRow } from "@/features/life-counter/components/CounterRow";
+import { CustomCounterModal } from "@/features/life-counter/components/CustomCounterModal";
 import { UI } from "@/shared/lib/constants/colors";
 import type { Counter } from "@/features/life-counter/types/counter";
 
@@ -38,61 +39,62 @@ export function Counters({
   onAdjust,
   onAdd,
 }: CountersProps) {
-  /*
-   * Handle adding a custom counter.
-   * Note: window.prompt is synchronous and blocks the main thread.
-   * For future iterations, consider replacing with a custom non-blocking UI modal.
-   */
-  const handleAddCustom = useCallback(() => {
-    const rawName = window.prompt("Custom counter name:");
-    const trimmedName = rawName?.trim();
+  const customDialogRef = useRef<HTMLDialogElement | null>(null);
 
-    if (!trimmedName) return;
+  const handleOpenCustom = useCallback(() => {
+    customDialogRef.current?.showModal();
+  }, []);
 
-    /* Self-documenting ID creation */
-    const customCounterId = `custom-${++customIdSeq}`;
-    onAdd(customCounterId, trimmedName);
-  }, [onAdd]);
+  const handleAddCustom = useCallback(
+    (name: string) => {
+      const id = `custom-${++customIdSeq}`;
+      onAdd(id, name);
+    },
+    [onAdd],
+  );
 
   return (
-    <DialogShell
-      dialogRef={dialogRef}
-      ariaLabelledBy="counters-title"
-      onClose={onClose}
-    >
-      <OverlaySurface dialogRef={dialogRef}>
-        <h2
-          id="counters-title"
-          className="text-heading font-bold text-ui-textLight"
-        >
-          Counters
-        </h2>
-
-        {/*
-         * Architecture upgrade: CSS Grid handles the 2-column layout natively.
-         * 'grid-cols-2' replaces the manual JS grouping and nested flexbox wrappers.
-         */}
-        <div className="grid w-full max-w-lg grid-cols-2 gap-x-10 gap-y-6 px-4">
-          {counters.map((counter) => (
-            <CounterRow
-              key={counter.id}
-              counter={counter}
-              onAdjust={onAdjust}
-            />
-          ))}
-        </div>
-      </OverlaySurface>
-
-      {/* [+] button — fixed bottom-right */}
-      <button
-        type="button"
-        aria-label="Add custom counter"
-        className="absolute right-4 bottom-4 z-40 flex size-14 select-none touch-manipulation items-center justify-center rounded-full bg-white/10 text-4xl font-bold leading-none focus-visible:outline-none"
-        style={{ color: UI.textLight }}
-        onClick={handleAddCustom}
+    <>
+      <DialogShell
+        dialogRef={dialogRef}
+        ariaLabelledBy="counters-title"
+        onClose={onClose}
       >
-        +
-      </button>
-    </DialogShell>
+        <OverlaySurface dialogRef={dialogRef}>
+          <h2
+            id="counters-title"
+            className="text-heading font-bold text-ui-textLight"
+          >
+            Counters
+          </h2>
+
+          <div className="grid w-full max-w-lg grid-cols-2 gap-x-10 gap-y-6 px-4">
+            {counters.map((counter) => (
+              <CounterRow
+                key={counter.id}
+                counter={counter}
+                onAdjust={onAdjust}
+              />
+            ))}
+          </div>
+        </OverlaySurface>
+
+        {/* [+] button — fixed bottom-right */}
+        <button
+          type="button"
+          aria-label="Add custom counter"
+          className="absolute right-4 bottom-4 z-40 flex size-14 select-none touch-manipulation items-center justify-center rounded-full bg-white/10 text-4xl font-bold leading-none focus-visible:outline-none"
+          style={{ color: UI.textLight }}
+          onClick={handleOpenCustom}
+        >
+          +
+        </button>
+      </DialogShell>
+
+      <CustomCounterModal
+        dialogRef={customDialogRef}
+        onSubmit={handleAddCustom}
+      />
+    </>
   );
 }
