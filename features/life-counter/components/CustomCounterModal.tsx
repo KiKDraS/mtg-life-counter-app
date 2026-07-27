@@ -34,6 +34,14 @@ export function CustomCounterModal({
     dialogRef.current?.close();
   }, [onSubmit, dialogRef]);
 
+  const handleBackdropClick = useCallback(
+    (e: React.MouseEvent) => {
+      const isBackdrop = e.target === e.currentTarget;
+      if (isBackdrop) dialogRef.current?.close();
+    },
+    [dialogRef],
+  );
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       const isEnter = e.key === "Enter";
@@ -51,7 +59,10 @@ export function CustomCounterModal({
       ariaLabelledBy="custom-counter-title"
       className="bg-black/35"
     >
-      <div className="flex h-full flex-col items-center justify-center px-4">
+      <div
+        className="flex h-full flex-col items-center justify-center px-4"
+        onClick={handleBackdropClick}
+      >
         <div
           className="w-full max-w-sm rounded-lg p-6"
           style={{ backgroundColor: UI.overlay }}
