@@ -1,131 +1,112 @@
-"use client";
-
-import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { UI } from "@/shared/lib/constants/colors";
 import { cn } from "@/shared/lib/cn";
+
 import RestartGame from "@/shared/components/icons/player-actions/RestartGame";
 import LifeSettings from "@/shared/components/icons/player-actions/LifeSettings";
 import CallJudge from "@/shared/components/icons/player-actions/CallJudge";
 import SelectPlayers from "@/shared/components/icons/player-actions/SelectPlayers";
 import mtgLogo from "@/features/spellbook/images/mtg-logo.png";
 
+import { RestartGameAction } from "./menu-actions/RestartGameAction";
+import { SetLifeAction } from "./menu-actions/SetLifeAction";
+import { CallJudgeAction } from "./menu-actions/CallJudgeAction";
+import { SelectPlayersAction } from "./menu-actions/SelectPlayersAction";
+
 /**
+ * @description
+ * Structural wrapper for grouping action buttons in the belt.
+ * Keeps the main menu JSX DRY and semantic. (Server Component)
+ */
+function ActionGroup({ children }: { readonly children: React.ReactNode }) {
+  return <div className="flex items-center gap-6">{children}</div>;
+}
+
+/**
+ * @description
  * §5 — Central Spellbook Menu.
  *
- * Collapsed: thin rope line + 56×56 M logo at screen center.
- * Expanded: black belt (~72px) with 4 action icons.
- * Tap M or outside to toggle.
+ * A CSS-only interactive menu built as a pure React Server Component (RSC).
+ * It leverages the HTML "checkbox hack" alongside Tailwind's `peer` utility
+ * to manage the open/close state natively. This architectural choice eliminates
+ * the need for client-side state (`useState`), prevents re-renders, and ensures
+ * the menu works immediately before JavaScript hydration.
  */
 export function SpellbookMenu() {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const toggle = useCallback(() => setOpen((o) => !o), []);
-
-  /* Close on outside click */
-  useEffect(() => {
-    if (!open) return;
-
-    const handleClick = (e: PointerEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener("pointerdown", handleClick);
-    return () => document.removeEventListener("pointerdown", handleClick);
-  }, [open]);
-
   return (
-    <div
-      ref={menuRef}
-      className="relative z-50 flex items-center justify-center"
-    >
-      {/* Rope line — always visible, edge-to-edge */}
-      <div
-        className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2"
-        style={{ backgroundColor: UI.iconDark, opacity: 0.3 }}
+    <div className="relative z-50 flex items-center justify-center bg-ui-belt">
+      {/*
+       * 1. State: Hidden checkbox acts as the source of truth.
+       * Tailwind's 'peer' class allows sibling elements to react to its 'checked' state.
+       */}
+      <input
+        type="checkbox"
+        id="spellbook-toggle"
+        className="peer sr-only"
+        aria-label="Toggle Spellbook Menu"
       />
 
-      {/* Belt — expands from center */}
+      {/*
+       * 2. Dismissal: A full-screen, hidden label that becomes active when the menu opens.
+       * Clicking anywhere on it unchecks the input, handling the "click outside" behavior without JS.
+       */}
+      <label
+        htmlFor="spellbook-toggle"
+        className="fixed inset-0 z-40 hidden cursor-default peer-checked:block"
+        aria-label="Close menu"
+        aria-hidden="true"
+      />
+
+      {/* Rope line background element */}
+      <div className="absolute inset-x-0 top-1/2 -z-10 h-px -translate-y-1/2 opacity-90 bg-ui-iconDark" />
+
+      {/*
+       * 3. Belt Container: Expands dynamically when the peer checkbox is checked.
+       * Using CSS transitions instead of JS-based animation ensures hardware-accelerated performance.
+       */}
       <div
         className={cn(
-          "relative flex items-center justify-center overflow-hidden",
-          "transition-all duration-300 ease-in-out",
-          "motion-reduce:transition-none"
+          "relative z-50 flex h-0 w-0 items-center justify-center overflow-hidden opacity-0",
+          "transition-all duration-300 ease-in-out motion-reduce:transition-none",
+          "peer-checked:h-18 peer-checked:w-full peer-checked:opacity-100",
         )}
-        style={{
-          backgroundColor: UI.belt,
-          height: open ? 72 : 0,
-          width: open ? "100%" : 0,
-          opacity: open ? 1 : 0,
-        }}
       >
-        {/* Icons — spread when open */}
         <div className="flex w-full items-center justify-between px-6">
-          {/* Left side: ⟳ Restart (near), ⚙️ Initial Life (far) */}
-          <div className="flex items-center gap-6">
-            <button
-              type="button"
-              aria-label="Restart Life"
-              className={cn(
-                "flex size-12 items-center justify-center rounded-full",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              )}
-            >
+          <ActionGroup>
+            <RestartGameAction>
               <RestartGame size={28} />
-            </button>
-            <button
-              type="button"
-              aria-label="Initial Life"
-              className={cn(
-                "flex size-12 items-center justify-center rounded-full",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              )}
-            >
-              <LifeSettings size={28} />
-            </button>
-          </div>
+            </RestartGameAction>
 
-          {/* Center: M logo placeholder (belt space) */}
+            <SetLifeAction>
+              <LifeSettings size={28} />
+            </SetLifeAction>
+          </ActionGroup>
+
+          {/* Center gap reserved for the logo */}
           <div className="size-14" />
 
-          {/* Right side: ⚖️ AI Judge (near), 👥 Players (far) */}
-          <div className="flex items-center gap-6">
-            <button
-              type="button"
-              aria-label="AI Judge"
-              className={cn(
-                "flex size-12 items-center justify-center rounded-full",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              )}
-            >
+          <ActionGroup>
+            <CallJudgeAction>
               <CallJudge size={28} />
-            </button>
-            <button
-              type="button"
-              aria-label="Players"
-              className={cn(
-                "flex size-12 items-center justify-center rounded-full",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              )}
-            >
+            </CallJudgeAction>
+
+            <SelectPlayersAction>
               <SelectPlayers size={28} />
-            </button>
-          </div>
+            </SelectPlayersAction>
+          </ActionGroup>
         </div>
       </div>
 
-      {/* M logo — always centered, sits on top of rope/belt */}
-      <button
-        type="button"
-        aria-label="Spellbook Menu"
+      {/*
+       * 4. Trigger: The central logo acts as the primary label for the checkbox.
+       * Clicking it naturally toggles the 'checked' state of the peer input.
+       */}
+      <label
+        htmlFor="spellbook-toggle"
+        aria-label="Open Spellbook Menu"
         className={cn(
-          "absolute z-10 flex size-14 items-center justify-center",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          "absolute z-50 flex size-14 cursor-pointer items-center justify-center",
+          "focus-within:ring-2 focus-within:ring-white",
         )}
-        onClick={toggle}
       >
         <Image
           src={mtgLogo}
@@ -135,7 +116,7 @@ export function SpellbookMenu() {
           className="drop-shadow-lg"
           priority
         />
-      </button>
+      </label>
     </div>
   );
 }
