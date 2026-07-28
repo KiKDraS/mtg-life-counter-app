@@ -25,16 +25,17 @@ features/     # life-counter/, ai-judge/
 shared/       # components/, lib/ (cn, constants, state, types)
 public/       # Static assets
 tests/        # Playwright (e2e/, components/)
-DESIGN.md     # Design contract
+DESIGN.md     # Design contract (visual + interaction)
+SPEC.md       # Application logic contract (behavior + data model)
 .opencode/    # agents/, skills/
 ```
 
 ---
 
-## DESIGN.md > Generic Rules
+## Contract Hierarchy
 
-DESIGN.md conflicts with skill rule → **DESIGN.md wins.**
-All agents read DESIGN.md before UI work. `@code-review` verifies against DESIGN.md.
+SPEC.md < DESIGN.md. DESIGN.md wins on conflicts.
+All agents read both before work. `@code-review` verifies against both.
 
 ---
 
@@ -54,10 +55,10 @@ All merges via PRs only. Branch ops by `@release-manager`.
 
 | Agent                        | Responsible For                                 | Must Read      |
 | ---------------------------- | ----------------------------------------------- | -------------- |
-| `@orchestrator`              | Planning, delegation, gates, DESIGN.md          | AGENTS.md      |
-| `@frontend-dev`              | React components, Tailwind, game layout         | DESIGN.md §1–9 |
-| `@ai-engineer`               | AI Judge route, OpenRouter SDK, RAG pipeline    | DESIGN.md §6.4 |
-| `@code-review`               | Compliance audit vs DESIGN.md                   | DESIGN.md      |
+| `@orchestrator`              | Planning, delegation, gates, DESIGN.md          | AGENTS.md, DESIGN.md, SPEC.md |
+| `@frontend-dev`              | React components, Tailwind, game layout         | DESIGN.md §1–9, SPEC.md       |
+| `@ai-engineer`               | AI Judge route, OpenRouter SDK, RAG pipeline    | DESIGN.md §6.4, SPEC.md       |
+| `@code-review`               | Compliance audit vs DESIGN.md + SPEC.md         | DESIGN.md, SPEC.md            |
 | `@playwright-test-planner`   | Test scenarios from component tree              | DESIGN.md §4–9 |
 | `@playwright-test-generator` | Test code                                       | DESIGN.md §4–9 |
 | `@playwright-test-healer`    | Test execution                                  | DESIGN.md §4–9 |
@@ -86,7 +87,7 @@ Skills: `caveman`, `caveman-commit`, `caveman-review`, `caveman-help`, `caveman-
 
 ### Mandatory: ultra on core files
 
-Editing AGENTS.md, DESIGN.md, or `.opencode/agents/*.md` → **caveman ultra** forced. No lite, no full. Rationale: these files read every session. Token density matters.
+Editing AGENTS.md, DESIGN.md, SPEC.md, or `.opencode/agents/*.md` → **caveman ultra** forced. No lite, no full. Rationale: these files read every session. Token density matters.
 
 ---
 
@@ -101,7 +102,7 @@ features. Training data stale. Don't use for business logic.
 
 ## Enforcement
 
-> This doc + DESIGN.md are binding contracts. Violations rejected by
+> This doc + DESIGN.md + SPEC.md are binding contracts. Violations rejected by
 > `@code-review`. Pipeline halts.
 
 **Change proposal:** `@orchestrator` presents, user approves ("Approved"/"Aprobado"),

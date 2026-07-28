@@ -514,13 +514,8 @@ each commander deals to current player.
 └──────────────────────┘
 ```
 
-Each entry = `{ playerId: number, value: number }`:
-
-- **playerId:** Which commander (matches the commander's owner's playerId).
-- **value:** Commander damage dealt by that commander to current player.
-
-Example: Player 1 (playerId: 0) sees columns for playerId 0 (own commander), 1,
-2, 3 (opponents).
+Data model: see SPEC.md §4 `CommanderDamage`. Player 1 (playerId: 0) sees columns
+for playerId 0 (own commander), 1, 2, 3 (opponents).
 
 - **Pill:** Rounded. Commander owner's mana color. `PlaneswalkerSymbol` inside
   (white fill).
@@ -598,57 +593,9 @@ All interactive: ≥44×44px (48×48px preferred).
 
 ---
 
-## 10. APPLICATION STATE & PERSISTENCE
+## 10. APPLICATION STATE
 
-### 10.1 Default State (First Load)
-
-When app launches with no saved state, initialize:
-
-| Key              | Value                                          | Notes                                         |
-| ---------------- | ---------------------------------------------- | --------------------------------------------- |
-| Players          | 2                                              | Determines layout (§4.1)                      |
-| Player colors    | R (Red) for all                                | Each player defaults to red mana color (§2.1) |
-| Life             | 40                                             | Commander default                             |
-| Counters         | 0 (all four: poison, energy, experience, time) | §7.4                                          |
-| Commander damage | 0 (per commander per player)                   | §7.3                                          |
-
-### 10.2 Persistence via IndexDB
-
-- **Every state change** (life, counters, commander damage, players, colors) →
-  persist to IndexDB.
-- **App load → read IndexDB first:**
-  - Saved state exists → restore it.
-  - No saved state → use §11.1 defaults.
-- **Storage key:** Single record. No user accounts — device-local only. No
-  session separation. One record for every state change
-
-### 10.3 What to Persist
-
-```typescript
-{
-  players: number,
-  playerStates: [{
-    playerId: number,         // matches array index. Stable identity for cross-references.
-    life: number,
-    color: ManaColor,
-    counters: Counter[],
-    commanderDamage: CommanderDamage[]   // every commander in play, including own
-  }]
-}
-```
-
-- `playerId` equals array index (0 = Player 1). Used to match commander damage
-  entries to the commander's owner.
-- No history/undo data. No multi-session.
-- No auth tokens, no cloud sync.
-
+Data model, defaults, persistence: see SPEC.md §1–6.
 ---
 
-## 11. FUTURE SCOPE
-
-| Feature                         | Phase |
-| ------------------------------- | ----- |
-| Guild color combos (10 2-color) | 2     |
-| AI Judge voice input            | 2     |
-| Card art BGs from Scryfall      | 2     |
-| Offline AI rules engine         | 3     |
+_End of DESIGN.md_
