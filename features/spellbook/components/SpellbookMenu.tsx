@@ -7,7 +7,7 @@ import RestartGame from "@/shared/components/icons/player-actions/RestartGame";
 import LifeSettings from "@/shared/components/icons/player-actions/LifeSettings";
 import CallJudge from "@/shared/components/icons/player-actions/CallJudge";
 import SelectPlayers from "@/shared/components/icons/player-actions/SelectPlayers";
-import mtgLogo from "@/shared/images/mtg-logo.png";
+import mtgLogo from "@/features/spellbook/images/mtg-logo.png";
 
 /**
  * §5 — Central Spellbook Menu.
@@ -37,7 +37,10 @@ export function SpellbookMenu() {
   }, [open]);
 
   return (
-    <div ref={menuRef} className="relative z-50 flex items-center justify-center">
+    <div
+      ref={menuRef}
+      className="relative z-50 flex items-center justify-center"
+    >
       {/* Rope line — always visible, edge-to-edge */}
       <div
         className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2"
