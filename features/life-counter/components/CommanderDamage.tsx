@@ -7,14 +7,23 @@ import { INCREMENT_LIFE } from "@/features/life-counter/constants/life";
 import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
 import { UI } from "@/shared/lib/constants/colors";
 import PlaneswalkerSymbol from "@/shared/components/icons/PlaneswalkerSymbol";
+import { useGameStateContext } from "@/features/life-counter/state/game-state-context";
 import type { PlayerColor } from "@/features/life-counter/types/player";
 
 interface CommanderDamageProps {
   readonly dialogRef: React.RefObject<HTMLDialogElement | null>;
   readonly onClose: () => void;
-  readonly opponentColor: PlayerColor;
+  readonly playerId: number;
   readonly damage: number;
   readonly onAdjust: (delta: number) => void;
+}
+
+/**
+ * Returns opponent colors for a player. All Red until Color Picker syncs to
+ * GameState via SET_PLAYER_COLOR.
+ */
+function opponentColors(playerId: number, playerCount: number): PlayerColor[] {
+  return Array.from({ length: playerCount - 1 }, () => "r" as PlayerColor);
 }
 
 /**
@@ -33,12 +42,17 @@ interface CommanderDamageProps {
 export function CommanderDamage({
   dialogRef,
   onClose,
-  opponentColor,
+  playerId,
   damage,
   onAdjust,
 }: CommanderDamageProps) {
   /* + button with hold acceleration — reuses useLifeAdjustment */
   const adjustment = useLifeAdjustment(onAdjust);
+  const { state: gameState } = useGameStateContext();
+
+  const colors = opponentColors(playerId, gameState.playerCount);
+  /* ponytail: single opponent column; map over `colors` when multi-player */
+  const opponentColor = colors[0] ?? "r";
 
   const isLethal = damage >= 21;
   const { background: pillBg, textColor: pillFg } =

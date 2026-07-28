@@ -1,13 +1,18 @@
 "use client";
 
-import { PropsWithChildren } from "react";
+import { type PropsWithChildren } from "react";
 import { MenuActionButton } from "../MenuActionButton";
 
-export const CallJudgeAction = ({ children }: PropsWithChildren) => {
-  const callJudge = () => {};
+/* ponytail: AI Judge modal (DESIGN.md §6.4) not built yet.
+ * Wire when chat component exists. */
+export function CallJudgeAction({ children }: PropsWithChildren) {
+  const handleCallJudge = () => {
+    /* §6.4 — opens AI Judge chat modal. */
+  };
+
   return (
-    <MenuActionButton ariaLabel="AI Judge" onClick={callJudge}>
+    <MenuActionButton ariaLabel="AI Judge" onClick={handleCallJudge}>
       {children}
     </MenuActionButton>
   );
-};
+}

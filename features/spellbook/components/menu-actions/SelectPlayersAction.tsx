@@ -1,14 +1,18 @@
 "use client";
 
-import { PropsWithChildren } from "react";
+import { type PropsWithChildren } from "react";
 import { MenuActionButton } from "../MenuActionButton";
 
-export const SelectPlayersAction = ({ children }: PropsWithChildren) => {
-  const selectPlayers = () => {};
+/* ponytail: Player Selector modal (DESIGN.md §6.3) not built yet.
+ * Wire to useGameStateContext + setPlayerCount when modal component exists. */
+export function SelectPlayersAction({ children }: PropsWithChildren) {
+  const handleSelect = () => {
+    /* §6.3 — opens Player Count SVG selector modal. */
+  };
 
   return (
-    <MenuActionButton ariaLabel="Players" onClick={selectPlayers}>
+    <MenuActionButton ariaLabel="Players" onClick={handleSelect}>
       {children}
     </MenuActionButton>
   );
-};
+}

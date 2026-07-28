@@ -29,7 +29,6 @@ import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 
 interface PlayerZoneProps {
   readonly playerId: 0 | 1 | 2 | 3 | 4 | 5;
-  readonly opponentColor: PlayerColor;
   readonly rotation?: 0 | 90 | -90 | 180;
 }
 
@@ -49,7 +48,6 @@ const buttonClass = cn(
  */
 export function PlayerZone({
   playerId,
-  opponentColor,
   rotation = 0,
 }: PlayerZoneProps) {
   const { state, dispatch } = usePlayerStateContext();
@@ -213,7 +211,7 @@ export function PlayerZone({
        */}
       <CommanderDamage
         dialogRef={commanderRef}
-        opponentColor={opponentColor}
+        playerId={playerId}
         damage={state.commanderDamage}
         onAdjust={(delta) => dispatch(adjustCommanderDamage(delta))}
         onClose={() => {

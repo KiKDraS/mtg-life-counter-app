@@ -9,6 +9,7 @@ import {
 import type { PlayerColor } from "@/features/life-counter/types/player";
 import type { Counter } from "@/features/life-counter/types/counter";
 import { DEFAULT_COUNTERS } from "@/features/life-counter/constants/counter";
+import { useOptionalGameStateContext } from "@/features/life-counter/state/game-state-context";
 
 /* ── State ── */
 export interface PlayerState {
@@ -117,18 +118,26 @@ const PlayerContext = createContext<PlayerContextValue | null>(null);
  * through the `children` prop unchanged — only leaf interactive components
  * that call {@link usePlayerStateContext} need to be client.
  *
- * SPEC §3 defaults: 40 life, Red color. IndexedDB overrides post-hydration.
+ * When `playerIndex` is provided, initial life and color are read from the
+ * parent {@link GameProvider} (SPEC §3 defaults: 40 life, derived color).
+ * Standalone usage (no GameProvider) falls back to hardcoded defaults.
  *
  * @see DESIGN.md §10, SPEC.md §3
  */
 export function PlayerProvider({
+  playerIndex,
   children,
 }: {
+  readonly playerIndex?: number;
   readonly children: ReactNode;
 }) {
+  /* Always call hooks at the top level — Rules of Hooks compliant. */
+  const gameCtx = useOptionalGameStateContext();
+  const hasGameCtx = playerIndex !== undefined && gameCtx !== null;
+
   const [state, dispatch] = useReducer(playerReducer, {
-    life: 40,
-    color: "r",
+    life: hasGameCtx ? gameCtx.state.initialLife : 40,
+    color: "r" as PlayerColor,
     commanderDamage: 0,
     counters: DEFAULT_COUNTERS,
   });

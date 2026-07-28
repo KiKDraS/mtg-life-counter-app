@@ -1,14 +1,22 @@
 "use client";
 
-import { PropsWithChildren } from "react";
+import { type PropsWithChildren } from "react";
 import { MenuActionButton } from "../MenuActionButton";
+import {
+  useGameStateContext,
+  restartGame,
+} from "@/features/life-counter/state/game-state-context";
 
-export const RestartGameAction = ({ children }: PropsWithChildren) => {
-  const handleRestart = () => {};
+export function RestartGameAction({ children }: PropsWithChildren) {
+  const { dispatch } = useGameStateContext();
+
+  const handleRestart = () => {
+    dispatch(restartGame());
+  };
 
   return (
     <MenuActionButton ariaLabel="Restart Life" onClick={handleRestart}>
       {children}
     </MenuActionButton>
   );
-};
+}
