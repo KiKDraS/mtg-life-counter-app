@@ -19,7 +19,7 @@ const MANA_KEYS = Object.keys(MANA).slice(0, 5) as ManaColor[];
 /* Repeated 5 times on the mana wheel. */
 const manaWheelBtnClass = cn(
   "absolute rounded-full",
-  "transition-transform hover:scale-110",
+  "transition-transform",
   "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white",
 );
 
