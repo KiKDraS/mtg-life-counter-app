@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PlayerZone } from "@/features/life-counter/components/PlayerZone";
+import { SpellbookMenu } from "@/features/spellbook/components/SpellbookMenu";
 import { PlayerColor } from "@/features/life-counter/types/player";
 
 export const metadata: Metadata = {
@@ -24,10 +25,35 @@ export default function Home() {
     },
   ];
 
+  const mid = Math.ceil(players.length / 2);
+  const topPlayers = players.slice(0, mid);
+  const bottomPlayers = players.slice(mid);
+
   return (
     <main className="flex h-dvh flex-col">
-      {players.map((player, i) => {
+      {/* Top player zones */}
+      {topPlayers.map((player, i) => {
         const playerId = i as 0 | 1 | 2 | 3 | 4 | 5;
+
+        return (
+          <div className="flex-1" key={playerId}>
+            <PlayerZone
+              playerId={playerId}
+              color={player.color as PlayerColor}
+              opponentColor={player.opponentColor as PlayerColor}
+              rotation={player.rotation as 0 | 90 | -90 | 180}
+              initialLife={player.initialLife}
+            />
+          </div>
+        );
+      })}
+
+      {/* §5 — Spellbook belt divider */}
+      <SpellbookMenu />
+
+      {/* Bottom player zones */}
+      {bottomPlayers.map((player, i) => {
+        const playerId = (mid + i) as 0 | 1 | 2 | 3 | 4 | 5;
 
         return (
           <div className="flex-1" key={playerId}>
