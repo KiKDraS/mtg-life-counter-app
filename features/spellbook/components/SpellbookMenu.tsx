@@ -57,7 +57,7 @@ export function SpellbookMenu() {
       />
 
       {/* Rope line background element */}
-      <div className="absolute inset-x-0 top-1/2 -z-10 h-px -translate-y-1/2 opacity-90 bg-ui-iconDark" />
+      <div className="absolute inset-x-0 top-1/2 -z-10 h-1 opacity-90 -translate-y-1/2 bg-ui-iconDark" />
 
       {/*
        * 3. Belt Container: Expands dynamically when the peer checkbox is checked.
