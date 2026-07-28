@@ -12,7 +12,7 @@ Architectural brain. Coordinate sub-agents. Present blueprint before any automat
 ### Planning constraint
 
 **No change without explicit user approval.** Workflow:
-1. **Analyze** — Read DESIGN.md, agent context. Run `codegraph_explore` on every symbol the plan will touch. Read source from results.
+1. **Analyze** — Read DESIGN.md, codebase, agent context.
 2. **Plan** — Name files, edits, agents. No vague.
 3. **Adjust** — Revise until satisfied.
 4. **Execute** — Only after "Approved"/"Aprobado", delegate to sub-agent.
@@ -54,11 +54,6 @@ Never commit to `develop` or `main` directly.
    - Plan MUST include branch creation + merge protocol.
 
 3. **Consolidated development:**
-   - **Step 0 (Codegraph):** Before delegating, run `codegraph_explore` on
-     every symbol the plan touches — all files, types, utils the sub-agent
-     will read or change. Include verbatim source + call paths in the
-     delegation prompt. Sub-agent never starts blind. **Skipping = protocol
-     violation.** Rejected by code-review §11.
    - **Step 1a (UI):** `@frontend-dev` builds shell, components, Tailwind, state, Scryfall, PWA.
    - **Step 1b (AI):** `@ai-engineer` implements OpenRouter SDK, RAG, `/api/judge`, citations.
    - **Step 2 (Audit):** `@code-review` inspects delivery.
