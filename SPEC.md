@@ -7,7 +7,19 @@
 
 ---
 
-## 1. Player Identity
+## 1. RSC Rules
+
+- **RSC default:** app/ + layouts/grids = RSC.
+- **Client leaf only:** 'use client' on leaf interactive nodes only.
+  Root/grid/page client banned.
+- **IndexedDB SSR sync**: SSR renders §3 defaults. Client hydrator loads
+  IndexedDB post-mount. No render blocking.
+- **Client ban:** No node/server libs, no async components, no 'use server'
+  inside 'use client'.
+
+---
+
+## 2. Player Identity
 
 - No names — color + position only identifier (matches DESIGN.md §1.3).
 - `playerId: number` = array index in `playerStates[]` (0 = Player 1).
@@ -16,21 +28,21 @@
 
 ---
 
-## 2. Default State (First Load)
+## 3. Default State (First Load)
 
 When app launches with no saved IndexDB state:
 
-| Key              | Value   | Notes                     |
-| ---------------- | ------- | ------------------------- |
-| Players          | 2       | Layout per DESIGN.md §4.1 |
-| Player colors    | R (Red) | Per DESIGN.md §2.1        |
-| Life             | 40      | Commander default         |
+| Key              | Value   | Notes                                      |
+| ---------------- | ------- | ------------------------------------------ |
+| Players          | 2       | Layout per DESIGN.md §4.1                  |
+| Player colors    | R (Red) | Per DESIGN.md §2.1                         |
+| Life             | 40      | Commander default                          |
 | Counters         | 0       | All four: poison, energy, experience, time |
-| Commander damage | 0       | Per commander per player  |
+| Commander damage | 0       | Per commander per player                   |
 
 ---
 
-## 3. Persistence (IndexDB)
+## 4. Persistence (IndexDB)
 
 - **Save:** Every state change (life, counters, commander damage, players,
   colors) → persist.
@@ -41,7 +53,7 @@ When app launches with no saved IndexDB state:
 
 ---
 
-## 4. Data Model
+## 5. Data Model
 
 ```typescript
 interface CommanderDamage {
@@ -72,7 +84,7 @@ interface GameState {
 
 ---
 
-## 5. Commander Damage Rules
+## 6. Commander Damage Rules
 
 - Track damage from EVERY commander in play (own + opponents).
 - `CommanderDamage.playerId` = commander owner's identity.
@@ -81,17 +93,17 @@ interface GameState {
 
 ---
 
-## 6. Custom Counters
+## 7. Custom Counters
 
-- Added via [+] on Counters overlay → Custom Counter Name modal
-  (DESIGN.md §6.6).
-- Display: rounded pill `#CAC5C0`, `iconDark` first-letter silhouette
-  (DESIGN.md §7.4).
+- Added via [+] on Counters overlay → Custom Counter Name modal (DESIGN.md
+  §6.6).
+- Display: rounded pill `#CAC5C0`, `iconDark` first-letter silhouette (DESIGN.md
+  §7.4).
 - Persisted in `counters[]` with `type: "custom"`, `name` set.
 
 ---
 
-## 7. Roadmap
+## 8. Roadmap
 
 | Feature                         | Phase |
 | ------------------------------- | ----- |
