@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { UI } from "@/shared/lib/constants/colors";
+import { cn } from "@/shared/lib/cn";
 import RestartGame from "@/shared/components/icons/player-actions/RestartGame";
 import LifeSettings from "@/shared/components/icons/player-actions/LifeSettings";
 import CallJudge from "@/shared/components/icons/player-actions/CallJudge";
@@ -49,7 +50,11 @@ export function SpellbookMenu() {
 
       {/* Belt — expands from center */}
       <div
-        className="relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out"
+        className={cn(
+          "relative flex items-center justify-center overflow-hidden",
+          "transition-all duration-300 ease-in-out",
+          "motion-reduce:transition-none"
+        )}
         style={{
           backgroundColor: UI.belt,
           height: open ? 72 : 0,
@@ -59,21 +64,27 @@ export function SpellbookMenu() {
       >
         {/* Icons — spread when open */}
         <div className="flex w-full items-center justify-between px-6">
-          {/* Left side: ⚙️ Initial Life (far), ⟳ Restart (near) */}
+          {/* Left side: ⟳ Restart (near), ⚙️ Initial Life (far) */}
           <div className="flex items-center gap-6">
             <button
               type="button"
-              aria-label="Initial Life"
-              className="flex size-12 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              aria-label="Restart Life"
+              className={cn(
+                "flex size-12 items-center justify-center rounded-full",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              )}
             >
-              <LifeSettings size={28} />
+              <RestartGame size={28} />
             </button>
             <button
               type="button"
-              aria-label="Restart Life"
-              className="flex size-12 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              aria-label="Initial Life"
+              className={cn(
+                "flex size-12 items-center justify-center rounded-full",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              )}
             >
-              <RestartGame size={28} />
+              <LifeSettings size={28} />
             </button>
           </div>
 
@@ -85,14 +96,20 @@ export function SpellbookMenu() {
             <button
               type="button"
               aria-label="AI Judge"
-              className="flex size-12 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className={cn(
+                "flex size-12 items-center justify-center rounded-full",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              )}
             >
               <CallJudge size={28} />
             </button>
             <button
               type="button"
               aria-label="Players"
-              className="flex size-12 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className={cn(
+                "flex size-12 items-center justify-center rounded-full",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              )}
             >
               <SelectPlayers size={28} />
             </button>
@@ -104,7 +121,10 @@ export function SpellbookMenu() {
       <button
         type="button"
         aria-label="Spellbook Menu"
-        className="absolute z-10 flex size-14 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        className={cn(
+          "absolute z-10 flex size-14 items-center justify-center",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        )}
         onClick={toggle}
       >
         <Image
