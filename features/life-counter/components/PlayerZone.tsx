@@ -9,14 +9,14 @@ import {
   DECREMENT_LIFE,
 } from "@/features/life-counter/constants/life";
 import {
-  usePlayerState,
+  usePlayerStateContext,
   adjustLife,
   setLife,
   setColor,
   adjustCommanderDamage,
   adjustCounter,
   addCounter,
-} from "@/features/life-counter/hooks/use-player-state";
+} from "@/features/life-counter/state/player-state-context";
 import { POISON_LETHAL } from "@/features/life-counter/constants/counter";
 import { useSwipe } from "@/features/life-counter/hooks/use-swipe";
 import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
@@ -29,10 +29,8 @@ import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 
 interface PlayerZoneProps {
   readonly playerId: 0 | 1 | 2 | 3 | 4 | 5;
-  readonly color: PlayerColor;
   readonly opponentColor: PlayerColor;
   readonly rotation?: 0 | 90 | -90 | 180;
-  readonly initialLife?: number;
 }
 
 const buttonClass = cn(
@@ -51,12 +49,10 @@ const buttonClass = cn(
  */
 export function PlayerZone({
   playerId,
-  color,
   opponentColor,
   rotation = 0,
-  initialLife = 40,
 }: PlayerZoneProps) {
-  const [state, dispatch] = usePlayerState(initialLife, color);
+  const { state, dispatch } = usePlayerStateContext();
 
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const numpadRef = useRef<HTMLDialogElement | null>(null);

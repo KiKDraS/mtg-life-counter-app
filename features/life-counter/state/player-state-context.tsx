@@ -1,6 +1,11 @@
 "use client";
 
-import { useReducer } from "react";
+import {
+  createContext,
+  use,
+  useReducer,
+  type ReactNode,
+} from "react";
 import type { PlayerColor } from "@/features/life-counter/types/player";
 import type { Counter } from "@/features/life-counter/types/counter";
 import { DEFAULT_COUNTERS } from "@/features/life-counter/constants/counter";
@@ -11,7 +16,7 @@ export interface PlayerState {
   readonly color: PlayerColor;
   /* ponytail: single opponent for 2p. Migrate to Record<number, number> when adding multi-player. */
   readonly commanderDamage: number;
-  /* §7.4 — default counters + any custom counters */
+  /** §7.4 — default counters + any custom counters */
   readonly counters: Counter[];
 }
 
@@ -85,30 +90,65 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
         ...state,
         counters: [
           ...state.counters,
-          { id: action.id, type: "custom" as const, value: 0, name: action.name },
+          {
+            id: action.id,
+            type: "custom" as const,
+            value: 0,
+            name: action.name,
+          },
         ],
       };
   }
 }
 
-/* ── Hook ── */
+/* ── Context ── */
+interface PlayerContextValue {
+  readonly state: PlayerState;
+  readonly dispatch: React.Dispatch<PlayerAction>;
+}
+
+const PlayerContext = createContext<PlayerContextValue | null>(null);
+
 /**
- * @description
- * Manages a single player's state via useReducer: life, color, commander damage,
- * and counters (default + custom). Action creators are exported for use with dispatch.
+ * §2 — Per-player state provider.
  *
- * @param initialLife - Starting life total (e.g. 40 for Commander).
- * @param initialColor - Player's chosen mana color identity.
- * @returns A tuple of [PlayerState, React.Dispatch<PlayerAction>].
+ * Donut Hole pattern: thin client boundary that creates isolated React Context
+ * per player. Server-rendered children (layouts, SVG icons, modals) pass
+ * through the `children` prop unchanged — only leaf interactive components
+ * that call {@link usePlayerStateContext} need to be client.
+ *
+ * SPEC §3 defaults: 40 life, Red color. IndexedDB overrides post-hydration.
+ *
+ * @see DESIGN.md §10, SPEC.md §3
  */
-export function usePlayerState(
-  initialLife: number,
-  initialColor: PlayerColor,
-) {
-  return useReducer(playerReducer, {
-    life: initialLife,
-    color: initialColor,
+export function PlayerProvider({
+  children,
+}: {
+  readonly children: ReactNode;
+}) {
+  const [state, dispatch] = useReducer(playerReducer, {
+    life: 40,
+    color: "r",
     commanderDamage: 0,
     counters: DEFAULT_COUNTERS,
   });
+
+  return (
+    <PlayerContext value={{ state, dispatch }}>
+      {children}
+    </PlayerContext>
+  );
+}
+
+/**
+ * Reads player state and dispatch from the nearest PlayerProvider.
+ * Must be called within a component rendered inside PlayerProvider.
+ */
+export function usePlayerStateContext(): PlayerContextValue {
+  const ctx = use(PlayerContext);
+  if (!ctx)
+    throw new Error(
+      "usePlayerStateContext must be used within a <PlayerProvider>",
+    );
+  return ctx;
 }

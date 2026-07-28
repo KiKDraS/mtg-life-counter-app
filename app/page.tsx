@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import { PlayerProvider } from "@/features/life-counter/state/player-state-context";
 import { PlayerZone } from "@/features/life-counter/components/PlayerZone";
 import { SpellbookMenu } from "@/features/spellbook/components/SpellbookMenu";
-import { PlayerColor } from "@/features/life-counter/types/player";
 
 export const metadata: Metadata = {
   title: "MTG Life Counter",
@@ -12,16 +12,12 @@ export const metadata: Metadata = {
 export default function Home() {
   const players = [
     {
-      color: "u",
-      opponentColor: "r",
-      initialLife: 40,
-      rotation: 180,
+      opponentColor: "r" as const,
+      rotation: 180 as const,
     },
     {
-      color: "r",
-      opponentColor: "u",
-      initialLife: 40,
-      rotation: 0,
+      opponentColor: "u" as const,
+      rotation: 0 as const,
     },
   ];
 
@@ -37,13 +33,13 @@ export default function Home() {
 
         return (
           <div className="flex-1" key={playerId}>
-            <PlayerZone
-              playerId={playerId}
-              color={player.color as PlayerColor}
-              opponentColor={player.opponentColor as PlayerColor}
-              rotation={player.rotation as 0 | 90 | -90 | 180}
-              initialLife={player.initialLife}
-            />
+            <PlayerProvider>
+              <PlayerZone
+                playerId={playerId}
+                opponentColor={player.opponentColor}
+                rotation={player.rotation}
+              />
+            </PlayerProvider>
           </div>
         );
       })}
@@ -57,13 +53,13 @@ export default function Home() {
 
         return (
           <div className="flex-1" key={playerId}>
-            <PlayerZone
-              playerId={playerId}
-              color={player.color as PlayerColor}
-              opponentColor={player.opponentColor as PlayerColor}
-              rotation={player.rotation as 0 | 90 | -90 | 180}
-              initialLife={player.initialLife}
-            />
+            <PlayerProvider>
+              <PlayerZone
+                playerId={playerId}
+                opponentColor={player.opponentColor}
+                rotation={player.rotation}
+              />
+            </PlayerProvider>
           </div>
         );
       })}
