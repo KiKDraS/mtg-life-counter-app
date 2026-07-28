@@ -21,8 +21,10 @@ Deliver across 4 layers:
 1. **Pages & Layouts (`app/`):** Route page + shared layouts. RSC by default.
    Export `metadata` for SEO.
 2. **Components (`features/`, `shared/components/`):** Feature-specific UI in
-   `features/<name>/components/`. Shared primitives in `shared/components/`.
-   `'use client'` only when interactivity needed.
+   `features/<name>/components/`. Sub-directory for related component groups
+   (e.g. `menu-actions/`). Flat `components/` only for truly independent pieces.
+   Shared primitives in `shared/components/`. `'use client'` only when
+   interactivity needed.
 3. **Logic (`shared/lib/`, `features/<name>/hooks/`):** Shared utils in
    `shared/lib/`. Stateful logic in feature `hooks/`. Feature types in
    `<name>/types/`, constants in `<name>/constants/`, utils in `<name>/utils/`.
@@ -126,7 +128,7 @@ Deliver across 4 layers:
 
 ### 4. Design & aesthetics (DESIGN.md)
 
-- **Bound by DESIGN.md §1–9.** Read before writing code. Color palette,
+- **Bound by DESIGN.md §1–9 + SPEC.md §1–7.** Read before writing code. Color palette,
   typography, layout grids, modal patterns, gestures, interaction rules = hard
   constraints.
 - **DESIGN.md overrides generic `frontend-design` rules.** This project's

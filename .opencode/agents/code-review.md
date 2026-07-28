@@ -32,6 +32,8 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
   unknowable (JSON.parse before validation).
 - File naming: `.tsx` not PascalCase? Hooks without `use-` prefix? Non-component
   `.ts` not kebab-case? Dir not kebab-case? Flag.
+- Component grouping: Flat `components/` with 7+ files that split naturally
+  into groups (e.g. `menu-actions/`, `dialogs/`)? Flag — demand sub-directory.
 - Keep markers: Flag any change to `// keep:` lines.
 - Named predicates: Flag inline `if (value === "string")` / `if (value <= 0)`.
   Require `const isMeaningful = ...`.
@@ -58,8 +60,7 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 
 ### 3. Tailwind & Design
 
-- **DESIGN.md compliance (PRIMARY):** Read DESIGN.md. Verify code conforms —
-  overrides any generic `frontend-design` rules.
+- **DESIGN.md overrides** any generic `frontend-design` rules.
   - Typography: Archivo via `next/font`. Single font, variable weights per §3.
   - Colors: MTG mana per §2. Text auto-contrast based on luminance.
   - Layout: Grid-based per §4. Top-row zones 180° rotated. No player names.
@@ -159,6 +160,8 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
   component.
 - **SSR hydration:** Verify SSR matches §2 defaults. Prevent IndexedDB hydration
   mismatch.
+
+### 10. Contract Compliance — All agents: Read DESIGN.md + SPEC.md. Flag violations.
 
 ---
 
