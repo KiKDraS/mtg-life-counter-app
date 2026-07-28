@@ -163,6 +163,12 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 
 ### 10. Contract Compliance — All agents: Read DESIGN.md + SPEC.md. Flag violations.
 
+### 11. Codegraph Awareness
+
+- **Symptom check:** Duplicated types, reinvented utils, missed existing
+  constants, wrong imports that suggest codegraph was skipped. Flag each
+  instance. Repeated violations → escalate to orchestrator.
+
 ---
 
 ## Output contract
