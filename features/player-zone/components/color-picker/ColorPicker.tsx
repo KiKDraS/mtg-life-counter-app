@@ -1,5 +1,6 @@
 import type { ManaColor } from "@/shared/lib/constants/colors";
 import { MANA } from "@/shared/lib/constants/colors";
+import { WUBRG } from "@/features/player-zone/constants/player";
 import { cn } from "@/shared/lib/cn";
 import { DialogShell } from "@/shared/components/DialogShell";
 import ManaSelector from "@/shared/components/icons/ManaSelector";
@@ -58,7 +59,7 @@ export function ColorPicker({ id }: ColorPickerProps) {
       {/* 20% — filter strip (§6.5) */}
       <div className="flex h-14 shrink-0 items-center justify-around border-t border-white/10 px-4">
         <ManaActionButton
-          color="wubrg"
+          color={WUBRG}
           dialogId={id}
           className="rounded px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >

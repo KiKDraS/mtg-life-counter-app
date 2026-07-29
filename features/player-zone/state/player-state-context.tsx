@@ -4,7 +4,8 @@ import { createContext, use, useReducer, type ReactNode } from "react";
 import type { PlayerColor, PlayerId } from "@/features/player-zone/types/player";
 import type { CommanderDamage } from "@/features/player-zone/types/CommanderDamage";
 import type { Counter } from "@/features/player-zone/types/counter";
-import { DEFAULT_COUNTERS } from "@/features/player-zone/constants/counter";
+import { DEFAULT_COUNTERS, COUNTER_TYPE_CUSTOM } from "@/features/player-zone/constants/counter";
+import { DEFAULT_PLAYER_COLOR } from "@/features/player-zone/constants/player";
 import { useOptionalGameStateContext } from "@/features/game-shell/state/game-state-context";
 
 /* ── State ── */
@@ -105,7 +106,7 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
           ...state.counters,
           {
             id: action.id,
-            type: "custom" as const,
+            type: COUNTER_TYPE_CUSTOM,
             value: 0,
             name: action.name,
           },
@@ -151,7 +152,7 @@ export function PlayerProvider({
   const initialState: PlayerState = {
     playerId: (playerIndex ?? 0) as PlayerId,
     life: hasGameCtx ? gameCtx.state.initialLife : 40,
-    color: "r" as PlayerColor,
+    color: DEFAULT_PLAYER_COLOR as PlayerColor,
     commanderDamage: Array.from({ length: playerCount }, (_, i) => ({
       playerId: i as PlayerId,
       value: 0,

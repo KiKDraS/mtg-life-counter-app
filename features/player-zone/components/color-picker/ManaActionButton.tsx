@@ -3,6 +3,7 @@
 import { type ReactNode } from "react";
 import { MANA_LABELS } from "@/shared/lib/constants/labels";
 import type { ManaColor } from "@/shared/lib/constants/colors";
+import { WUBRG } from "@/features/player-zone/constants/player";
 import {
   usePlayerStateContext,
   setColor,
@@ -22,7 +23,7 @@ interface ManaActionButtonProps {
 }
 
 function isManaColor(c: PlayerColor): c is ManaColor {
-  return c !== "wubrg";
+  return c !== WUBRG;
 }
 
 /**

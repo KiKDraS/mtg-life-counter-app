@@ -1,6 +1,8 @@
 /* §7.4 — Counter types */
 
-export type CounterType = "poison" | "energy" | "experience" | "time" | "custom";
+import { COUNTER_TYPE_CUSTOM } from "@/features/player-zone/constants/counter";
+
+export type CounterType = "poison" | "energy" | "experience" | "time" | typeof COUNTER_TYPE_CUSTOM;
 
 export interface Counter {
   readonly id: string;
