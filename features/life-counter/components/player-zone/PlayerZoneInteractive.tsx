@@ -65,22 +65,24 @@ export function PlayerZoneInteractive({
     (document.getElementById(dialogId) as HTMLDialogElement | null)?.show();
   }, []);
 
-  /* Close overlays if any are open — returns true if something was closed */
+  /* Close any open overlay — returns true if something was closed */
   const closeOverlays = useCallback(() => {
-    const commander = document.getElementById(
+    const overlayIds = [
+      ids.colorPicker,
+      ids.numpad,
       ids.commanderDmg,
-    ) as HTMLDialogElement | null;
-    const counters = document.getElementById(
       ids.counters,
-    ) as HTMLDialogElement | null;
-
-    if (commander?.open || counters?.open) {
-      commander?.close();
-      counters?.close();
-      return true;
+    ] as const;
+    let closed = false;
+    for (const id of overlayIds) {
+      const el = document.getElementById(id) as HTMLDialogElement | null;
+      if (el?.open) {
+        el.close();
+        closed = true;
+      }
     }
-    return false;
-  }, [ids.commanderDmg, ids.counters]);
+    return closed;
+  }, [ids.colorPicker, ids.numpad, ids.commanderDmg, ids.counters]);
 
   const handleSwipeLeft = useCallback(() => {
     if (closeOverlays()) return;
