@@ -152,7 +152,7 @@ export function PlayerZoneInteractive({
             aria-label="Change color"
             onClick={() => openDialog(ids.colorPicker)}
             className={cn(
-              "absolute right-1 top-1 z-10 flex size-11 items-center justify-center rounded-full transition-colors",
+              "absolute right-1 top-1 z-10 flex size-11 items-center justify-center rounded-full transition-colors cursor-pointer",
               "hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current",
             )}
           >

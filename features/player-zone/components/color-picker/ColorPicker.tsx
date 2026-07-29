@@ -16,7 +16,7 @@ const MANA_KEYS = Object.keys(MANA).slice(0, 5) as ManaColor[];
 const manaWheelBtnClass = cn(
   "absolute rounded-full",
   "transition-transform",
-  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white",
+  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white cursor-pointer",
 );
 
 /**
@@ -61,7 +61,7 @@ export function ColorPicker({ id }: ColorPickerProps) {
         <ManaActionButton
           color={WUBRG}
           dialogId={id}
-          className="rounded px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className="rounded px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white cursor-pointer"
         >
           WUBRG
         </ManaActionButton>
@@ -69,7 +69,7 @@ export function ColorPicker({ id }: ColorPickerProps) {
         <ManaActionButton
           color="c"
           dialogId={id}
-          className="rounded px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className="rounded px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white cursor-pointer"
         >
           Colorless
         </ManaActionButton>
