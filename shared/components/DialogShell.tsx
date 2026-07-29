@@ -4,77 +4,69 @@ import { useCallback } from "react";
 import { cn } from "@/shared/lib/cn";
 
 interface DialogShellProps {
-  readonly dialogRef: React.RefObject<HTMLDialogElement | null>;
+  /** El ID único es crucial. Reemplaza por completo al useRef. */
+  readonly id: string;
   readonly ariaLabelledBy: string;
   readonly children: React.ReactNode;
-  readonly onClose?: () => void;
   readonly className?: string;
 }
 
 /**
- * Shared full-screen dialog shell.
+ * @description
+ * Shared full-screen native dialog shell.
+ * Uses strict DOM ID matching to avoid React state re-renders and prop-drilling.
  *
- * Encapsulates the native `<dialog>` wrapper with aria-modal, aria-labelledby,
- * and the common Tailwind shell classes. Every overlay modal in the app
- * (ColorPicker, LifeNumpad, Commander Damage, Counters, etc.) uses this as
- * its outer container.
- *
- * Tapping the backdrop (outside children) dismisses the dialog, just like
- * pressing Escape.
- *
- * @see DESIGN.md §6.1 — Dialog Pattern
+ * Escape handling: onCancel fires for showModal(), onKeyDown catches bubbled
+ * events from focused children for show().  No auto-focus — elements with
+ * autoFocus keep their focus when the dialog opens.
  */
 export function DialogShell({
-  dialogRef,
+  id,
   ariaLabelledBy,
   children,
-  onClose,
   className,
 }: DialogShellProps) {
-  const close = useCallback(() => {
-    dialogRef.current?.close();
-  }, [dialogRef]);
+  // Se cierra de forma nativa sin afectar el estado de React
+  const closeDialog = useCallback((dialogElement: HTMLDialogElement) => {
+    dialogElement.close();
+  }, []);
 
-  /* §6.1 — backdrop tap dismisses the dialog */
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent<HTMLDialogElement>) => {
-      const isBackdropClick = e.target === e.currentTarget;
-      if (isBackdropClick) close();
-    },
-    [close],
-  );
-
-  /* §6.1 — Escape key dismisses the dialog */
+  /* Handle Escape for show()-opened dialogs. onCancel only fires for showModal(). */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDialogElement>) => {
-      const isEscape = e.key === "Escape";
-      if (isEscape) {
+      if (e.key === "Escape") {
         e.preventDefault();
-        close();
+        closeDialog(e.currentTarget);
       }
     },
-    [close],
+    [closeDialog],
+  );
+
+  const handleBackdropClick = useCallback(
+    (e: React.MouseEvent<HTMLDialogElement>) => {
+      // Si el clic fue exactamente en el <dialog> (el fondo) y no en sus hijos
+      if (e.target === e.currentTarget) {
+        closeDialog(e.currentTarget);
+      }
+    },
+    [closeDialog],
   );
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <dialog
-      ref={dialogRef}
+      id={id}
       aria-modal="true"
       aria-labelledby={ariaLabelledBy}
-      onClose={onClose}
-      /* The jsx-a11y plugin does not list <dialog> as interactive, but the
-       * HTML spec defines it as such — it is the correct host for these
-       * handlers. Disabled the rule above for this element. */
+      onClick={handleBackdropClick}
       onCancel={(e) => {
+        // onCancel fires natively for showModal() — keep for that case
         e.preventDefault();
-        close();
+        closeDialog(e.currentTarget);
       }}
       onKeyDown={handleKeyDown}
-      onClick={handleBackdropClick}
       className={cn(
-        "absolute top-0 left-0 m-0 w-full h-full open:flex flex-col",
-        "border-0 rounded-none text-ui-textLight",
+        "absolute left-0 top-0 z-40 m-0 h-full w-full flex-col open:flex",
+        "rounded-none border-0 text-ui-textLight backdrop:bg-transparent",
         className ?? "bg-black/80",
       )}
     >

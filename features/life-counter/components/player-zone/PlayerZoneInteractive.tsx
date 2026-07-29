@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, type ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 import { UI } from "@/shared/lib/constants/colors";
 import { useLifeAdjustment } from "@/features/life-counter/hooks/use-life-adjustment";
@@ -11,25 +11,24 @@ import {
 import {
   usePlayerStateContext,
   adjustLife,
-  setLife,
-  setColor,
-  adjustCommanderDamage,
-  adjustCounter,
-  addCounter,
 } from "@/features/life-counter/state/player-state-context";
 import { POISON_LETHAL } from "@/features/life-counter/constants/counter";
 import { useSwipe } from "@/features/life-counter/hooks/use-swipe";
 import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
-import { ColorPicker } from "./ColorPicker";
-import { LifeNumpad } from "./LifeNumpad";
-import { CommanderDamage } from "./CommanderDamage";
-import { Counters } from "./Counters";
-import type { PlayerColor } from "@/features/life-counter/types/player";
 import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 
-interface PlayerZoneProps {
+interface PlayerZoneIds {
+  readonly colorPicker: string;
+  readonly numpad: string;
+  readonly commanderDmg: string;
+  readonly counters: string;
+}
+
+interface PlayerZoneInteractiveProps {
   readonly playerId: 0 | 1 | 2 | 3 | 4 | 5;
-  readonly rotation?: 0 | 90 | -90 | 180;
+  readonly rotation: 0 | 90 | -90 | 180;
+  readonly ids: PlayerZoneIds;
+  readonly children?: ReactNode;
 }
 
 const buttonClass = cn(
@@ -40,58 +39,68 @@ const buttonClass = cn(
 );
 
 /**
- * §4.2 Player Zone — three-column grid: [-] | life | [+].
- * Rotation is applied to the outer wrapper (§4.3) so the interior layout is
- * identical for every orientation.
+ * Client leaf that wraps the interactive zone content.
  *
- * @see DESIGN.md §4 — Player Zone
+ * Handles:
+ * - Swipe gestures (open/close commander damage / counters overlays)
+ * - Life adjustment (+/- buttons with hold acceleration)
+ * - Life total display with double-tap for numpad
+ * - Gear icon to open color picker
+ *
+ * Modals are rendered as siblings from the RSC PlayerZone shell.
  */
-export function PlayerZone({
+export function PlayerZoneInteractive({
   playerId,
-  rotation = 0,
-}: PlayerZoneProps) {
+  rotation,
+  ids,
+  children,
+}: PlayerZoneInteractiveProps) {
   const { state, dispatch } = usePlayerStateContext();
-
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
-  const numpadRef = useRef<HTMLDialogElement | null>(null);
-  const commanderRef = useRef<HTMLDialogElement | null>(null);
-  const countersRef = useRef<HTMLDialogElement | null>(null);
   const zoneRef = useRef<HTMLDivElement | null>(null);
 
   const adjustment = useLifeAdjustment((delta) => dispatch(adjustLife(delta)));
 
-  const handleNumpadConfirm = useCallback(
-    (value: number) => dispatch(setLife(value)),
-    [dispatch],
-  );
+  /* Open a dialog by ID — show() keeps it in DOM flow, bound to the zone div */
+  const open = useCallback((dialogId: string) => {
+    (document.getElementById(dialogId) as HTMLDialogElement | null)?.show();
+  }, []);
 
-  const handleColorSelect = useCallback(
-    (result: PlayerColor) => {
-      dispatch(setColor(result));
-      dialogRef.current?.close();
-    },
-    [dispatch],
-  );
+  /* Close overlays if any are open — returns true if something was closed */
+  const closeOverlays = useCallback(() => {
+    const commander = document.getElementById(
+      ids.commanderDmg,
+    ) as HTMLDialogElement | null;
+    const counters = document.getElementById(
+      ids.counters,
+    ) as HTMLDialogElement | null;
 
-  /* Helper shared by both swipe directions — closes both overlays if any is open */
-  const closeOverlays = () => {
-    if (commanderRef.current?.open || countersRef.current?.open) {
-      commanderRef.current?.close();
-      countersRef.current?.close();
+    if (commander?.open || counters?.open) {
+      commander?.close();
+      counters?.close();
       return true;
     }
     return false;
-  };
+  }, [ids.commanderDmg, ids.counters]);
+
+  /* Check if an "active input" overlay is open — swipe does nothing */
+  const isColorPickerOpen = useCallback(() => {
+    const el = document.getElementById(
+      ids.colorPicker,
+    ) as HTMLDialogElement | null;
+    return el?.open === true;
+  }, [ids.colorPicker]);
 
   const handleSwipeLeft = useCallback(() => {
+    if (isColorPickerOpen()) return;
     if (closeOverlays()) return;
-    commanderRef.current?.show();
-  }, []);
+    open(ids.commanderDmg);
+  }, [isColorPickerOpen, closeOverlays, open, ids.commanderDmg]);
 
   const handleSwipeRight = useCallback(() => {
+    if (isColorPickerOpen()) return;
     if (closeOverlays()) return;
-    countersRef.current?.show();
-  }, []);
+    open(ids.counters);
+  }, [isColorPickerOpen, closeOverlays, open, ids.counters]);
 
   /* §7.2 — full-zone swipe gestures */
   useSwipe(zoneRef as React.RefObject<HTMLElement | null>, {
@@ -106,6 +115,24 @@ export function PlayerZone({
   const isLifeZeroOrBelow = state.life <= 0;
   const isLethal = isLifeZeroOrBelow || isCommanderLethal || isPoisonLethal;
   const { background, textColor } = zoneStylesFor(state.color);
+
+  const handleLifeDoubleClick = useCallback(() => {
+    open(ids.numpad);
+  }, [open, ids.numpad]);
+
+  const handleLifeKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        open(ids.numpad);
+        e.preventDefault();
+      }
+    },
+    [open, ids.numpad],
+  );
+
+  const handleOpenColorPicker = useCallback(() => {
+    open(ids.colorPicker);
+  }, [open, ids.colorPicker]);
 
   return (
     <div
@@ -139,15 +166,9 @@ export function PlayerZone({
           tabIndex={-1}
           className="flex h-full flex-col items-center justify-center"
           onClick={(e) => {
-            const isDoubleClick = e.detail === 2;
-            if (isDoubleClick) numpadRef.current?.show();
+            if (e.detail === 2) handleLifeDoubleClick();
           }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              numpadRef.current?.show();
-              e.preventDefault();
-            }
-          }}
+          onKeyDown={handleLifeKeyDown}
         >
           <p
             aria-live="polite"
@@ -180,7 +201,7 @@ export function PlayerZone({
           <button
             type="button"
             aria-label="Change color"
-            onClick={() => dialogRef.current?.show()}
+            onClick={handleOpenColorPicker}
             className="absolute top-1 right-1 z-10 flex size-11 items-center justify-center rounded-full transition-colors hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
           >
             <ColorSettings size={24} fill="currentColor" />
@@ -197,36 +218,9 @@ export function PlayerZone({
         </div>
       </section>
 
-      {/*
-       * §6.5 — Color Picker modal.
-       * One dialog per player zone — each zone manages its own color locally.
-       */}
-      <ColorPicker dialogRef={dialogRef} onSelect={handleColorSelect} />
-      <LifeNumpad dialogRef={numpadRef} onConfirm={handleNumpadConfirm} />
-
-      {/*
-       * §7.3 — Commander Damage overlay.
-       * §7.4 — Counters overlay.
-       * Each manages its own `useSwipe` to support close-on-swipe.
-       */}
-      <CommanderDamage
-        dialogRef={commanderRef}
-        playerId={playerId}
-        damage={state.commanderDamage}
-        onAdjust={(delta) => dispatch(adjustCommanderDamage(delta))}
-        onClose={() => {
-          /* ponytail: no cleanup needed yet */
-        }}
-      />
-      <Counters
-        dialogRef={countersRef}
-        counters={state.counters}
-        onAdjust={(id, delta) => dispatch(adjustCounter(id, delta))}
-        onAdd={(id, name) => dispatch(addCounter(id, name))}
-        onClose={() => {
-          /* ponytail: no cleanup needed yet */
-        }}
-      />
+      {/* Modal shells — passed as children from RSC PlayerZone, rendered inside
+          the zone div so `absolute` positioning in DialogShell anchors here. */}
+      {children}
     </div>
   );
 }

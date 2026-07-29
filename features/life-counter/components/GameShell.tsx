@@ -3,7 +3,7 @@
 import { type ReactNode } from "react";
 import { GameProvider, useGameStateContext } from "@/features/life-counter/state/game-state-context";
 import { PlayerProvider } from "@/features/life-counter/state/player-state-context";
-import { PlayerZone } from "@/features/life-counter/components/PlayerZone";
+import { PlayerZone } from "@/features/life-counter/components/player-zone/PlayerZone";
 import { getPlayerRotation } from "@/features/life-counter/hooks/use-player-config";
 
 /**

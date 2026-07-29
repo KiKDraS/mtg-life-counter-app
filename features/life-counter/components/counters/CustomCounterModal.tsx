@@ -3,25 +3,28 @@
 import { useCallback, useRef } from "react";
 import { DialogShell } from "@/shared/components/DialogShell";
 import { UI } from "@/shared/lib/constants/colors";
+import {
+  usePlayerStateContext,
+  addCounter,
+} from "@/features/life-counter/state/player-state-context";
 
 interface CustomCounterModalProps {
-  readonly dialogRef: React.RefObject<HTMLDialogElement | null>;
-  readonly onSubmit: (name: string) => void;
+  readonly id: string;
 }
 
+/** Smallest unique suffix for custom counter ids. */
+let customIdSeq = 0;
+
 /**
- * @description
- * Modal dialog for naming a custom counter.
+ * §6.6 Modal for naming a custom counter.
  *
- * Triggered by the [+] button in the Counters overlay (§7.4).
- * Wraps DialogShell with the lighter backdrop (`bg-black/35`) per DESIGN.md §6.6.
+ * Reads context directly — no onSubmit callback needed.
+ * Closes natively via DOM ID on the parent dialog.
  *
- * @see DESIGN.md §6.6 — Modal: Custom Counter Name
+ * @see DESIGN.md §6.6
  */
-export function CustomCounterModal({
-  dialogRef,
-  onSubmit,
-}: CustomCounterModalProps) {
+export function CustomCounterModal({ id }: CustomCounterModalProps) {
+  const { dispatch } = usePlayerStateContext();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const submit = useCallback(() => {
@@ -29,23 +32,15 @@ export function CustomCounterModal({
     if (!input) return;
     const value = input.value.trim();
     if (!value) return;
-    onSubmit(value);
-    input.value = ""; // reset for next use
-    dialogRef.current?.close();
-  }, [onSubmit, dialogRef]);
-
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent) => {
-      const isBackdrop = e.target === e.currentTarget;
-      if (isBackdrop) dialogRef.current?.close();
-    },
-    [dialogRef],
-  );
+    const seqId = `custom-${++customIdSeq}`;
+    dispatch(addCounter(seqId, value));
+    input.value = "";
+    (document.getElementById(id) as HTMLDialogElement | null)?.close();
+  }, [dispatch, id]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      const isEnter = e.key === "Enter";
-      if (isEnter) {
+      if (e.key === "Enter") {
         e.preventDefault();
         submit();
       }
@@ -55,14 +50,11 @@ export function CustomCounterModal({
 
   return (
     <DialogShell
-      dialogRef={dialogRef}
+      id={id}
       ariaLabelledBy="custom-counter-title"
       className="bg-black/35"
     >
-      <div
-        className="flex h-full flex-col items-center justify-center px-4"
-        onClick={handleBackdropClick}
-      >
+      <div className="flex h-full flex-col items-center justify-center px-4">
         <div
           className="w-full max-w-sm rounded-lg p-6"
           style={{ backgroundColor: UI.overlay }}
@@ -75,7 +67,6 @@ export function CustomCounterModal({
             Custom Counter
           </h2>
 
-          {/* §6.6 — Input: auto-focused, maxLength=35, warm white text */}
           <input
             ref={inputRef}
             type="text"
@@ -88,7 +79,6 @@ export function CustomCounterModal({
             style={{ color: UI.textLight }}
           />
 
-          {/* §6.6 — Confirm button, borderless per §4.2 */}
           <button
             type="button"
             onClick={submit}

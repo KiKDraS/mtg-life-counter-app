@@ -1,34 +1,48 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/shared/lib/cn";
-import { DialogShell } from "@/shared/components/DialogShell";
+import { UI } from "@/shared/lib/constants/colors";
+import {
+  usePlayerStateContext,
+  setLife,
+} from "@/features/life-counter/state/player-state-context";
 
 const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-/* Repeated 10× across numpad buttons — extracted per "extract 3+ repeats" rule. */
 const digitBtnClass = cn(
   "flex h-14 items-center justify-center rounded-lg font-bold",
   "transition-colors hover:bg-white/10",
   "text-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
 );
 
-interface LifeNumpadProps {
-  readonly dialogRef: React.RefObject<HTMLDialogElement | null>;
-  readonly onConfirm: (value: number) => void;
+interface NumpadInputProps {
+  readonly dialogId: string;
+}
+
+/** Convenience accessor for the dialog element by ID. */
+function dialogEl(id: string): HTMLDialogElement | null {
+  return document.getElementById(id) as HTMLDialogElement | null;
 }
 
 /**
- * §7.1 — Numpad for exact life entry.
- *
- * Native `<dialog>` with a 3×4 phone-style keypad.
- * Double-tap the life total → call `dialogRef.show()` to open.
- * Confirm (✓) → calls `onConfirm(enteredValue)`.
- *
- * @see DESIGN.md §7.1
+ * Client leaf for the life-numpad digit entry.
+ * Has local state for the entered value.
+ * Resets value whenever the dialog closes (any method).
  */
-export function LifeNumpad({ dialogRef, onConfirm }: LifeNumpadProps) {
+export function NumpadInput({ dialogId }: NumpadInputProps) {
+  const { dispatch } = usePlayerStateContext();
   const [value, setValue] = useState("");
+
+  /* Reset input state when the dialog closes (escape, backdrop, cancel button). */
+  useEffect(() => {
+    const el = dialogEl(dialogId);
+    if (!el) return;
+
+    const handleClose = () => setValue("");
+    el.addEventListener("close", handleClose);
+    return () => el.removeEventListener("close", handleClose);
+  }, [dialogId]);
 
   const handleDigit = useCallback((digit: number) => {
     setValue((prev) => (prev + digit).slice(0, 4));
@@ -39,25 +53,16 @@ export function LifeNumpad({ dialogRef, onConfirm }: LifeNumpadProps) {
   }, []);
 
   const handleConfirm = useCallback(() => {
-    onConfirm(Number(value));
-    dialogRef.current?.close();
-  }, [value, onConfirm, dialogRef]);
+    dispatch(setLife(Number(value)));
+    dialogEl(dialogId)?.close();
+  }, [value, dispatch, dialogId]);
 
-  const handleClose = useCallback(() => {
-    dialogRef.current?.close();
-  }, [dialogRef]);
+  const handleCancel = useCallback(() => {
+    dialogEl(dialogId)?.close();
+  }, [dialogId]);
 
   return (
-    <DialogShell
-      dialogRef={dialogRef}
-      ariaLabelledBy="numpad-title"
-      onClose={() => setValue("")}
-    >
-      {/* Title (sr-only) */}
-      <h2 id="numpad-title" className="sr-only">
-        Set life total
-      </h2>
-
+    <>
       {/* Display */}
       <div className="flex flex-1 items-center justify-center">
         <output
@@ -116,12 +121,13 @@ export function LifeNumpad({ dialogRef, onConfirm }: LifeNumpadProps) {
         <button
           type="button"
           aria-label="Cancel"
-          onClick={handleClose}
+          onClick={handleCancel}
           className="flex size-11 items-center justify-center rounded-full transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          style={{ color: UI.textLight }}
         >
           ✕
         </button>
       </div>
-    </DialogShell>
+    </>
   );
 }
