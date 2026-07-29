@@ -52,7 +52,7 @@ export function CommanderDamageColumn({
         {/* Pill — commander owner's mana color + PlaneswalkerSymbol */}
         <span
           className="flex size-14 shrink-0 items-center justify-center rounded-full"
-          style={{ backgroundColor: pillBg }}
+          style={{ background: pillBg }}
         >
           <PlaneswalkerSymbol
             size={28}
