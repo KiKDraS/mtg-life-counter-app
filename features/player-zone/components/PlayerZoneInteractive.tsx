@@ -8,6 +8,7 @@ import {
 } from "@/features/player-zone/constants/life";
 import { usePlayerStateContext } from "@/features/player-zone/state/player-state-context";
 import { POISON_LETHAL } from "@/features/player-zone/constants/counter";
+import { COMMANDER_LETHAL_DAMAGE } from "@/features/player-zone/constants/commander";
 import { useSwipe } from "@/features/player-zone/hooks/use-swipe";
 import { zoneStylesFor } from "@/features/player-zone/utils/zone-styles";
 import ColorSettings from "@/shared/components/icons/player-actions/Settings";
@@ -109,7 +110,7 @@ export function PlayerZoneInteractive({
   const poisonCounter = state.counters.find((c) => c.type === "poison");
   const isPoisonLethal = (poisonCounter?.value ?? 0) >= POISON_LETHAL;
   const isCommanderLethal = state.commanderDamage.some(
-    (cd) => cd.value >= 21,
+    (cd) => cd.value >= COMMANDER_LETHAL_DAMAGE,
   );
   const isLifeZeroOrBelow = state.life <= 0;
   const isLethal = isLifeZeroOrBelow || isCommanderLethal || isPoisonLethal;
