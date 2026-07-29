@@ -3,6 +3,7 @@ import { Archivo } from "next/font/google";
 import { cn } from "@/shared/lib/cn";
 import "./globals.css";
 import { PropsWithChildren } from "react";
+import { LockPortrait } from "@/features/lock-portrait/LockPortrait";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -28,7 +29,10 @@ export default function RootLayout({ children }: Readonly<PropsWithChildren>) {
       <head>
         <meta name="apple-mobile-web-app-title" content="Life Counter" />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <LockPortrait />
+        {children}
+      </body>
     </html>
   );
 }
