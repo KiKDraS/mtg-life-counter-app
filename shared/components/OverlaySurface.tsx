@@ -1,39 +1,42 @@
 "use client";
 
 import { useCallback, useRef, type ReactNode } from "react";
+import { cn } from "@/shared/lib/cn";
 
 interface OverlaySurfaceProps {
-  readonly dialogRef: React.RefObject<HTMLDialogElement | null>;
+  /**
+   * Reemplaza a dialogRef.
+   * Permite que los Server Components pasen un simple string.
+   */
+  readonly dialogId: string;
   readonly children: ReactNode;
   readonly className?: string;
 }
 
 /**
+ * @description
  * §7.3 / §7.4 — Reusable overlay surface with tap-to-close.
  *
- * Tapping anywhere on the surface that is NOT a button closes the dialog.
- * Uses pointerdown target tracking to survive layout shifts during hold
- * acceleration (e.g. damage text widening).
- *
- * Relies on the parent's `closeOverlays()` for swipe-to-close — this wrapper
- * only handles tap-to-close on the overlay background.
+ * Context & Architecture:
+ * - Operates as a Client Leaf wrapper for interactions.
+ * - Replaces `dialogRef` with `dialogId` to decouple from React's ref tree,
+ *   allowing pure Server Components to compose this layout without serialization errors.
+ * - Tracks pointerdown targets to survive layout shifts during hold acceleration
+ *   (e.g., when damage text widens and shifts the click target).
  *
  * @see DESIGN.md §7.3, §7.4
  */
 export function OverlaySurface({
-  dialogRef,
+  dialogId,
   children,
-  className = "",
+  className,
 }: OverlaySurfaceProps) {
   /*
-   * Tap-to-close: close when tapping background, not when tapping [+] or
-   * other interactive elements.
-   * Swipe-to-close is handled by the parent zone's useSwipe + closeOverlays().
-   *
-   * We use the pointerdown target (not click target) to determine whether the
-   * tap started on a button. This prevents layout shifts during hold&release
-   * (e.g. damage text widening) from closing the dialog when the click target
-   * has shifted away from the button.
+   * Tap-to-close logic:
+   * We track if the interaction started on a button. If the user holds a button
+   * (to accelerate life total), the number grows, the layout shifts, and the
+   * 'pointerup' or 'click' might register on the background instead of the button.
+   * This ref ensures the dialog doesn't accidentally close in that scenario.
    */
   const pointerDownOnButtonRef = useRef(false);
 
@@ -45,17 +48,28 @@ export function OverlaySurface({
 
   const handleClick = useCallback(() => {
     if (!pointerDownOnButtonRef.current) {
-      dialogRef.current?.close();
+      // Llamada directa al DOM en lugar de dialogRef.current?.close()
+      const dialog = document.getElementById(
+        dialogId,
+      ) as HTMLDialogElement | null;
+      dialog?.close();
     }
-  }, [dialogRef]);
+  }, [dialogId]);
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions — ponytail: intentional tap-to-close on the overlay background. Keyboard users can close via Escape (DialogShell).
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <div
-      className={`relative z-30 flex flex-1 flex-col items-center justify-center gap-8 px-6 bg-ui-overlay ${className}`}
+      className={cn(
+        "relative z-30 flex flex-1 flex-col items-center justify-center gap-8 bg-ui-overlay px-6",
+        className,
+      )}
       onPointerDown={handlePointerDown}
       onClick={handleClick}
     >
+      {/*
+       * El servidor inyectará el contenido aquí.
+       * React procesa esto sin problemas a través del boundary de RSC.
+       */}
       {children}
     </div>
   );
