@@ -1,0 +1,1 @@
+export const COMMANDER_LETHAL_DAMAGE = 21;

@@ -1,114 +1,81 @@
 "use client";
 
-import { useLifeAdjustment } from "@/features/player-zone/hooks/use-life-adjustment";
-import { INCREMENT_LIFE } from "@/features/player-zone/constants/life";
+import { useMemo } from "react";
 import { zoneStylesFor } from "@/features/player-zone/utils/zone-styles";
-import { UI } from "@/shared/lib/constants/colors";
-import PlaneswalkerSymbol from "@/shared/components/icons/PlaneswalkerSymbol";
-import {
-  usePlayerStateContext,
-  adjustCommanderDamage,
-} from "@/features/player-zone/state/player-state-context";
+import { usePlayerStateContext } from "@/features/player-zone/state/player-state-context";
 import { useGameStateContext } from "@/features/game-shell/state/game-state-context";
-import type { PlayerColor } from "@/features/player-zone/types/player";
-
-interface CommanderDamageContentProps {
-  readonly playerId: number;
-}
+import { CommanderDamageColumn } from "./CommanderDamageColumn";
+import type { PlayerId } from "@/features/player-zone/types/player";
+import { COMMANDER_LETHAL_DAMAGE } from "../../constants/commander";
 
 /**
- * Returns opponent colors for a player. All Red until Color Picker syncs to
- * GameState via SET_PLAYER_COLOR.
- */
-function opponentColors(playerId: number, playerCount: number): PlayerColor[] {
-  return Array.from({ length: playerCount - 1 }, () => "r" as PlayerColor);
-}
-
-/**
+ * @description
  * Client leaf inside the Commander Damage overlay.
- * Reads damage from PlayerStateContext, opponent colors from GameStateContext.
+ * Renders one column per commander in play in a 2-column grid.
+ *
+ * Context & Architecture:
+ * - Extracts data preparation (styles, thresholds) out of the JSX tree.
+ * - Uses useMemo to prevent recalculating styles and maps on unrelated re-renders.
+ *
+ * @see DESIGN.md §7.3, SPEC.md §5–6
  */
-export function CommanderDamageContent({
-  playerId,
-}: CommanderDamageContentProps) {
-  const { state, dispatch } = usePlayerStateContext();
+export function CommanderDamageContent() {
+  const { state } = usePlayerStateContext();
   const { state: gameState } = useGameStateContext();
 
-  const colors = opponentColors(playerId, gameState.playerCount);
-  /* ponytail: single opponent column; map over `colors` when multi-player */
-  const opponentColor = colors[0] ?? "r";
-  const damage = state.commanderDamage;
+  const { playerCount, playerColors } = gameState;
+  const { commanderDamage } = state;
 
-  const adjustment = useLifeAdjustment((delta) =>
-    dispatch(adjustCommanderDamage(delta)),
-  );
+  /*
+   * 1. Data Preparation (Derived State)
+   */
+  const damageColumns = useMemo(() => {
+    const damageMap = new Map(
+      commanderDamage.map((cd) => [cd.playerId, cd.value]),
+    );
 
-  const isLethal = damage >= 21;
-  const { background: pillBg, textColor: pillFg } =
-    zoneStylesFor(opponentColor);
+    return Array.from({ length: playerCount }, (_, index) => {
+      const pid = index as PlayerId;
+      const damage = damageMap.get(pid) ?? 0;
 
+      const ownerColor = playerColors[pid] ?? "r";
+      const { background: pillBg, textColor: pillFg } =
+        zoneStylesFor(ownerColor);
+
+      return {
+        pid,
+        damage,
+        isLethal: damage >= COMMANDER_LETHAL_DAMAGE,
+        pillBg,
+        pillFg,
+      };
+    });
+  }, [playerCount, playerColors, commanderDamage]);
+
+  /*
+   * 2. Pure Declarative UI
+   */
   return (
-    <div className="flex w-full flex-1 flex-col items-center justify-center gap-8">
+    <div className="flex w-full flex-1 flex-col items-center justify-center gap-6">
       <h2
         id="commander-damage-title"
-        className="text-heading font-bold text-ui-textLight"
+        className="text-ui-textLight text-heading font-bold"
       >
         Commander Damage
       </h2>
 
-      {/*
-       * ponytail: single column for 2-player.
-       * Convert to CSS grid with auto-fill columns when multi-player lands.
-       */}
-      <ul className="flex flex-col items-center gap-4">
-        <li className="flex items-center gap-4">
-          {/* Pill — opponent's mana color with PlaneswalkerSymbol */}
-          <span
-            className="flex size-14 items-center justify-center rounded-full"
-            style={{ backgroundColor: pillBg }}
-          >
-            <PlaneswalkerSymbol
-              size={28}
-              fill={pillFg}
-              className="flex items-center justify-center"
-            />
-          </span>
-
-          {/*
-           * Damage total — sits on #1A1A1A overlay bg, NOT on the pill,
-           * so always use UI.textLight (not pillFg).
-           */}
-          <span
-            className="text-display font-black tabular-nums leading-tight"
-            style={{ color: isLethal ? UI.danger : UI.textLight }}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            {damage}
-          </span>
-
-          {/* [+] button */}
-          <button
-            type="button"
-            aria-label="+1 commander damage"
-            className="flex size-14 items-center justify-center text-4xl font-bold leading-none focus-visible:outline-0 select-none touch-manipulation"
-            style={{ color: UI.textLight }}
-            {...adjustment(INCREMENT_LIFE)}
-          >
-            +
-          </button>
-        </li>
-      </ul>
-
-      {/* Lethal badge */}
-      {isLethal && (
-        <p
-          className="text-body font-bold uppercase tracking-wider"
-          style={{ color: UI.danger }}
-        >
-          Lethal — Game Over
-        </p>
-      )}
+      <div className="grid w-full max-w-md grid-cols-2 gap-6 px-4">
+        {damageColumns.map((col) => (
+          <CommanderDamageColumn
+            key={col.pid}
+            commanderPlayerId={col.pid}
+            damage={col.damage}
+            isLethal={col.isLethal}
+            pillBg={col.pillBg}
+            pillFg={col.pillFg}
+          />
+        ))}
+      </div>
     </div>
   );
 }

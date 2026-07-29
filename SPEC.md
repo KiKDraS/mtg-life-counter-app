@@ -56,8 +56,10 @@ When app launches with no saved IndexDB state:
 ## 5. Data Model
 
 ```typescript
+import type { PlayerId, PlayerColor } from "@/features/player-zone/types/player";
+
 interface CommanderDamage {
-  playerId: number;
+  playerId: PlayerId;  // commander owner's identity
   value: number;
 }
 
@@ -69,9 +71,9 @@ interface Counter {
 }
 
 interface PlayerState {
-  playerId: number;
+  playerId: PlayerId;
   life: number;
-  color: ManaColor;
+  color: PlayerColor;
   counters: Counter[];
   commanderDamage: CommanderDamage[];
 }
@@ -79,6 +81,7 @@ interface PlayerState {
 interface GameState {
   players: number;
   playerStates: PlayerState[];
+  playerColors: Record<PlayerId, PlayerColor>;
 }
 ```
 

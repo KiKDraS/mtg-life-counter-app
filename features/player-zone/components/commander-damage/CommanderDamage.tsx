@@ -4,7 +4,6 @@ import { CommanderDamageContent } from "./CommanderDamageContent";
 
 interface CommanderDamageProps {
   readonly id: string;
-  readonly playerId: number;
 }
 
 /**
@@ -20,11 +19,11 @@ interface CommanderDamageProps {
  *
  * @see DESIGN.md §7.3
  */
-export function CommanderDamage({ id, playerId }: CommanderDamageProps) {
+export function CommanderDamage({ id }: CommanderDamageProps) {
   return (
     <DialogShell id={id} ariaLabelledBy="commander-damage-title">
       <OverlaySurface dialogId={id}>
-        <CommanderDamageContent playerId={playerId} />
+        <CommanderDamageContent />
       </OverlaySurface>
     </DialogShell>
   );
