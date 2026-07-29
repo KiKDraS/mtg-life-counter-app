@@ -5,7 +5,7 @@ import { MenuActionButton } from "../MenuActionButton";
 import {
   useGameStateContext,
   restartGame,
-} from "@/features/life-counter/state/game-state-context";
+} from "@/features/game-shell/state/game-state-context";
 
 export function RestartGameAction({ children }: PropsWithChildren) {
   const { dispatch } = useGameStateContext();

@@ -4,7 +4,6 @@ import { useCallback } from "react";
 import { cn } from "@/shared/lib/cn";
 
 interface DialogShellProps {
-  /** El ID único es crucial. Reemplaza por completo al useRef. */
   readonly id: string;
   readonly ariaLabelledBy: string;
   readonly children: React.ReactNode;
@@ -26,7 +25,6 @@ export function DialogShell({
   children,
   className,
 }: DialogShellProps) {
-  // Se cierra de forma nativa sin afectar el estado de React
   const closeDialog = useCallback((dialogElement: HTMLDialogElement) => {
     dialogElement.close();
   }, []);
@@ -44,8 +42,8 @@ export function DialogShell({
 
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent<HTMLDialogElement>) => {
-      // Si el clic fue exactamente en el <dialog> (el fondo) y no en sus hijos
-      if (e.target === e.currentTarget) {
+      const isBackdropClick = e.target === e.currentTarget;
+      if (isBackdropClick) {
         closeDialog(e.currentTarget);
       }
     },
@@ -59,7 +57,6 @@ export function DialogShell({
       aria-labelledby={ariaLabelledBy}
       onClick={handleBackdropClick}
       onCancel={(e) => {
-        // onCancel fires natively for showModal() — keep for that case
         e.preventDefault();
         closeDialog(e.currentTarget);
       }}

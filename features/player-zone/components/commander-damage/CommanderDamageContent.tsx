@@ -1,16 +1,16 @@
 "use client";
 
-import { useLifeAdjustment } from "@/features/life-counter/hooks/use-life-adjustment";
-import { INCREMENT_LIFE } from "@/features/life-counter/constants/life";
-import { zoneStylesFor } from "@/features/life-counter/utils/zone-styles";
+import { useLifeAdjustment } from "@/features/player-zone/hooks/use-life-adjustment";
+import { INCREMENT_LIFE } from "@/features/player-zone/constants/life";
+import { zoneStylesFor } from "@/features/player-zone/utils/zone-styles";
 import { UI } from "@/shared/lib/constants/colors";
 import PlaneswalkerSymbol from "@/shared/components/icons/PlaneswalkerSymbol";
 import {
   usePlayerStateContext,
   adjustCommanderDamage,
-} from "@/features/life-counter/state/player-state-context";
-import { useGameStateContext } from "@/features/life-counter/state/game-state-context";
-import type { PlayerColor } from "@/features/life-counter/types/player";
+} from "@/features/player-zone/state/player-state-context";
+import { useGameStateContext } from "@/features/game-shell/state/game-state-context";
+import type { PlayerColor } from "@/features/player-zone/types/player";
 
 interface CommanderDamageContentProps {
   readonly playerId: number;

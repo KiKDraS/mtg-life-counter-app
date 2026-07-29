@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { GameShell } from "@/features/life-counter/components/GameShell";
+import { GameShell } from "@/features/game-shell/GameShell";
 import { SpellbookMenu } from "@/features/spellbook/components/SpellbookMenu";
 
 export const metadata: Metadata = {

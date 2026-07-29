@@ -1,4 +1,4 @@
-import type { Counter } from "@/features/life-counter/types/counter";
+import type { Counter } from "@/features/player-zone/types/counter";
 
 /* §7.4 — direction constants for useLifeAdjustment on counter ± buttons */
 export const INCREMENT_COUNTER = 1 as const;

@@ -5,12 +5,7 @@ import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
-import {
-  INCREMENT_LIFE,
-  DECREMENT_LIFE,
-} from "@/features/life-counter/constants/life";
-
-type LifeSign = typeof INCREMENT_LIFE | typeof DECREMENT_LIFE;
+import { LifeSign } from "../types/life";
 
 type AdjustCallback = (delta: number) => void;
 

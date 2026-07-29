@@ -6,7 +6,7 @@ import { UI } from "@/shared/lib/constants/colors";
 import {
   usePlayerStateContext,
   addCounter,
-} from "@/features/life-counter/state/player-state-context";
+} from "@/features/player-zone/state/player-state-context";
 
 interface CustomCounterModalProps {
   readonly id: string;
