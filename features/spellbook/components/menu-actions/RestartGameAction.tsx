@@ -7,7 +7,7 @@ import {
   restartGame,
 } from "@/features/game-shell/state/game-state-context";
 
-export function RestartGameAction({ children }: PropsWithChildren) {
+export function RestartGameAction({ children }: Readonly<PropsWithChildren>) {
   const { dispatch } = useGameStateContext();
 
   const handleRestart = () => {

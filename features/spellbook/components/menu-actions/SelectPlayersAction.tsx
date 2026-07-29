@@ -5,7 +5,7 @@ import { MenuActionButton } from "../MenuActionButton";
 
 /* ponytail: Player Selector modal (DESIGN.md §6.3) not built yet.
  * Wire to useGameStateContext + setPlayerCount when modal component exists. */
-export function SelectPlayersAction({ children }: PropsWithChildren) {
+export function SelectPlayersAction({ children }: Readonly<PropsWithChildren>) {
   const handleSelect = () => {
     /* §6.3 — opens Player Count SVG selector modal. */
   };

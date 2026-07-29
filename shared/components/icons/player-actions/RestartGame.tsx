@@ -6,13 +6,11 @@ type RestartGameProps = {
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
 
-function RestartGame({ size = 48, className, ...props }: RestartGameProps) {
+function RestartGame({ className = "size-12", ...props }: RestartGameProps) {
   return (
     <span role="img" aria-label="Restart Game" className={className}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        width={size}
-        height={size}
         fill={UI.iconLight}
         viewBox="0 -960 960 960"
         {...props}

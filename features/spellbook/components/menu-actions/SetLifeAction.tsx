@@ -5,7 +5,7 @@ import { MenuActionButton } from "../MenuActionButton";
 
 /* ponytail: Initial Life modal (DESIGN.md §6.2) not built yet.
  * Wire to useGameStateContext + setInitialLife when modal component exists. */
-export function SetLifeAction({ children }: PropsWithChildren) {
+export function SetLifeAction({ children }: Readonly<PropsWithChildren>) {
   const handleSetLife = () => {
     /* §6.2 — opens Initial Life preset modal. */
   };

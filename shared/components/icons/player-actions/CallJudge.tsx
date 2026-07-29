@@ -6,13 +6,11 @@ type CallJudgeProps = {
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
 
-function CallJudge({ size = 48, className, ...props }: CallJudgeProps) {
+function CallJudge({ className = "size-12", ...props }: CallJudgeProps) {
   return (
     <span role="img" aria-label="Call Judge" className={className}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        width={size}
-        height={size}
         fill={UI.iconLight}
         viewBox="0 -960 960 960"
         {...props}

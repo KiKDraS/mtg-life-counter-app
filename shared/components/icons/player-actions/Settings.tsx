@@ -6,13 +6,11 @@ type SettingsProps = {
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
 
-function ColorSettings({ size = 48, className, ...props }: SettingsProps) {
+function ColorSettings({ className = "size-12", ...props }: SettingsProps) {
   return (
     <span role="img" aria-label="Color Settings" className={className}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        width={size}
-        height={size}
         fill={UI.iconLight}
         viewBox="0 -960 960 960"
         {...props}

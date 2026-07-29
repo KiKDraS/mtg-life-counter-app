@@ -6,13 +6,11 @@ type LifeSettingsProps = {
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
 
-function LifeSettings({ size = 48, className, ...props }: LifeSettingsProps) {
+function LifeSettings({ className = "size-12", ...props }: LifeSettingsProps) {
   return (
     <span role="img" aria-label="Life Settings" className={className}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        width={size}
-        height={size}
         fill={UI.iconLight}
         viewBox="0 -960 960 960"
         {...props}

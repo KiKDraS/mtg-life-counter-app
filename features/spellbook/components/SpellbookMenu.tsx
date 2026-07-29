@@ -12,6 +12,8 @@ import { SetLifeAction } from "./menu-actions/SetLifeAction";
 import { CallJudgeAction } from "./menu-actions/CallJudgeAction";
 import { SelectPlayersAction } from "./menu-actions/SelectPlayersAction";
 
+const BTN_SIZE = "size-7 md:size-10 transition-all cursor-pointer";
+
 /**
  * @description
  * Structural wrapper for grouping action buttons in the belt.
@@ -70,14 +72,14 @@ export function SpellbookMenu() {
           "peer-checked:h-18 peer-checked:w-full peer-checked:opacity-100 peer-checked:visible",
         )}
       >
-        <div className="flex w-full items-center justify-between px-6">
+        <div className="flex w-full items-center justify-between px-6 max-w-130">
           <ActionGroup>
             <RestartGameAction>
-              <RestartGame size={28} />
+              <RestartGame className={BTN_SIZE} />
             </RestartGameAction>
 
             <SetLifeAction>
-              <LifeSettings size={28} />
+              <LifeSettings className={BTN_SIZE} />
             </SetLifeAction>
           </ActionGroup>
 
@@ -86,11 +88,11 @@ export function SpellbookMenu() {
 
           <ActionGroup>
             <CallJudgeAction>
-              <CallJudge size={28} />
+              <CallJudge className={BTN_SIZE} />
             </CallJudgeAction>
 
             <SelectPlayersAction>
-              <SelectPlayers size={28} />
+              <SelectPlayers className={BTN_SIZE} />
             </SelectPlayersAction>
           </ActionGroup>
         </div>

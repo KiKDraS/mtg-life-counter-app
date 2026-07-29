@@ -6,13 +6,14 @@ type SelectPlayersProps = {
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
 
-function SelectPlayers({ size = 48, className, ...props }: SelectPlayersProps) {
+function SelectPlayers({
+  className = "size-12",
+  ...props
+}: SelectPlayersProps) {
   return (
     <span role="img" aria-label="Select Players" className={className}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        width={size}
-        height={size}
         fill={UI.iconLight}
         viewBox="0 -960 960 960"
         {...props}
