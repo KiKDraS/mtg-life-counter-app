@@ -65,34 +65,42 @@ export function PlayerZoneInteractive({
     (document.getElementById(dialogId) as HTMLDialogElement | null)?.show();
   }, []);
 
-  /* Close any open overlay — returns true if something was closed */
+  /* Close overlays if any are open — returns true if something was closed */
   const closeOverlays = useCallback(() => {
-    const overlayIds = [
-      ids.colorPicker,
-      ids.numpad,
+    const commander = document.getElementById(
       ids.commanderDmg,
+    ) as HTMLDialogElement | null;
+    const counters = document.getElementById(
       ids.counters,
-    ] as const;
-    let closed = false;
-    for (const id of overlayIds) {
-      const el = document.getElementById(id) as HTMLDialogElement | null;
-      if (el?.open) {
-        el.close();
-        closed = true;
-      }
+    ) as HTMLDialogElement | null;
+
+    if (commander?.open || counters?.open) {
+      commander?.close();
+      counters?.close();
+      return true;
     }
-    return closed;
-  }, [ids.colorPicker, ids.numpad, ids.commanderDmg, ids.counters]);
+    return false;
+  }, [ids.commanderDmg, ids.counters]);
+
+  /* Check if an "active input" overlay is open — swipe does nothing */
+  const isColorPickerOpen = useCallback(() => {
+    const el = document.getElementById(
+      ids.colorPicker,
+    ) as HTMLDialogElement | null;
+    return el?.open === true;
+  }, [ids.colorPicker]);
 
   const handleSwipeLeft = useCallback(() => {
+    if (isColorPickerOpen()) return;
     if (closeOverlays()) return;
     open(ids.commanderDmg);
-  }, [closeOverlays, open, ids.commanderDmg]);
+  }, [isColorPickerOpen, closeOverlays, open, ids.commanderDmg]);
 
   const handleSwipeRight = useCallback(() => {
+    if (isColorPickerOpen()) return;
     if (closeOverlays()) return;
     open(ids.counters);
-  }, [closeOverlays, open, ids.counters]);
+  }, [isColorPickerOpen, closeOverlays, open, ids.counters]);
 
   /* §7.2 — full-zone swipe gestures */
   useSwipe(zoneRef as React.RefObject<HTMLElement | null>, {
