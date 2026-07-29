@@ -70,13 +70,11 @@ test.describe("Player Zone — Board Rendering", () => {
     expect(["rotate(0deg)", "none", ""]).toContain(p2Transform);
   });
 
-  test("1.3. Mana background colors are applied per player", async ({ page }) => {
-    // 1. Navigate to `/`; assert P1 background is blue mana #C1D7E9
+  test("1.3. Both players default to red mana background (SPEC §3)", async ({ page }) => {
+    // 1. Navigate to `/`; assert both players have red mana #E49977
     await page.goto("/");
 
-    await expect(zone(page, 1)).toHaveCSS("background-color", "rgb(193, 215, 233)");
-
-    // 2. Assert P2 background is red mana #E49977
+    await expect(zone(page, 1)).toHaveCSS("background-color", "rgb(228, 153, 119)");
     await expect(zone(page, 2)).toHaveCSS("background-color", "rgb(228, 153, 119)");
   });
 });

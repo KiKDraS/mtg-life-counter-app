@@ -6,9 +6,6 @@ import type { Counter } from "@/features/player-zone/types/counter";
 import { DEFAULT_COUNTERS } from "@/features/player-zone/constants/counter";
 import { useOptionalGameStateContext } from "@/features/game-shell/state/game-state-context";
 
-/* §6.5 — default per-seat colors: P1=U, P2=R, P3=W, P4=B, P5=G, P6=C */
-const DEFAULT_SEAT_COLORS: PlayerColor[] = ["u", "r", "w", "b", "g", "c"];
-
 /* ── State ── */
 export interface PlayerState {
   readonly life: number;
@@ -135,7 +132,7 @@ export function PlayerProvider({
 
   const [state, dispatch] = useReducer(playerReducer, {
     life: hasGameCtx ? gameCtx.state.initialLife : 40,
-    color: DEFAULT_SEAT_COLORS[playerIndex ?? 0] ?? "r",
+    color: "r" as PlayerColor,
     commanderDamage: 0,
     counters: DEFAULT_COUNTERS,
   });
