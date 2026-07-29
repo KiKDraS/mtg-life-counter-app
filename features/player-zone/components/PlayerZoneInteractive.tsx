@@ -108,7 +108,9 @@ export function PlayerZoneInteractive({
   */
   const poisonCounter = state.counters.find((c) => c.type === "poison");
   const isPoisonLethal = (poisonCounter?.value ?? 0) >= POISON_LETHAL;
-  const isCommanderLethal = state.commanderDamage >= 21;
+  const isCommanderLethal = state.commanderDamage.some(
+    (cd) => cd.value >= 21,
+  );
   const isLifeZeroOrBelow = state.life <= 0;
   const isLethal = isLifeZeroOrBelow || isCommanderLethal || isPoisonLethal;
 

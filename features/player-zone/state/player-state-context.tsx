@@ -1,17 +1,19 @@
 "use client";
 
 import { createContext, use, useReducer, type ReactNode } from "react";
-import type { PlayerColor } from "@/features/player-zone/types/player";
+import type { PlayerColor, PlayerId } from "@/features/player-zone/types/player";
+import type { CommanderDamage } from "@/features/player-zone/types/CommanderDamage";
 import type { Counter } from "@/features/player-zone/types/counter";
 import { DEFAULT_COUNTERS } from "@/features/player-zone/constants/counter";
 import { useOptionalGameStateContext } from "@/features/game-shell/state/game-state-context";
 
 /* ── State ── */
 export interface PlayerState {
+  readonly playerId: PlayerId;
   readonly life: number;
   readonly color: PlayerColor;
-  /* ponytail: single opponent for 2p. Migrate to Record<number, number> when adding multi-player. */
-  readonly commanderDamage: number;
+  /** §5 — one entry per commander in play, keyed by commander owner's playerId. */
+  readonly commanderDamage: CommanderDamage[];
   /** §7.4 — default counters + any custom counters */
   readonly counters: Counter[];
 }
@@ -28,7 +30,7 @@ type PlayerAction =
   | { type: typeof ADJUST_LIFE; delta: number }
   | { type: typeof SET_LIFE; value: number }
   | { type: typeof SET_COLOR; color: PlayerColor }
-  | { type: typeof ADJUST_COMMANDER_DAMAGE; delta: number }
+  | { type: typeof ADJUST_COMMANDER_DAMAGE; commanderPlayerId: PlayerId; delta: number }
   | { type: typeof ADJUST_COUNTER; id: string; delta: number }
   | { type: typeof ADD_COUNTER; id: string; name: string };
 
@@ -45,8 +47,11 @@ export function setColor(color: PlayerColor): PlayerAction {
   return { type: SET_COLOR, color };
 }
 
-export function adjustCommanderDamage(delta: number): PlayerAction {
-  return { type: ADJUST_COMMANDER_DAMAGE, delta };
+export function adjustCommanderDamage(
+  commanderPlayerId: PlayerId,
+  delta: number,
+): PlayerAction {
+  return { type: ADJUST_COMMANDER_DAMAGE, commanderPlayerId, delta };
 }
 
 export function adjustCounter(id: string, delta: number): PlayerAction {
@@ -66,12 +71,24 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
       return { ...state, life: action.value };
     case SET_COLOR:
       return { ...state, color: action.color };
-    case ADJUST_COMMANDER_DAMAGE:
+    case ADJUST_COMMANDER_DAMAGE: {
+      const idx = state.commanderDamage.findIndex(
+        (cd) => cd.playerId === action.commanderPlayerId,
+      );
+      const entry: CommanderDamage =
+        idx !== -1
+          ? { ...state.commanderDamage[idx], value: state.commanderDamage[idx].value + action.delta }
+          : { playerId: action.commanderPlayerId, value: action.delta };
+      const next =
+        idx !== -1
+          ? state.commanderDamage.map((cd, i) => (i === idx ? entry : cd))
+          : [...state.commanderDamage, entry];
       return {
         ...state,
-        commanderDamage: state.commanderDamage + action.delta,
+        commanderDamage: next,
         life: state.life - action.delta,
       };
+    }
     case ADJUST_COUNTER:
       return {
         ...state,
@@ -130,12 +147,18 @@ export function PlayerProvider({
   const gameCtx = useOptionalGameStateContext();
   const hasGameCtx = playerIndex !== undefined && gameCtx !== null;
 
-  const [state, dispatch] = useReducer(playerReducer, {
+  const playerCount = hasGameCtx ? gameCtx.state.playerCount : 2;
+  const initialState: PlayerState = {
+    playerId: (playerIndex ?? 0) as PlayerId,
     life: hasGameCtx ? gameCtx.state.initialLife : 40,
     color: "r" as PlayerColor,
-    commanderDamage: 0,
+    commanderDamage: Array.from({ length: playerCount }, (_, i) => ({
+      playerId: i as PlayerId,
+      value: 0,
+    })),
     counters: DEFAULT_COUNTERS,
-  });
+  };
+  const [state, dispatch] = useReducer(playerReducer, initialState);
 
   return <PlayerContext value={{ state, dispatch }}>{children}</PlayerContext>;
 }

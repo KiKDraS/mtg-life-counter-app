@@ -7,6 +7,10 @@ import {
   usePlayerStateContext,
   setColor,
 } from "@/features/player-zone/state/player-state-context";
+import {
+  useGameStateContext,
+  setGamePlayerColor,
+} from "@/features/game-shell/state/game-state-context";
 import type { PlayerColor } from "@/features/player-zone/types/player";
 
 interface ManaActionButtonProps {
@@ -23,10 +27,11 @@ function isManaColor(c: PlayerColor): c is ManaColor {
 
 /**
  * Client leaf for the color picker mana wheel.
- * Dispatches SET_COLOR and closes the dialog natively via DOM ID.
+ * Dispatches SET_COLOR to PlayerState and SET_GAME_PLAYER_COLOR to
+ * GameState (for cross-player color lookup in CommanderDamage),
+ * then closes the dialog natively via DOM ID.
  *
- * aria-label is derived from MANA_LABELS for mana colors; "wubrg" falls back
- * to a hardcoded label.
+ * @see DESIGN.md §6.5
  */
 export function ManaActionButton({
   color,
@@ -35,7 +40,9 @@ export function ManaActionButton({
   className,
   style,
 }: ManaActionButtonProps) {
-  const { dispatch } = usePlayerStateContext();
+  const { state: playerState, dispatch: playerDispatch } =
+    usePlayerStateContext();
+  const { dispatch: gameDispatch } = useGameStateContext();
 
   const label = isManaColor(color) ? MANA_LABELS[color] : "WUBRG colors";
 
@@ -46,7 +53,8 @@ export function ManaActionButton({
       className={className}
       style={style}
       onClick={() => {
-        dispatch(setColor(color));
+        playerDispatch(setColor(color));
+        gameDispatch(setGamePlayerColor(playerState.playerId, color));
         (
           document.getElementById(dialogId) as HTMLDialogElement | null
         )?.close();

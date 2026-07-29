@@ -22,11 +22,11 @@ function commanderDlg(page: Page): Locator {
 }
 
 function damageCounter(dlg: Locator): Locator {
-  return dlg.locator('[aria-live="polite"]');
+  return dlg.locator('[aria-live="polite"]').first();
 }
 
 function plusButton(dlg: Locator): Locator {
-  return dlg.getByRole("button", { name: "+1 commander damage" });
+  return dlg.getByRole("button", { name: "+1 commander damage" }).first();
 }
 
 async function swipeOn(
@@ -874,8 +874,10 @@ test.describe("Commander Damage — Accessibility & Edge Cases", () => {
     await btn.focus();
     await expect(btn).toBeFocused();
 
-    // 4. Press Tab — focus leaves the dialog (show() has no focus trap).
+    // 4. Press Tab twice — focus leaves the dialog (show() has no focus trap).
+    //    First Tab moves to the second [+] button (still inside), second Tab exits.
     //    The SpellbookMenu's toggle input sits between P1 and P2 in DOM order.
+    await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     await expect(dlg.evaluate((el) => el.contains(document.activeElement))).resolves.toBe(false);
 
