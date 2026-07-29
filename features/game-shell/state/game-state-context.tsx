@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import type { PlayerId, PlayerColor } from "@/features/player-zone/types/player";
+import { DEFAULT_PLAYER_COLOR } from "@/features/player-zone/constants/player";
 
 /* ── State ── */
 export interface GameState {
@@ -87,7 +88,7 @@ const GameContext = createContext<GameContextValue | null>(null);
 /* §3 defaults: 2 players, 40 life, version=0. */
 function initPlayerColors(count: number): Record<PlayerId, PlayerColor> {
   return Object.fromEntries(
-    Array.from({ length: count }, (_, i) => [i, "r" as PlayerColor]),
+    Array.from({ length: count }, (_, i) => [i, DEFAULT_PLAYER_COLOR as PlayerColor]),
   ) as Record<PlayerId, PlayerColor>;
 }
 

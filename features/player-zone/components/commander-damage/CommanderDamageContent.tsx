@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { zoneStylesFor } from "@/features/player-zone/utils/zone-styles";
+import { DEFAULT_PLAYER_COLOR } from "@/features/player-zone/constants/player";
 import { usePlayerStateContext } from "@/features/player-zone/state/player-state-context";
 import { useGameStateContext } from "@/features/game-shell/state/game-state-context";
 import { CommanderDamageColumn } from "./CommanderDamageColumn";
@@ -38,7 +39,7 @@ export function CommanderDamageContent() {
       const pid = index as PlayerId;
       const damage = damageMap.get(pid) ?? 0;
 
-      const ownerColor = playerColors[pid] ?? "r";
+      const ownerColor = playerColors[pid] ?? DEFAULT_PLAYER_COLOR;
       const { background: pillBg, textColor: pillFg } =
         zoneStylesFor(ownerColor);
 

@@ -5,6 +5,7 @@ import {
   INCREMENT_COUNTER,
   DECREMENT_COUNTER,
   POISON_LETHAL,
+  COUNTER_TYPE_CUSTOM,
 } from "@/features/player-zone/constants/counter";
 import { UI, MANA } from "@/shared/lib/constants/colors";
 import PoisonSymbol from "@/shared/components/icons/counters/PoisonSymbol";
@@ -59,7 +60,7 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
   const adjustment = useLifeAdjustment((delta) => onAdjust(counter.id, delta));
 
   /* Self-documenting pre-computed values */
-  const isCustom = counter.type === "custom";
+  const isCustom = counter.type === COUNTER_TYPE_CUSTOM;
   const accessibleName = counter.name ?? counter.type;
   const isLethal = counter.type === "poison" && counter.value >= POISON_LETHAL;
 

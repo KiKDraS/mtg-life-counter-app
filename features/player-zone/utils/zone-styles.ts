@@ -1,5 +1,6 @@
 import { MANA, UI } from "@/shared/lib/constants/colors";
 import { textColorFor } from "@/shared/lib/text-color-for";
+import { WUBRG } from "@/features/player-zone/constants/player";
 import type { PlayerColor } from "@/features/player-zone/types/player";
 
 /* §6.5 — hard-stop diagonal bands: W 0‑20%, U 20‑40%, B 40‑60%, R 60‑80%, G 80‑100% */
@@ -21,7 +22,7 @@ export interface ZoneStyles {
  * @see DESIGN.md §6.5 — Color Picker / Zone Colors
  */
 export function zoneStylesFor(color: PlayerColor): ZoneStyles {
-  const isWubrg = color === "wubrg";
+  const isWubrg = color === WUBRG;
   if (isWubrg) {
     return { background: WUBRG_GRADIENT, textColor: UI.textDark };
   }

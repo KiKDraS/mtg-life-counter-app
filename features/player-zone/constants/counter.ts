@@ -4,6 +4,9 @@ import type { Counter } from "@/features/player-zone/types/counter";
 export const INCREMENT_COUNTER = 1 as const;
 export const DECREMENT_COUNTER = -1 as const;
 
+/* §7.4 — custom counter type identifier */
+export const COUNTER_TYPE_CUSTOM = "custom" as const;
+
 /* Default counters pre-seeded in every player state. */
 export const DEFAULT_COUNTERS: Counter[] = [
   { id: "poison", type: "poison", value: 0 },
