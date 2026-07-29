@@ -33,7 +33,7 @@ function ActionGroup({ children }: { readonly children: React.ReactNode }) {
  */
 export function SpellbookMenu() {
   return (
-    <div className="relative z-50 flex items-center justify-center bg-ui-belt">
+    <div className="relative z-50 flex items-center justify-center bg-ui-belt pointer-coarse:landscape:hidden">
       {/*
        * 1. State: Hidden checkbox acts as the source of truth.
        * Tailwind's 'peer' class allows sibling elements to react to its 'checked' state.
