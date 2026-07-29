@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, use, useReducer, type ReactNode } from "react";
-import type { PlayerColor } from "@/features/life-counter/types/player";
-import type { Counter } from "@/features/life-counter/types/counter";
+import type { PlayerColor } from "@/features/player-zone/types/player";
+import type { Counter } from "@/features/player-zone/types/counter";
 import { DEFAULT_COUNTERS } from "@/features/player-zone/constants/counter";
 import { useOptionalGameStateContext } from "@/features/game-shell/state/game-state-context";
 

@@ -4,6 +4,7 @@
   "description": "Magic: The Gathering life counter — track life totals for Commander and other formats",
   "start_url": "/",
   "scope": "/",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

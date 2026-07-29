@@ -7,7 +7,7 @@ import {
   usePlayerStateContext,
   setColor,
 } from "@/features/player-zone/state/player-state-context";
-import type { PlayerColor } from "@/features/life-counter/types/player";
+import type { PlayerColor } from "@/features/player-zone/types/player";
 
 interface ManaActionButtonProps {
   readonly color: PlayerColor;
