@@ -65,9 +65,9 @@ export function SpellbookMenu() {
        */}
       <div
         className={cn(
-          "relative z-50 flex h-0 w-0 items-center justify-center overflow-hidden opacity-0",
+          "relative z-50 flex h-0 w-0 items-center justify-center overflow-hidden opacity-0 invisible",
           "transition-all duration-300 ease-in-out motion-reduce:transition-none",
-          "peer-checked:h-18 peer-checked:w-full peer-checked:opacity-100",
+          "peer-checked:h-18 peer-checked:w-full peer-checked:opacity-100 peer-checked:visible",
         )}
       >
         <div className="flex w-full items-center justify-between px-6">

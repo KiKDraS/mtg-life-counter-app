@@ -70,13 +70,11 @@ test.describe("Player Zone — Board Rendering", () => {
     expect(["rotate(0deg)", "none", ""]).toContain(p2Transform);
   });
 
-  test("1.3. Mana background colors are applied per player", async ({ page }) => {
-    // 1. Navigate to `/`; assert P1 background is blue mana #C1D7E9
+  test("1.3. Both players default to red mana background (SPEC §3)", async ({ page }) => {
+    // 1. Navigate to `/`; assert both players have red mana #E49977
     await page.goto("/");
 
-    await expect(zone(page, 1)).toHaveCSS("background-color", "rgb(193, 215, 233)");
-
-    // 2. Assert P2 background is red mana #E49977
+    await expect(zone(page, 1)).toHaveCSS("background-color", "rgb(228, 153, 119)");
     await expect(zone(page, 2)).toHaveCSS("background-color", "rgb(228, 153, 119)");
   });
 });
@@ -256,19 +254,20 @@ test.describe("Player Zone — Lethal State", () => {
 });
 
 test.describe("Player Zone — Keyboard & Focus", () => {
-  test("5.1. Tab reaches all four buttons in DOM order with a visible focus ring", async ({
+  test("5.1. Tab reaches all six buttons in DOM order with a visible focus ring", async ({
     page,
   }) => {
-    // 1. Navigate to `/`; press Tab four times, asserting focus after each press
+    // 1. Navigate to `/`; press Tab, asserting focus after each press
     await page.goto("/");
 
     const p1 = zone(page, 1);
     const p2 = zone(page, 2);
-    // The "Change color" button (§6.5) sits between "-1 life" and "+1 life" in DOM order
+    // DOM order: P1 buttons → Spellbook toggle → P2 buttons
     const order = [
       p1.getByRole("button", { name: "-1 life" }),
       p1.getByRole("button", { name: "Change color" }),
       p1.getByRole("button", { name: "+1 life" }),
+      page.getByRole("checkbox", { name: "Toggle Spellbook Menu" }),
       p2.getByRole("button", { name: "-1 life" }),
       p2.getByRole("button", { name: "Change color" }),
       p2.getByRole("button", { name: "+1 life" }),
