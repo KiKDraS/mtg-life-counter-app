@@ -54,9 +54,11 @@ export function CustomCounterModal({ id }: CustomCounterModalProps) {
       ariaLabelledBy="custom-counter-title"
       className="bg-black/35"
     >
-      <div className="flex h-full flex-col items-center justify-center px-4">
+      {/* pointer-events-none: clicks pass through to <dialog> for backdrop detection.
+          pointer-events-auto on the card below catches interactions normally. */}
+      <div className="flex h-full flex-col items-center justify-center px-4 pointer-events-none">
         <div
-          className="w-full max-w-sm rounded-lg p-6"
+          className="w-full max-w-sm rounded-lg p-6 pointer-events-auto"
           style={{ backgroundColor: UI.overlay }}
         >
           <h2
