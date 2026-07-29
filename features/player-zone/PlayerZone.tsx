@@ -37,7 +37,7 @@ export function PlayerZone({ playerId, rotation = 0 }: PlayerZoneProps) {
             RSC shells wrap client DialogShell (Donut Hole pattern). */}
         <ColorPicker id={ids.colorPicker} />
         <LifeNumpad id={ids.numpad} />
-        <CommanderDamage id={ids.commanderDmg} playerId={playerId} />
+        <CommanderDamage id={ids.commanderDmg} />
         <Counters id={ids.counters} />
       </PlayerZoneInteractive>
     </PlayerProvider>

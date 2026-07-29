@@ -9,10 +9,6 @@ import { CommanderDamageColumn } from "./CommanderDamageColumn";
 import type { PlayerId } from "@/features/player-zone/types/player";
 import type { CommanderDamage } from "@/features/player-zone/types/CommanderDamage";
 
-interface CommanderDamageContentProps {
-  readonly playerId: number;
-}
-
 /**
  * Client leaf inside the Commander Damage overlay.
  * Renders one column per commander in play in a 2-column grid.
@@ -24,9 +20,7 @@ interface CommanderDamageContentProps {
  *
  * @see DESIGN.md §7.3, SPEC.md §5–6
  */
-export function CommanderDamageContent({
-  playerId,
-}: CommanderDamageContentProps) {
+export function CommanderDamageContent() {
   const { state } = usePlayerStateContext();
   const { state: gameState } = useGameStateContext();
 
