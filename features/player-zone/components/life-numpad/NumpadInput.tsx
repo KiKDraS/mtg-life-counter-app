@@ -6,64 +6,82 @@ import { UI } from "@/shared/lib/constants/colors";
 import {
   usePlayerStateContext,
   setLife,
-} from "@/features/life-counter/state/player-state-context";
+} from "@/features/player-zone/state/player-state-context";
 
-const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
 
-const digitBtnClass = cn(
-  "flex h-14 items-center justify-center rounded-lg font-bold",
-  "transition-colors hover:bg-white/10",
-  "text-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+const BASE_BTN_CLASS = cn(
+  "flex h-14 items-center justify-center rounded-lg font-bold text-2xl",
+  "transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+);
+
+const DIGIT_BTN_CLASS = cn(BASE_BTN_CLASS, "hover:bg-white/10");
+
+const CONFIRM_BTN_CLASS = cn(
+  BASE_BTN_CLASS,
+  "bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:hover:bg-white/20",
 );
 
 interface NumpadInputProps {
   readonly dialogId: string;
 }
 
-/** Convenience accessor for the dialog element by ID. */
-function dialogEl(id: string): HTMLDialogElement | null {
-  return document.getElementById(id) as HTMLDialogElement | null;
-}
+/** Convenience accessor for the native dialog element */
+const getDialog = (id: string) =>
+  document.getElementById(id) as HTMLDialogElement | null;
 
 /**
+ * @description
  * Client leaf for the life-numpad digit entry.
- * Has local state for the entered value.
- * Resets value whenever the dialog closes (any method).
+ *
+ * Context & Architecture:
+ * - Uses a declarative unified array for digits to keep JSX DRY.
+ * - Auto-clears internal state when the native `<dialog>` fires its "close" event.
+ * - Guards against accidental "empty" confirmations that would set life to 0.
  */
 export function NumpadInput({ dialogId }: NumpadInputProps) {
   const { dispatch } = usePlayerStateContext();
   const [value, setValue] = useState("");
 
-  /* Reset input state when the dialog closes (escape, backdrop, cancel button). */
+  /* Sync React state with native DOM dialog lifecycle */
   useEffect(() => {
-    const el = dialogEl(dialogId);
-    if (!el) return;
+    const dialog = getDialog(dialogId);
+    if (!dialog) return;
 
     const handleClose = () => setValue("");
-    el.addEventListener("close", handleClose);
-    return () => el.removeEventListener("close", handleClose);
+    dialog.addEventListener("close", handleClose);
+
+    return () => dialog.removeEventListener("close", handleClose);
   }, [dialogId]);
 
-  const handleDigit = useCallback((digit: number) => {
+  /*
+   * Declarative state updaters.
+   */
+  const appendDigit = useCallback((digit: number) => {
     setValue((prev) => (prev + digit).slice(0, 4));
   }, []);
 
-  const handleBackspace = useCallback(() => {
+  const removeDigit = useCallback(() => {
     setValue((prev) => prev.slice(0, -1));
   }, []);
 
+  /*
+   * Action Handlers
+   */
   const handleConfirm = useCallback(() => {
+    if (!value) return;
+
     dispatch(setLife(Number(value)));
-    dialogEl(dialogId)?.close();
+    getDialog(dialogId)?.close();
   }, [value, dispatch, dialogId]);
 
   const handleCancel = useCallback(() => {
-    dialogEl(dialogId)?.close();
+    getDialog(dialogId)?.close();
   }, [dialogId]);
 
   return (
-    <>
-      {/* Display */}
+    <div>
+      {/* 1. Display Area */}
       <div className="flex flex-1 items-center justify-center">
         <output
           aria-live="polite"
@@ -73,35 +91,25 @@ export function NumpadInput({ dialogId }: NumpadInputProps) {
         </output>
       </div>
 
-      {/* Numpad grid */}
-      <div className="mx-auto grid w-64 grid-cols-3 gap-3 pb-6">
+      {/* 2. Keypad Grid */}
+      <div className="mx-auto grid w-64 grid-cols-3 gap-3 pb-2">
         {DIGITS.map((d) => (
           <button
             key={d}
             type="button"
-            aria-label={`${d}`}
-            onClick={() => handleDigit(d)}
-            className={digitBtnClass}
+            aria-label={String(d)}
+            onClick={() => appendDigit(d)}
+            className={DIGIT_BTN_CLASS}
           >
             {d}
           </button>
         ))}
 
         <button
-          key={0}
-          type="button"
-          aria-label="0"
-          onClick={() => handleDigit(0)}
-          className={digitBtnClass}
-        >
-          0
-        </button>
-
-        <button
           type="button"
           aria-label="Backspace"
-          onClick={handleBackspace}
-          className={cn(digitBtnClass, "text-xl")}
+          onClick={removeDigit}
+          className={cn(DIGIT_BTN_CLASS, "text-xl")}
         >
           ⌫
         </button>
@@ -110,14 +118,15 @@ export function NumpadInput({ dialogId }: NumpadInputProps) {
           type="button"
           aria-label="Confirm"
           onClick={handleConfirm}
-          className={cn(digitBtnClass, "bg-white/20", "hover:bg-white/30")}
+          disabled={!value}
+          className={CONFIRM_BTN_CLASS}
         >
           ✓
         </button>
       </div>
 
-      {/* Close */}
-      <div className="flex justify-center pb-4">
+      {/* 3. Footer / Close */}
+      <div className="flex justify-center">
         <button
           type="button"
           aria-label="Cancel"
@@ -128,6 +137,6 @@ export function NumpadInput({ dialogId }: NumpadInputProps) {
           ✕
         </button>
       </div>
-    </>
+    </div>
   );
 }

@@ -1,17 +1,17 @@
 "use client";
 
-import { useLifeAdjustment } from "@/features/life-counter/hooks/use-life-adjustment";
+import { useLifeAdjustment } from "@/features/player-zone/hooks/use-life-adjustment";
 import {
   INCREMENT_COUNTER,
   DECREMENT_COUNTER,
   POISON_LETHAL,
-} from "@/features/life-counter/constants/counter";
+} from "@/features/player-zone/constants/counter";
 import { UI, MANA } from "@/shared/lib/constants/colors";
 import PoisonSymbol from "@/shared/components/icons/counters/PoisonSymbol";
 import EnergySymbol from "@/shared/components/icons/counters/EnergySymbol";
 import ExperienceSymbol from "@/shared/components/icons/counters/ExperienceSymbol";
 import TimeSymbol from "@/shared/components/icons/counters/TimeSymbol";
-import type { Counter } from "@/features/life-counter/types/counter";
+import type { Counter } from "@/features/player-zone/types/counter";
 
 interface CounterRowProps {
   readonly counter: Counter;

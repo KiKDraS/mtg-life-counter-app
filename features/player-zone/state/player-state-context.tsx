@@ -1,15 +1,10 @@
 "use client";
 
-import {
-  createContext,
-  use,
-  useReducer,
-  type ReactNode,
-} from "react";
+import { createContext, use, useReducer, type ReactNode } from "react";
 import type { PlayerColor } from "@/features/life-counter/types/player";
 import type { Counter } from "@/features/life-counter/types/counter";
-import { DEFAULT_COUNTERS } from "@/features/life-counter/constants/counter";
-import { useOptionalGameStateContext } from "@/features/life-counter/state/game-state-context";
+import { DEFAULT_COUNTERS } from "@/features/player-zone/constants/counter";
+import { useOptionalGameStateContext } from "@/features/game-shell/state/game-state-context";
 
 /* ── State ── */
 export interface PlayerState {
@@ -142,11 +137,7 @@ export function PlayerProvider({
     counters: DEFAULT_COUNTERS,
   });
 
-  return (
-    <PlayerContext value={{ state, dispatch }}>
-      {children}
-    </PlayerContext>
-  );
+  return <PlayerContext value={{ state, dispatch }}>{children}</PlayerContext>;
 }
 
 /**

@@ -6,7 +6,7 @@ import type { ManaColor } from "@/shared/lib/constants/colors";
 import {
   usePlayerStateContext,
   setColor,
-} from "@/features/life-counter/state/player-state-context";
+} from "@/features/player-zone/state/player-state-context";
 import type { PlayerColor } from "@/features/life-counter/types/player";
 
 interface ManaActionButtonProps {
@@ -37,9 +37,7 @@ export function ManaActionButton({
 }: ManaActionButtonProps) {
   const { dispatch } = usePlayerStateContext();
 
-  const label = isManaColor(color)
-    ? MANA_LABELS[color]
-    : "All five colors";
+  const label = isManaColor(color) ? MANA_LABELS[color] : "WUBRG colors";
 
   return (
     <button
@@ -49,7 +47,9 @@ export function ManaActionButton({
       style={style}
       onClick={() => {
         dispatch(setColor(color));
-        (document.getElementById(dialogId) as HTMLDialogElement | null)?.close();
+        (
+          document.getElementById(dialogId) as HTMLDialogElement | null
+        )?.close();
       }}
     >
       {children}

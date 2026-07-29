@@ -20,7 +20,9 @@ export function LifeNumpad({ id }: LifeNumpadProps) {
       <h2 id="numpad-title" className="sr-only">
         Set life total
       </h2>
-      <NumpadInput dialogId={id} />
+      <div className="p-6">
+        <NumpadInput dialogId={id} />
+      </div>
     </DialogShell>
   );
 }

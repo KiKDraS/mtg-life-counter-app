@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Archivo } from "next/font/google";
 import { cn } from "@/shared/lib/cn";
 import "./globals.css";
+import { PropsWithChildren } from "react";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -21,11 +22,7 @@ export const viewport: Viewport = {
   themeColor: "#292A2A",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<PropsWithChildren>) {
   return (
     <html lang="en" className={cn(archivo.variable, "h-full", "antialiased")}>
       <head>

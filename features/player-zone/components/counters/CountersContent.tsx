@@ -6,7 +6,7 @@ import { CounterRow } from "./CounterRow";
 import {
   usePlayerStateContext,
   adjustCounter,
-} from "@/features/life-counter/state/player-state-context";
+} from "@/features/player-zone/state/player-state-context";
 interface CountersContentProps {
   readonly customCounterId: string;
 }
@@ -16,14 +16,13 @@ interface CountersContentProps {
  * Reads counters from PlayerStateContext.
  * [+] button opens the CustomCounterModal via DOM ID.
  */
-export function CountersContent({
-  customCounterId,
-}: CountersContentProps) {
+export function CountersContent({ customCounterId }: CountersContentProps) {
   const { state, dispatch } = usePlayerStateContext();
 
   const handleOpenCustom = useCallback(() => {
-    (document.getElementById(customCounterId) as HTMLDialogElement | null)
-      ?.show();
+    (
+      document.getElementById(customCounterId) as HTMLDialogElement | null
+    )?.show();
   }, [customCounterId]);
 
   return (
