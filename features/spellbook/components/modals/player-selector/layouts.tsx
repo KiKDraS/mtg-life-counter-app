@@ -7,40 +7,39 @@ interface PlayerRect {
   readonly y: number;
   readonly w: number;
   readonly h: number;
-  readonly rotated: boolean;
 }
 
 /** §4.1 — zone positions per player count. viewBox 120x160. */
 const LAYOUTS: Record<number, PlayerRect[]> = {
   2: [
-    { x: 10, y: 10, w: 100, h: 60, rotated: true },
-    { x: 10, y: 90, w: 100, h: 60, rotated: false },
+    { x: 10, y: 10, w: 100, h: 60 },
+    { x: 10, y: 90, w: 100, h: 60 },
   ],
   3: [
-    { x: 10, y: 10, w: 100, h: 60, rotated: true },
-    { x: 10, y: 90, w: 45, h: 60, rotated: true },
-    { x: 65, y: 90, w: 45, h: 60, rotated: true },
+    { x: 10, y: 10, w: 100, h: 60 },
+    { x: 10, y: 90, w: 45, h: 60 },
+    { x: 65, y: 90, w: 45, h: 60 },
   ],
   4: [
-    { x: 10, y: 10, w: 45, h: 60, rotated: true },
-    { x: 65, y: 10, w: 45, h: 60, rotated: true },
-    { x: 10, y: 90, w: 45, h: 60, rotated: false },
-    { x: 65, y: 90, w: 45, h: 60, rotated: false },
+    { x: 10, y: 10, w: 45, h: 60 },
+    { x: 65, y: 10, w: 45, h: 60 },
+    { x: 10, y: 90, w: 45, h: 60 },
+    { x: 65, y: 90, w: 45, h: 60 },
   ],
   5: [
-    { x: 10, y: 10, w: 100, h: 40, rotated: true },
-    { x: 10, y: 60, w: 45, h: 45, rotated: true },
-    { x: 65, y: 60, w: 45, h: 45, rotated: true },
-    { x: 10, y: 115, w: 45, h: 40, rotated: true },
-    { x: 65, y: 115, w: 45, h: 40, rotated: true },
+    { x: 10, y: 10, w: 100, h: 40 },
+    { x: 10, y: 60, w: 45, h: 45 },
+    { x: 65, y: 60, w: 45, h: 45 },
+    { x: 10, y: 115, w: 45, h: 40 },
+    { x: 65, y: 115, w: 45, h: 40 },
   ],
   6: [
-    { x: 5, y: 5, w: 33, h: 70, rotated: true },
-    { x: 43, y: 5, w: 33, h: 70, rotated: true },
-    { x: 81, y: 5, w: 33, h: 70, rotated: true },
-    { x: 5, y: 85, w: 33, h: 70, rotated: false },
-    { x: 43, y: 85, w: 33, h: 70, rotated: false },
-    { x: 81, y: 85, w: 33, h: 70, rotated: false },
+    { x: 5, y: 5, w: 33, h: 70 },
+    { x: 43, y: 5, w: 33, h: 70 },
+    { x: 81, y: 5, w: 33, h: 70 },
+    { x: 5, y: 85, w: 33, h: 70 },
+    { x: 43, y: 85, w: 33, h: 70 },
+    { x: 81, y: 85, w: 33, h: 70 },
   ],
 };
 
@@ -61,11 +60,7 @@ export function LayoutPreview({ count }: { readonly count: number }) {
   if (!rects) return null;
 
   return (
-    <svg
-      viewBox="0 0 120 160"
-      className="w-full h-full"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 120 160" className="w-full h-full" aria-hidden="true">
       {rects.map((rect, i) => {
         const fill = MANA_ORDER[i % MANA_ORDER.length];
         return (
@@ -83,24 +78,6 @@ export function LayoutPreview({ count }: { readonly count: number }) {
               stroke="rgba(0,0,0,0.15)"
               strokeWidth={1}
             />
-
-            {/* Rotation indicator — small arc on top-rotated zones */}
-            {rect.rotated && (
-              <g
-                transform={`translate(${rect.x + rect.w - 8}, ${rect.y + 8})`}
-              >
-                <path
-                  d="M 3,-4 A 5,5 0 1,1 -3,-4"
-                  fill="none"
-                  stroke="rgba(0,0,0,0.35)"
-                  strokeWidth={1.5}
-                />
-                <polygon
-                  points="-3,-4 -1,-2 -1,-6"
-                  fill="rgba(0,0,0,0.35)"
-                />
-              </g>
-            )}
           </g>
         );
       })}

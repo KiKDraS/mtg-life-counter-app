@@ -1,5 +1,6 @@
 import { DialogShell } from "@/shared/components/DialogShell";
 import { InitialLifeContent } from "./InitialLifeContent";
+import { MODAL_CLASSNAMES } from "../constants/modal";
 
 interface InitialLifeModalProps {
   readonly id: string;
@@ -23,7 +24,11 @@ interface InitialLifeModalProps {
  */
 export function InitialLifeModal({ id }: InitialLifeModalProps) {
   return (
-    <DialogShell id={id} ariaLabelledBy="initial-life-title">
+    <DialogShell
+      id={id}
+      ariaLabelledBy="initial-life-title"
+      className={MODAL_CLASSNAMES}
+    >
       <div className="flex flex-1 flex-col items-center justify-center px-6">
         <h2
           id="initial-life-title"

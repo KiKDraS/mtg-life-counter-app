@@ -69,7 +69,7 @@ export function InitialLifeContent({ dialogId }: InitialLifeContentProps) {
             aria-label={`Set initial life to ${value}`}
             onClick={() => selectLife(value)}
             className={cn(
-              "flex flex-col items-center justify-center rounded-lg border border-white/10 py-6",
+              "flex flex-col items-center justify-center rounded-lg border border-white/10 py-6 px-2",
               "hover:bg-white/10 transition-colors",
               "focus-visible:outline-2 focus-visible:outline-white",
               "cursor-pointer",

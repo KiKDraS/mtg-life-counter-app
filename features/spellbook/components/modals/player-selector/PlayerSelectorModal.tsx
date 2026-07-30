@@ -1,5 +1,6 @@
 import { DialogShell } from "@/shared/components/DialogShell";
 import { PlayerSelectorContent } from "./PlayerSelectorContent";
+import { MODAL_CLASSNAMES } from "../constants/modal";
 
 interface PlayerSelectorModalProps {
   readonly id: string;
@@ -23,7 +24,11 @@ interface PlayerSelectorModalProps {
  */
 export function PlayerSelectorModal({ id }: PlayerSelectorModalProps) {
   return (
-    <DialogShell id={id} ariaLabelledBy="player-selector-title">
+    <DialogShell
+      id={id}
+      ariaLabelledBy="player-selector-title"
+      className={MODAL_CLASSNAMES}
+    >
       <div className="flex flex-1 flex-col items-center justify-center px-6">
         <h2
           id="player-selector-title"
