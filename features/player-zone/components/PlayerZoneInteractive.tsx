@@ -117,11 +117,22 @@ export function PlayerZoneInteractive({
 
   const { background, textColor } = zoneStylesFor(state.color);
 
+  const isSideways = rotation === 90 || rotation === -90;
+
+  const dimensionClasses = isSideways
+    ? "w-[100cqh] h-[100cqw]"
+    : "w-[100cqw] h-[100cqh]";
+
   return (
     <div
       ref={zoneRef}
-      className="relative h-full w-full"
-      style={{ transform: `rotate(${rotation}deg)` }}
+      className={cn(
+        "relative top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+        dimensionClasses,
+      )}
+      style={{
+        transform: `rotate(${rotation}deg)`,
+      }}
     >
       <section
         aria-label={`Player ${playerId + 1}: ${state.life} life`}

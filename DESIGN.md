@@ -215,11 +215,21 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 **6 Players (Landscape — 2×3)**
 
 ```
-┌─────┬─────┬─────┐
-│ P1  │ P2  │ P3  │ Top row: 180°
-├─────┼──M──┼─────┤
-│ P4  │ P5  │ P6  │
-└─────┴─────┴─────┘
+┌─────────────────────┐
+│      Player 1       │ P1: 180° → text faces TOP
+│         40 ★        │
+│      [+]  [-]       │
+├──────────┬──────────┤
+│ Player 2 │ Player 3 │ P2: −90°, P3: 90°
+│   40 ★   │   38 ★   │
+├──────────M──────────┤
+│ Player 4 │ Player 5 │ P4: −90°, P5: 90°
+│   32 ★   │   41 ★   │
+├──────────┴──────────┤
+│      Player 6       │ P6: 0
+│         40 ★        │
+│      [+]  [-]       │
+└─────────────────────┘
 ```
 
 - **M** = Speelbook menu position.

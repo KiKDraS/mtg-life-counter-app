@@ -1,6 +1,6 @@
 "use client";
 
-import { PropsWithChildren } from "react";
+import { PropsWithChildren, useMemo } from "react";
 import { PlayerRow } from "./PlayerRow";
 import {
   GameProvider,
@@ -8,6 +8,14 @@ import {
 } from "@/features/game-shell/state/game-state-context";
 import { PlayerId } from "@/features/player-zone/types/player";
 import { getPlayerRotation } from "@/features/player-zone/hooks/use-player-config";
+
+const TOP_ROW_COUNT_MAP: Record<number, number> = {
+  2: 1, // 1 up, 1 down
+  3: 1, // 1 up, 2 down
+  4: 2, // 2 up, 2 down
+  5: 3, // 3 up, 2 down
+  6: 3, // 3 up, 3 down
+};
 
 /**
  * @description
@@ -29,14 +37,22 @@ function GameInner({ children }: Readonly<PropsWithChildren>) {
    * Pre-compute the data structure before rendering.
    * This keeps the JSX purely declarative.
    */
-  const playerSlots = Array.from({ length: playerCount }, (_, i) => ({
-    playerId: i as PlayerId,
-    rotation: getPlayerRotation(i, playerCount),
-  }));
+  const { topSlots, bottomSlots } = useMemo(() => {
+    // Generar los slots base
+    const slots = Array.from({ length: playerCount }, (_, i) => ({
+      playerId: i as PlayerId,
+      rotation: getPlayerRotation(i, playerCount),
+    }));
 
-  const mid = Math.ceil(playerCount / 2);
-  const topSlots = playerSlots.slice(0, mid);
-  const bottomSlots = playerSlots.slice(mid);
+    // Obtener el índice de corte desde nuestro mapa declarativo
+    const splitIndex =
+      TOP_ROW_COUNT_MAP[playerCount] ?? Math.ceil(playerCount / 2);
+
+    return {
+      topSlots: slots.slice(0, splitIndex),
+      bottomSlots: slots.slice(splitIndex),
+    };
+  }, [playerCount]);
 
   return (
     <>
