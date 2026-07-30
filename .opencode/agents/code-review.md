@@ -109,26 +109,17 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 
 ### 6. Component hygiene
 
-- **Magic string state values:** Flag raw string literals in `useState<Type>`
-  calls for view/state machines. Must use const enum pattern:
+- **Magic string state.** Flag raw strings in useState. Require const enum:
   ```ts
   // BAD
   const [view, setView] = useState<"grid" | "numpad">("grid");
-  if (view === "numpad") { ... }
-  setView("numpad");
 
   // GOOD
   const ViewType = { Grid: "grid", Numpad: "numpad" } as const;
   type ViewType = (typeof ViewType)[keyof typeof ViewType];
-  const [view, setView] = useState<ViewType>(ViewType.Grid);
-  if (view === ViewType.Numpad) { ... }
-  setView(ViewType.Numpad);
   ```
-- **File overcrowding:** Flag component files with 150+ lines of JSX or 2+
-  distinct HTML block structures (view switching, conditional renders of
-  unrelated markup). Demand extraction into separate component files.
-- **Mixed concerns:** Flag files mixing layout, event logic, and data IO in a
-  single component. Demand separation into component + hook/util.
+- **Overcrowded files.** 150+ lines OR 2+ distinct HTML blocks → split.
+- **Mixed concerns.** Layout + logic + IO in one file → split component + hook/util.
 
 ### 7. Accessibility
 

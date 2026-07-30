@@ -174,18 +174,13 @@ Deliver across 4 layers:
 
 ### 7. Component hygiene
 
-- **No magic strings for state/view types.** Use const enum pattern:
+- **No magic string state.** Use const enum:
   ```ts
   const ViewType = { Grid: "grid", Numpad: "numpad" } as const;
   type ViewType = (typeof ViewType)[keyof typeof ViewType];
   ```
-  Then reference `ViewType.Grid` / `ViewType.Numpad` — never `"grid"` / `"numpad"`.
-- **Extract complex JSX blocks.** A component rendering 2+ distinct HTML structures
-  (e.g. view switching) → extract each block into its own file. Single file holds
-  one component + its helpers. Max ~100 lines of JSX per file.
-- **One concern per file.** A component file does layout OR logic OR IO — not all
-  three. Extract event handling, callbacks, and derived state into hooks/utils
-  when they exceed ~20 lines.
+- **Extract bloated JSX.** 2+ view branches → separate file. ~100 line ceiling.
+- **One concern per file.** Layout XOR logic XOR IO. Hooks/utils past 20 lines.
 
 ### 8. API & data layer
 
