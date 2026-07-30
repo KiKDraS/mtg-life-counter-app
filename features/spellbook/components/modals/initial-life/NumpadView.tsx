@@ -22,7 +22,8 @@ export function NumpadView({ onSubmit }: NumpadViewProps) {
     const raw = inputRef.current?.value.trim();
     if (!raw) return;
     const value = Number(raw);
-    if (!Number.isInteger(value) || value < 1) return;
+    const isValid = Number.isInteger(value) && value >= 1;
+    if (!isValid) return;
     onSubmit(value);
   }, [onSubmit]);
 
@@ -44,6 +45,7 @@ export function NumpadView({ onSubmit }: NumpadViewProps) {
         type="number"
         min={1}
         placeholder="40"
+        aria-label="Custom starting life"
         autoFocus
         onKeyDown={handleKeyDown}
         className={cn(
