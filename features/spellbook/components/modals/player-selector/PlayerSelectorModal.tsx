@@ -29,7 +29,7 @@ export function PlayerSelectorModal({ id }: PlayerSelectorModalProps) {
       ariaLabelledBy="player-selector-title"
       className={MODAL_CLASSNAMES}
     >
-      <div className="flex flex-1 flex-col items-center justify-center px-6">
+      <div className="flex flex-1 flex-col items-center justify-center p-6">
         <h2 id="player-selector-title" className="sr-only">
           Players
         </h2>
