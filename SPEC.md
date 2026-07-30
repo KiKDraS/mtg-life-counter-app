@@ -42,14 +42,40 @@ When app launches with no saved IndexDB state:
 
 ---
 
-## 4. Persistence (IndexDB)
+## 4. Persistence (IndexedDB)
 
-- **Save:** Every state change (life, counters, commander damage, players,
-  colors) → persist.
-- **Load:** Read IndexDB:
-  - Found → restore saved state.
-  - Not found → use §2 defaults.
-- **Storage:** Single record. Device-local. No accounts. No cloud sync.
+Two stores — separate initial values from live state.
+
+### 4.1 Store 1: `game-init` — Initial Values
+
+| Field        | Type                         | Notes                             |
+| ------------ | ---------------------------- | --------------------------------- |
+| Key          | `"init"`                     | Singleton record                  |
+| Schema       | `GameInit` (§5)              |                                   |
+| Written on   | Player count, initial life, player color change |                |
+| Read on      | App start → bootstrap settings |                                  |
+
+### 4.2 Store 2: `game-state` — Current State
+
+| Field        | Type                         | Notes                             |
+| ------------ | ---------------------------- | --------------------------------- |
+| Key          | `"state"`                    | Singleton record                  |
+| Schema       | `GameStateRecord` (§5)       |                                   |
+| Written on   | Every life, counter, commander damage change |                |
+| Read on      | App start → restore live values |                                |
+
+### 4.3 Load Priority
+
+1. Read `game-init` → if found, bootstrap settings.
+2. Read `game-state` → if found, restore live values.
+3. Neither found → use §3 defaults.
+
+### 4.4 SSR Sync
+
+- SSR renders §3 defaults exclusively.
+- Client hydrator reads both stores post-mount via effect.
+- No render blocking — defaults active until hydration.
+- Device-local. No accounts. No cloud sync.
 
 ---
 
@@ -57,6 +83,18 @@ When app launches with no saved IndexDB state:
 
 ```typescript
 import type { PlayerId, PlayerColor } from "@/features/player-zone/types/player";
+
+// Store 1 — persisted initial values (written by setup actions)
+interface GameInit {
+  players: number;                    // 2-6
+  initialLife: number;                // 20|30|40|60|custom
+  playerColors: Record<PlayerId, PlayerColor>;
+}
+
+// Store 2 — persisted current per-player values
+interface GameStateRecord {
+  playerStates: PlayerState[];
+}
 
 interface CommanderDamage {
   playerId: PlayerId;  // commander owner's identity
@@ -77,13 +115,14 @@ interface PlayerState {
   counters: Counter[];
   commanderDamage: CommanderDamage[];
 }
-
-interface GameState {
-  players: number;
-  playerStates: PlayerState[];
-  playerColors: Record<PlayerId, PlayerColor>;
-}
 ```
+
+**Invariants:**
+
+- `commanderDamage` array length ALWAYS equals current player count. Never empty.
+  Reset sets all values to 0.
+- `counters` array NEVER empty. Reset sets defaults (poison/energy/experience/time)
+  to 0. Custom counters cleared on reset.
 
 ---
 
@@ -106,7 +145,91 @@ interface GameState {
 
 ---
 
-## 8. Roadmap
+## 8. Menu Actions
+
+### 8.1 Common Reset Behavior
+
+⟳ Restart, ⚙️ Set Initial Life, and 👥 Player Selector all trigger a common reset:
+
+- Every player life = `game-init.initialLife`
+- Every player counters = `DEFAULT_COUNTERS` (poison 0, energy 0, experience 0, time 0)
+- Every player commanderDamage rebuilt:
+  `Array.from({length: playerCount}, (_, i) => ({playerId: i, value: 0}))`
+- Player colors UNCHANGED. `game-init.playerColors` UNCHANGED.
+- Custom counters (user-added) cleared.
+
+### 8.2 ⟳ Restart Life
+
+| Property      | Value                                 |
+| ------------- | ------------------------------------- |
+| Trigger       | Tap ⟳ in spellbook belt              |
+| Modal         | No — instant                          |
+| Action        | §8.1 common reset using current `game-init` |
+| Updates init? | No — reads only                       |
+| Persist       | Write `game-state`                    |
+
+### 8.3 ⚙️ Set Initial Life
+
+| Property      | Value                                 |
+| ------------- | ------------------------------------- |
+| Trigger       | Tap ⚙️ in spellbook belt              |
+| Modal         | Yes — DESIGN.md §6.2 (2-col grid)     |
+| Action        | 1. Set `game-init.initialLife` = selected value |
+|               | 2. §8.1 common reset with new initialLife |
+| Updates init? | Yes — `initialLife`                   |
+| Persist       | Write `game-init` + `game-state`      |
+
+Edge cases:
+- Custom numpad: any positive integer. No upper bound validation.
+- Same value as current: still performs reset.
+
+### 8.4 👥 Player Selector
+
+| Property      | Value                                 |
+| ------------- | ------------------------------------- |
+| Trigger       | Tap 👥 in spellbook belt              |
+| Modal         | Yes — DESIGN.md §6.3 (SVG layout cells) |
+| Updates init? | Yes — `players`                       |
+| Persist       | Write `game-init` + `game-state`      |
+
+#### 8.4.1 Count UP (e.g. 2→4)
+
+1. Existing players: §8.1 common reset with new player count.
+2. New players appended with:
+   - `playerId` = next index
+   - `life` = `game-init.initialLife`
+   - `color` = `DEFAULT_PLAYER_COLOR`
+   - `counters` = `DEFAULT_COUNTERS`
+   - `commanderDamage` = one entry per player (all 0)
+3. `game-init.players` = new count
+4. `game-init.playerColors` extended with `DEFAULT_PLAYER_COLOR` for each new player.
+
+#### 8.4.2 Count DOWN (e.g. 4→2)
+
+1. Existing players: §8.1 common reset with new player count.
+2. Last N player states removed from array + `game-init.playerColors`.
+3. `game-init.players` = new count.
+
+#### 8.4.3 Edge Cases
+
+| Scenario                              | Behavior                                        |
+| ------------------------------------- | ----------------------------------------------- |
+| Same count selected                   | Still performs reset                            |
+| Custom counters on removed players    | Lost — no recovery                              |
+| Removed player's commander damage     | All remaining players' CD rebuilt for new count |
+
+### 8.5 Color Selection
+
+| Property      | Value                                 |
+| ------------- | ------------------------------------- |
+| Trigger       | Gear icon on player zone — DESIGN.md §6.5 |
+| Updates init? | Yes — `playerColors[playerId]`        |
+| Resets game?  | No — color only                        |
+| Persists restart? | Yes                               |
+
+---
+
+## 9. Roadmap
 
 | Feature                         | Phase |
 | ------------------------------- | ----- |
