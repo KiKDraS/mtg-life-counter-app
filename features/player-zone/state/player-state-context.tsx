@@ -152,7 +152,7 @@ export function PlayerProvider({
   const initialState: PlayerState = {
     playerId: (playerIndex ?? 0) as PlayerId,
     life: hasGameCtx ? gameCtx.state.initialLife : 40,
-    color: DEFAULT_PLAYER_COLOR as PlayerColor,
+    color: (hasGameCtx ? gameCtx.state.playerColors[playerIndex] : DEFAULT_PLAYER_COLOR) as PlayerColor,
     commanderDamage: Array.from({ length: playerCount }, (_, i) => ({
       playerId: i as PlayerId,
       value: 0,
