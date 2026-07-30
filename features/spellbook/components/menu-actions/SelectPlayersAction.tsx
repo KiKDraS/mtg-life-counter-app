@@ -3,11 +3,19 @@
 import { type PropsWithChildren } from "react";
 import { MenuActionButton } from "../MenuActionButton";
 
-/* ponytail: Player Selector modal (DESIGN.md §6.3) not built yet.
- * Wire to useGameStateContext + setPlayerCount when modal component exists. */
+const PLAYER_SELECTOR_MODAL_ID = "player-selector-modal";
+
+/**
+ * §8.4 — Opens the Player Selector modal.
+ * Modal lives in SpellbookMenu as a sibling to the belt.
+ */
 export function SelectPlayersAction({ children }: Readonly<PropsWithChildren>) {
   const handleSelect = () => {
-    /* §6.3 — opens Player Count SVG selector modal. */
+    (
+      document.getElementById(PLAYER_SELECTOR_MODAL_ID) as
+        | HTMLDialogElement
+        | null
+    )?.show();
   };
 
   return (

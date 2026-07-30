@@ -56,12 +56,37 @@ export function setGamePlayerColor(
 /* ── Reducer ── */
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
-    case SET_PLAYER_COUNT:
+    case SET_PLAYER_COUNT: {
+      const newCount = action.count;
+      const oldCount = state.playerCount;
+      let newColors: Record<PlayerId, PlayerColor>;
+      if (newCount > oldCount) {
+        // §8.4.1 — preserve existing colors, append defaults for new players
+        const extras = Object.fromEntries(
+          Array.from({ length: newCount - oldCount }, (_, i) => [
+            String(oldCount + i),
+            DEFAULT_PLAYER_COLOR,
+          ]),
+        );
+        newColors = { ...state.playerColors, ...extras } as Record<
+          PlayerId,
+          PlayerColor
+        >;
+      } else if (newCount < oldCount) {
+        // §8.4.2 — keep first N, discard removed players
+        newColors = Object.fromEntries(
+          Object.entries(state.playerColors).slice(0, newCount),
+        ) as Record<PlayerId, PlayerColor>;
+      } else {
+        // same count — keep colors unchanged, still triggers reset via restartGame()
+        newColors = state.playerColors;
+      }
       return {
         ...state,
-        playerCount: action.count,
-        playerColors: initPlayerColors(action.count),
+        playerCount: newCount,
+        playerColors: newColors,
       };
+    }
     case SET_INITIAL_LIFE:
       return { ...state, initialLife: action.value };
     case RESTART:

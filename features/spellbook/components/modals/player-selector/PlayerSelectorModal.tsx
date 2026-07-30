@@ -1,42 +1,42 @@
 import { DialogShell } from "@/shared/components/DialogShell";
-import { InitialLifeContent } from "./InitialLifeContent";
+import { PlayerSelectorContent } from "./PlayerSelectorContent";
 import { MODAL_CLASSNAMES } from "../constants/modal";
 
-interface InitialLifeModalProps {
+interface PlayerSelectorModalProps {
   readonly id: string;
 }
 
 /**
- * §6.2 Initial Life Selector Modal (RSC shell).
+ * §6.3 Player Selector Modal (RSC shell).
  *
- * Native <dialog> with a 2-col preset grid.
- * Interactive content lives in {@link InitialLifeContent}.
+ * Native <dialog> with SVG layout previews for 2p–6p.
+ * Interactive content lives in {@link PlayerSelectorContent}.
  *
  * Close via:
  * - Tap backdrop (DialogShell native handler)
  * - Escape (DialogShell native handler)
- * - Preset selection or numpad Enter (client leaf closes)
+ * - SVG selection (client leaf closes)
  *
  * No ✕ close button per §6.1.
  *
- * @see DESIGN.md §6.2
- * @see SPEC.md §8.3
+ * @see DESIGN.md §6.3
+ * @see SPEC.md §8.4
  */
-export function InitialLifeModal({ id }: InitialLifeModalProps) {
+export function PlayerSelectorModal({ id }: PlayerSelectorModalProps) {
   return (
     <DialogShell
       id={id}
-      ariaLabelledBy="initial-life-title"
+      ariaLabelledBy="player-selector-title"
       className={MODAL_CLASSNAMES}
     >
       <div className="flex flex-1 flex-col items-center justify-center px-6">
         <h2
-          id="initial-life-title"
+          id="player-selector-title"
           className="text-heading text-ui-textLight mb-8"
         >
-          Initial Life
+          Players
         </h2>
-        <InitialLifeContent dialogId={id} />
+        <PlayerSelectorContent dialogId={id} />
       </div>
     </DialogShell>
   );

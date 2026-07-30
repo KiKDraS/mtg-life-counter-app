@@ -12,10 +12,12 @@ import { SetLifeAction } from "./menu-actions/SetLifeAction";
 import { CallJudgeAction } from "./menu-actions/CallJudgeAction";
 import { SelectPlayersAction } from "./menu-actions/SelectPlayersAction";
 import { InitialLifeModal } from "./modals/initial-life/InitialLifeModal";
+import { PlayerSelectorModal } from "./modals/player-selector/PlayerSelectorModal";
 
 const BTN_SIZE = "size-7 md:size-10 transition-all cursor-pointer";
 
 const INITIAL_LIFE_MODAL_ID = "initial-life-modal";
+const PLAYER_SELECTOR_MODAL_ID = "player-selector-modal";
 
 /**
  * @description
@@ -125,6 +127,7 @@ export function SpellbookMenu() {
 
       {/* Global modals — rendered in DOM, hidden until triggered via DOM ID */}
       <InitialLifeModal id={INITIAL_LIFE_MODAL_ID} />
+      <PlayerSelectorModal id={PLAYER_SELECTOR_MODAL_ID} />
     </div>
   );
 }

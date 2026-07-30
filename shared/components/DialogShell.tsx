@@ -64,7 +64,8 @@ export function DialogShell({
       className={cn(
         "absolute left-0 top-0 z-40 m-0 h-full w-full flex-col open:flex",
         "rounded-none border-0 text-ui-textLight backdrop:bg-transparent",
-        className ?? "bg-black/80",
+        "bg-black/80",
+        className,
       )}
     >
       {children}

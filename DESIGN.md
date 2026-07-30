@@ -163,7 +163,7 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 │    Player 1      │ 180° rotation
 │   40 ★           │
 │  [+]  [-]        │
-├──────────────────┤
+├────────M─────────┤
 │    Player 2      │
 │   37 ★           │
 │  [+]  [-]        │
@@ -177,7 +177,7 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 │            Player 1               │ 180° → text faces TOP
 │              40 ★                 │
 │           [+]  [-]                │
-├────────────────┬──────────────────┤
+├────────────────M──────────────────┤
 │   Player 2     │   Player 3       │
 │   37 ★         │   41 ★           │
 │  [+]  [-]      │  [+]  [-]        │ P2: −90°, P3: 90°
@@ -188,10 +188,10 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 
 ```
 ┌──────────┬──────────┐
-│ Player 1 │ Player 2 │ Top row: 180°
+│ Player 1 │ Player 2 │ P1: −90°, P2: 90°
 │   40 ★   │   38 ★   │
-├──────────┼──────────┤
-│ Player 3 │ Player 4 │
+├──────────M──────────┤
+│ Player 3 │ Player 4 │ P3: −90°, P4: 90°
 │   32 ★   │   41 ★   │
 └──────────┴──────────┘
 ```
@@ -206,7 +206,7 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 ├──────────┬──────────┤
 │ Player 1 │ Player 2 │ P1: −90°, P2: 90°
 │   40 ★   │   38 ★   │
-├──────────┼──────────┤
+├──────────M──────────┤
 │ Player 3 │ Player 4 │ P3: −90°, P4: 90°
 │   32 ★   │   41 ★   │
 └──────────┴──────────┘
@@ -217,10 +217,12 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 ```
 ┌─────┬─────┬─────┐
 │ P1  │ P2  │ P3  │ Top row: 180°
-├─────┼─────┼─────┤
+├─────┼──M──┼─────┤
 │ P4  │ P5  │ P6  │
 └─────┴─────┴─────┘
 ```
+
+- **M** = Speelbook menu position.
 
 ### 4.2 Zone Anatomy
 
@@ -321,7 +323,7 @@ Native `<dialog>` with `aria-modal="true"`. No modal library.
 
 | Modal                                 | Backdrop                     |
 | ------------------------------------- | ---------------------------- |
-| Initial Life / Players / Color Picker | `rgba(0,0,0,0.35)`           |
+| Initial Life / Players / Color Picker | `rgba(0, 0, 0, 0.35)`        |
 | AI Judge                              | `#000000` solid — full focus |
 
 ```html
@@ -514,8 +516,8 @@ each commander deals to current player.
 └──────────────────────┘
 ```
 
-Data model: see SPEC.md §4 `CommanderDamage`. Player 1 (playerId: 0) sees columns
-for playerId 0 (own commander), 1, 2, 3 (opponents).
+Data model: see SPEC.md §4 `CommanderDamage`. Player 1 (playerId: 0) sees
+columns for playerId 0 (own commander), 1, 2, 3 (opponents).
 
 - **Pill:** Rounded. Commander owner's mana color. `PlaneswalkerSymbol` inside
   (white fill).
@@ -595,7 +597,6 @@ All interactive: ≥44×44px (48×48px preferred).
 
 ## 10. APPLICATION STATE
 
-Data model, defaults, persistence: see SPEC.md §1–6.
----
+## Data model, defaults, persistence: see SPEC.md §1–6.
 
 _End of DESIGN.md_
