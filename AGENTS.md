@@ -78,7 +78,7 @@ Tailwind classes with separate CSS per component.
 
 ## Rules (All Agents)
 
-**Caveman ON.** Sub-agents inherit. Off: "stop caveman". Drop
+**Caveman ON (full).** Sub-agents inherit. Off: "stop caveman". Drop
 articles/filler/pleasantries/hedging. Fragments OK. Pattern:
 `[thing] [action] [reason].` Spec: `.opencode/skills/caveman/SKILL.md`
 
