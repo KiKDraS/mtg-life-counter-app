@@ -3,11 +3,19 @@
 import { type PropsWithChildren } from "react";
 import { MenuActionButton } from "../MenuActionButton";
 
-/* ponytail: Initial Life modal (DESIGN.md §6.2) not built yet.
- * Wire to useGameStateContext + setInitialLife when modal component exists. */
+const INITIAL_LIFE_MODAL_ID = "initial-life-modal";
+
+/**
+ * §8.3 — Opens the Initial Life preset modal.
+ * Modal lives in SpellbookMenu as a sibling to the belt.
+ */
 export function SetLifeAction({ children }: Readonly<PropsWithChildren>) {
   const handleSetLife = () => {
-    /* §6.2 — opens Initial Life preset modal. */
+    (
+      document.getElementById(INITIAL_LIFE_MODAL_ID) as
+        | HTMLDialogElement
+        | null
+    )?.show();
   };
 
   return (
