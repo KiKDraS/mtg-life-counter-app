@@ -21,11 +21,9 @@ export function PlayerRow({ slots, version }: PlayerRowProps) {
   return (
     <>
       {slots.map(({ playerId, rotation }) => (
-        <div className="flex-1" key={`${playerId}-${version}`}>
-          <PlayerProvider playerIndex={playerId}>
-            <PlayerZone playerId={playerId} rotation={rotation} />
-          </PlayerProvider>
-        </div>
+        <PlayerProvider playerIndex={playerId} key={`${playerId}-${version}`}>
+          <PlayerZone playerId={playerId} rotation={rotation} />
+        </PlayerProvider>
       ))}
     </>
   );

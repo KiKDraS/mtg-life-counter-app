@@ -200,14 +200,14 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 
 ```
 ┌─────────────────────┐
-│      Player 5       │ 180° → text faces TOP
+│      Player 1       │ P1: 180° → text faces TOP
 │         40 ★        │
 │      [+]  [-]       │
 ├──────────┬──────────┤
-│ Player 1 │ Player 2 │ P1: −90°, P2: 90°
+│ Player 2 │ Player 3 │ P2: −90°, P3: 90°
 │   40 ★   │   38 ★   │
 ├──────────M──────────┤
-│ Player 3 │ Player 4 │ P3: −90°, P4: 90°
+│ Player 4 │ Player 5 │ P4: −90°, P5: 90°
 │   32 ★   │   41 ★   │
 └──────────┴──────────┘
 ```

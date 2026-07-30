@@ -1,12 +1,10 @@
 "use client";
 
-import {
-  createContext,
-  use,
-  useReducer,
-  type ReactNode,
-} from "react";
-import type { PlayerId, PlayerColor } from "@/features/player-zone/types/player";
+import { createContext, use, useMemo, useReducer, type ReactNode } from "react";
+import type {
+  PlayerId,
+  PlayerColor,
+} from "@/features/player-zone/types/player";
 import { DEFAULT_PLAYER_COLOR } from "@/features/player-zone/constants/player";
 
 /* ── State ── */
@@ -31,7 +29,11 @@ type GameAction =
   | { type: typeof SET_PLAYER_COUNT; count: number }
   | { type: typeof SET_INITIAL_LIFE; value: number }
   | { type: typeof RESTART }
-  | { type: typeof SET_GAME_PLAYER_COLOR; playerId: PlayerId; color: PlayerColor };
+  | {
+      type: typeof SET_GAME_PLAYER_COLOR;
+      playerId: PlayerId;
+      color: PlayerColor;
+    };
 
 /* ── Action creators ── */
 export function setPlayerCount(count: number): GameAction {
@@ -113,7 +115,10 @@ const GameContext = createContext<GameContextValue | null>(null);
 /* §3 defaults: 2 players, 40 life, version=0. */
 function initPlayerColors(count: number): Record<PlayerId, PlayerColor> {
   return Object.fromEntries(
-    Array.from({ length: count }, (_, i) => [i, DEFAULT_PLAYER_COLOR as PlayerColor]),
+    Array.from({ length: count }, (_, i) => [
+      i,
+      DEFAULT_PLAYER_COLOR as PlayerColor,
+    ]),
   ) as Record<PlayerId, PlayerColor>;
 }
 
@@ -137,16 +142,15 @@ const GAME_INITIAL: GameState = {
  *
  * @see SPEC.md §5 — GameState
  */
-export function GameProvider({
-  children,
-}: {
-  readonly children: ReactNode;
-}) {
+export function GameProvider({ children }: { readonly children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, GAME_INITIAL);
 
-  return (
-    <GameContext value={{ state, dispatch }}>{children}</GameContext>
+  const value: GameContextValue = useMemo(
+    () => ({ state, dispatch }),
+    [state, dispatch],
   );
+
+  return <GameContext value={value}>{children}</GameContext>;
 }
 
 /**

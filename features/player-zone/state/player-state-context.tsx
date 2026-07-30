@@ -1,10 +1,16 @@
 "use client";
 
-import { createContext, use, useReducer, type ReactNode } from "react";
-import type { PlayerColor, PlayerId } from "@/features/player-zone/types/player";
+import { createContext, use, useMemo, useReducer, type ReactNode } from "react";
+import type {
+  PlayerColor,
+  PlayerId,
+} from "@/features/player-zone/types/player";
 import type { CommanderDamage } from "@/features/player-zone/types/CommanderDamage";
 import type { Counter } from "@/features/player-zone/types/counter";
-import { DEFAULT_COUNTERS, COUNTER_TYPE_CUSTOM } from "@/features/player-zone/constants/counter";
+import {
+  DEFAULT_COUNTERS,
+  COUNTER_TYPE_CUSTOM,
+} from "@/features/player-zone/constants/counter";
 import { DEFAULT_PLAYER_COLOR } from "@/features/player-zone/constants/player";
 import { useOptionalGameStateContext } from "@/features/game-shell/state/game-state-context";
 
@@ -31,7 +37,11 @@ type PlayerAction =
   | { type: typeof ADJUST_LIFE; delta: number }
   | { type: typeof SET_LIFE; value: number }
   | { type: typeof SET_COLOR; color: PlayerColor }
-  | { type: typeof ADJUST_COMMANDER_DAMAGE; commanderPlayerId: PlayerId; delta: number }
+  | {
+      type: typeof ADJUST_COMMANDER_DAMAGE;
+      commanderPlayerId: PlayerId;
+      delta: number;
+    }
   | { type: typeof ADJUST_COUNTER; id: string; delta: number }
   | { type: typeof ADD_COUNTER; id: string; name: string };
 
@@ -78,7 +88,10 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
       );
       const entry: CommanderDamage =
         idx !== -1
-          ? { ...state.commanderDamage[idx], value: state.commanderDamage[idx].value + action.delta }
+          ? {
+              ...state.commanderDamage[idx],
+              value: state.commanderDamage[idx].value + action.delta,
+            }
           : { playerId: action.commanderPlayerId, value: action.delta };
       const next =
         idx !== -1
@@ -152,7 +165,9 @@ export function PlayerProvider({
   const initialState: PlayerState = {
     playerId: (playerIndex ?? 0) as PlayerId,
     life: hasGameCtx ? gameCtx.state.initialLife : 40,
-    color: (hasGameCtx ? gameCtx.state.playerColors[playerIndex as PlayerId] : DEFAULT_PLAYER_COLOR) as PlayerColor,
+    color: (hasGameCtx
+      ? gameCtx.state.playerColors[playerIndex as PlayerId]
+      : DEFAULT_PLAYER_COLOR) as PlayerColor,
     commanderDamage: Array.from({ length: playerCount }, (_, i) => ({
       playerId: i as PlayerId,
       value: 0,
@@ -161,7 +176,12 @@ export function PlayerProvider({
   };
   const [state, dispatch] = useReducer(playerReducer, initialState);
 
-  return <PlayerContext value={{ state, dispatch }}>{children}</PlayerContext>;
+  const value: PlayerContextValue = useMemo(
+    () => ({ state, dispatch }),
+    [state, dispatch],
+  );
+
+  return <PlayerContext value={value}>{children}</PlayerContext>;
 }
 
 /**
