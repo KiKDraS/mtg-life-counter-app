@@ -50,7 +50,7 @@ export function NumpadView({ onSubmit }: NumpadViewProps) {
         onKeyDown={handleKeyDown}
         className={cn(
           "w-40 rounded border border-white/20 bg-transparent px-4 py-3 text-center",
-          "text-display font-black tabular-nums text-ui-textLight",
+          "text-display font-black tabular-nums text-ui-textLight bg-ui-belt",
           "focus:border-white/60 focus:outline-none",
           "[&::-webkit-inner-spin-button]:appearance-none",
           "[&::-webkit-outer-spin-button]:appearance-none",
