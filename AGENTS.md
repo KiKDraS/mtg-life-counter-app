@@ -76,49 +76,25 @@ Tailwind classes with separate CSS per component.
 
 ---
 
-## Caveman Mode
+## Rules (All Agents)
 
-Active unless "stop caveman". Default: full.
-`/caveman lite|full|ultra|wenyan|wenyan-lite|wenyan-ultra` switch intensity.
-Code/commits/PRs/security: normal clarity when compression risks misread.
-Skills: `caveman`, `caveman-commit`, `caveman-review`, `caveman-help`,
-`caveman-compress`.
+**Caveman ON.** Sub-agents inherit. Off: "stop caveman". Drop
+articles/filler/pleasantries/hedging. Fragments OK. Pattern:
+`[thing] [action] [reason].` Spec: `.opencode/skills/caveman/SKILL.md`
 
-### Mandatory: ultra on core files
+**Caveman ultra enforced** on edits to `AGENTS.md`, `DESIGN.md*`,
+`.opencode/agents/*.md`. Max compression. These are meta files — no prose, no
+explanations, no pleasantries. If reading: caveman ultra. If writing: caveman
+ultra.
 
-Editing AGENTS.md, DESIGN.md, SPEC.md, or `.opencode/agents/*.md` → **caveman
-ultra** forced. No lite, no full. Rationale: these files read every session.
-Token density matters.
+**Context7 MCP mandatory.** `resolve-library-id` → `query-docs` for
+lib/framework/API/CLI questions. Spec: `.opencode/skills/context7-mcp/SKILL.md`
 
----
-
-## Context7 (Library Docs)
-
-Fetch current docs via Context7 MCP before implementing lib/framework features.
-Training data stale. Don't use for business logic.
-
----
-
-## CodeGraph
-
-**SEE .codegraph/ IN ROOT? USE CODEGRAPH FIRST! NO USE GREP! NO USE FIND!**
-
-**NO READ BEFORE CODEGRAPH.** Read only if codegraph missing answer.
-
-**MCP TOOL AVAILABLE:** Use codegraph_codegraph_explore. One call give all
-answer! Give source code, line numbers, and call paths. Catch dynamic-dispatch
-hops grep too dumb to see.
-
-- Need read file/symbol? Put name in query. Get line numbers, source code fresh.
-- Symbol listed but deferred? Load by name via tool search.
-
-**FALLBACK CHAIN:** MCP → shell → grep/Read. Only if codegraph didn't cover.
-
-**SHELL (ALWAYS WORK):** Type codegraph explore "<symbols or question>". Get
-same big info.
-
-**NO .codegraph/ DIR?** Skip CodeGraph! Do nothing! Indexing user choice. Tribe
-no care.
+**CodeGraph mandatory.** `.codegraph/` in root? **USE CODEGRAPH FIRST.** No
+grep/find/Read before. MCP `codegraph_codegraph_explore`: source + line nums +
+call paths + dynamic-dispatch grep misses. Fallback chain: MCP → shell
+`codegraph explore` → grep/Read. No `.codegraph/` dir? Skip. Indexing user
+choice.
 
 ---
 
