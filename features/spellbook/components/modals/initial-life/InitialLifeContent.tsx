@@ -1,18 +1,24 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
   useGameStateContext,
   setInitialLife,
   restartGame,
 } from "@/features/game-shell/state/game-state-context";
+import { NumpadView } from "./NumpadView";
 
 interface InitialLifeContentProps {
   readonly dialogId: string;
 }
 
-type View = "grid" | "numpad";
+/** §6.2 — View state for Initial Life modal. */
+const ViewType = {
+  Grid: "grid",
+  Numpad: "numpad",
+} as const;
+type ViewType = (typeof ViewType)[keyof typeof ViewType];
 
 const PRESETS = [
   { value: 20, label: "Standard" },
@@ -32,13 +38,11 @@ const PRESETS = [
  */
 export function InitialLifeContent({ dialogId }: InitialLifeContentProps) {
   const { dispatch } = useGameStateContext();
-  const [view, setView] = useState<View>("grid");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [view, setView] = useState<ViewType>(ViewType.Grid);
 
   const close = useCallback(() => {
     (document.getElementById(dialogId) as HTMLDialogElement | null)?.close();
-    // Reset view for next open
-    setView("grid");
+    setView(ViewType.Grid);
   }, [dialogId]);
 
   const selectLife = useCallback(
@@ -50,59 +54,8 @@ export function InitialLifeContent({ dialogId }: InitialLifeContentProps) {
     [dispatch, close],
   );
 
-  const handleCustomSubmit = useCallback(() => {
-    const raw = inputRef.current?.value.trim();
-    if (!raw) return;
-    const value = Number(raw);
-    if (!Number.isInteger(value) || value < 1) return;
-    selectLife(value);
-  }, [selectLife]);
-
-  const handleNumpadKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") handleCustomSubmit();
-    },
-    [handleCustomSubmit],
-  );
-
-  if (view === "numpad") {
-    return (
-      <div className="flex flex-col items-center gap-4">
-        <p className="text-body text-ui-textLight/70">
-          Enter custom starting life
-        </p>
-
-        <input
-          ref={inputRef}
-          type="number"
-          min={1}
-          placeholder="40"
-          autoFocus
-          onKeyDown={handleNumpadKeyDown}
-          className={cn(
-            "w-40 rounded border border-white/20 bg-transparent px-4 py-3 text-center",
-            "text-display font-black tabular-nums text-ui-textLight",
-            "focus:border-white/60 focus:outline-none",
-            "[&::-webkit-inner-spin-button]:appearance-none",
-            "[&::-webkit-outer-spin-button]:appearance-none",
-          )}
-        />
-
-        <button
-          type="button"
-          onClick={handleCustomSubmit}
-          className={cn(
-            "rounded bg-ui-textLight/10 px-8 py-2",
-            "text-body font-medium text-ui-textLight",
-            "hover:bg-ui-textLight/20 transition-colors",
-            "focus-visible:outline-2 focus-visible:outline-white",
-            "cursor-pointer",
-          )}
-        >
-          + Add
-        </button>
-      </div>
-    );
+  if (view === ViewType.Numpad) {
+    return <NumpadView onSubmit={selectLife} />;
   }
 
   return (
@@ -135,7 +88,7 @@ export function InitialLifeContent({ dialogId }: InitialLifeContentProps) {
       {/* [+] Add custom value */}
       <button
         type="button"
-        onClick={() => setView("numpad")}
+        onClick={() => setView(ViewType.Numpad)}
         className={cn(
           "text-body font-medium text-ui-textLight/60",
           "hover:text-ui-textLight transition-colors",
