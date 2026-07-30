@@ -1,6 +1,10 @@
 import { MANA } from "@/shared/lib/constants/colors";
 
-/* ── Layout definitions ── */
+/* ── Layout definitions ──
+ *
+ * viewBox 120x160. Rows spaced evenly with ~8px gaps.
+ * Full rows: x=10, w=100. Split rows: 2 cols at x=10/x=65, w=45 each.
+ */
 
 interface PlayerRect {
   readonly x: number;
@@ -9,37 +13,48 @@ interface PlayerRect {
   readonly h: number;
 }
 
-/** §4.1 — zone positions per player count. viewBox 120x160. */
+/**
+ * §4.1 — Zone positions per player count.
+ *
+ * Layout structure per DESIGN.md §4.1:
+ *   2p: 2 stacked full rows
+ *   3p: 1 full top + 2 split bottom
+ *   4p: 2x2 grid (top split + bottom split)
+ *   5p: 1 full + 2 rows of 2 split
+ *   6p: 1 full + 2 rows split + 1 full bottom
+ *
+ * viewBox 120x160. Gap ~8px between rows.
+ */
 const LAYOUTS: Record<number, PlayerRect[]> = {
   2: [
-    { x: 10, y: 10, w: 100, h: 60 },
-    { x: 10, y: 90, w: 100, h: 60 },
+    { x: 10, y: 8, w: 100, h: 68 },
+    { x: 10, y: 84, w: 100, h: 68 },
   ],
   3: [
-    { x: 10, y: 10, w: 100, h: 60 },
-    { x: 10, y: 90, w: 45, h: 60 },
-    { x: 65, y: 90, w: 45, h: 60 },
+    { x: 10, y: 8, w: 100, h: 68 },
+    { x: 10, y: 84, w: 45, h: 68 },
+    { x: 65, y: 84, w: 45, h: 68 },
   ],
   4: [
-    { x: 10, y: 10, w: 45, h: 60 },
-    { x: 65, y: 10, w: 45, h: 60 },
-    { x: 10, y: 90, w: 45, h: 60 },
-    { x: 65, y: 90, w: 45, h: 60 },
+    { x: 10, y: 8, w: 45, h: 68 },
+    { x: 65, y: 8, w: 45, h: 68 },
+    { x: 10, y: 84, w: 45, h: 68 },
+    { x: 65, y: 84, w: 45, h: 68 },
   ],
   5: [
-    { x: 10, y: 10, w: 100, h: 40 },
-    { x: 10, y: 60, w: 45, h: 45 },
-    { x: 65, y: 60, w: 45, h: 45 },
-    { x: 10, y: 115, w: 45, h: 40 },
-    { x: 65, y: 115, w: 45, h: 40 },
+    { x: 10, y: 7, w: 100, h: 44 },
+    { x: 10, y: 58, w: 45, h: 44 },
+    { x: 65, y: 58, w: 45, h: 44 },
+    { x: 10, y: 109, w: 45, h: 44 },
+    { x: 65, y: 109, w: 45, h: 44 },
   ],
   6: [
-    { x: 5, y: 5, w: 33, h: 70 },
-    { x: 43, y: 5, w: 33, h: 70 },
-    { x: 81, y: 5, w: 33, h: 70 },
-    { x: 5, y: 85, w: 33, h: 70 },
-    { x: 43, y: 85, w: 33, h: 70 },
-    { x: 81, y: 85, w: 33, h: 70 },
+    { x: 10, y: 8, w: 100, h: 30 },
+    { x: 10, y: 46, w: 45, h: 30 },
+    { x: 65, y: 46, w: 45, h: 30 },
+    { x: 10, y: 84, w: 45, h: 30 },
+    { x: 65, y: 84, w: 45, h: 30 },
+    { x: 10, y: 122, w: 100, h: 30 },
   ],
 };
 
@@ -51,9 +66,7 @@ const MANA_ORDER = [MANA.w, MANA.u, MANA.b, MANA.r, MANA.g] as const;
 /**
  * §6.3 — SVG layout preview for a given player count.
  *
- * Renders player zone rects matching §4.1 layout diagrams.
- * Top-row zones show 180° rotation indicator (small arc arrow).
- * Each rect filled with cycled mana colors.
+ * Renders player zone rects matching §4.1 layout diagrams (WUBRG fill cycle).
  */
 export function LayoutPreview({ count }: { readonly count: number }) {
   const rects = LAYOUTS[count];

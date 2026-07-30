@@ -30,10 +30,7 @@ export function PlayerSelectorModal({ id }: PlayerSelectorModalProps) {
       className={MODAL_CLASSNAMES}
     >
       <div className="flex flex-1 flex-col items-center justify-center px-6">
-        <h2
-          id="player-selector-title"
-          className="text-heading text-ui-textLight mb-8"
-        >
+        <h2 id="player-selector-title" className="sr-only">
           Players
         </h2>
         <PlayerSelectorContent dialogId={id} />

@@ -38,13 +38,11 @@ function GameInner({ children }: Readonly<PropsWithChildren>) {
    * This keeps the JSX purely declarative.
    */
   const { topSlots, bottomSlots } = useMemo(() => {
-    // Generar los slots base
     const slots = Array.from({ length: playerCount }, (_, i) => ({
       playerId: i as PlayerId,
       rotation: getPlayerRotation(i, playerCount),
     }));
 
-    // Obtener el índice de corte desde nuestro mapa declarativo
     const splitIndex =
       TOP_ROW_COUNT_MAP[playerCount] ?? Math.ceil(playerCount / 2);
 
@@ -61,7 +59,7 @@ function GameInner({ children }: Readonly<PropsWithChildren>) {
       {/* §5 — Spellbook belt divider (RSC passed via children) */}
       {children}
 
-      <PlayerRow slots={bottomSlots} version={version} />
+      <PlayerRow slots={bottomSlots} version={version} isBottomSlot />
     </>
   );
 }
