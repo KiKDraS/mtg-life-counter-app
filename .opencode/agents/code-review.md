@@ -107,7 +107,21 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 - Budgets: JS <100 KB gzip, CSS <20 KB gzip, LCP <2.5s, INP <200ms, CLS <0.1,
   Lighthouse Perf ≥90, A11y 100.
 
-### 6. Accessibility
+### 6. Component hygiene
+
+- **Magic string state.** Flag raw strings in useState. Require const enum:
+  ```ts
+  // BAD
+  const [view, setView] = useState<"grid" | "numpad">("grid");
+
+  // GOOD
+  const ViewType = { Grid: "grid", Numpad: "numpad" } as const;
+  type ViewType = (typeof ViewType)[keyof typeof ViewType];
+  ```
+- **Overcrowded files.** 150+ lines OR 2+ distinct HTML blocks → split.
+- **Mixed concerns.** Layout + logic + IO in one file → split component + hook/util.
+
+### 7. Accessibility
 
 - Semantic HTML: Reject `<div>`+ARIA where native element exists (`<button>`,
   `<nav>`, `<main>`, `<dialog>`).

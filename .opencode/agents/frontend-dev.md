@@ -172,7 +172,17 @@ Deliver across 4 layers:
 - **Children over render props.** Compose via `children` unless dynamic render
   control genuinely needed.
 
-### 7. API & data layer
+### 7. Component hygiene
+
+- **No magic string state.** Use const enum:
+  ```ts
+  const ViewType = { Grid: "grid", Numpad: "numpad" } as const;
+  type ViewType = (typeof ViewType)[keyof typeof ViewType];
+  ```
+- **Extract bloated JSX.** 2+ view branches → separate file. ~100 line ceiling.
+- **One concern per file.** Layout XOR logic XOR IO. Hooks/utils past 20 lines.
+
+### 8. API & data layer
 
 - **Scryfall client (`shared/lib/services/scryfall.ts`):** Typed client —
   `/cards/search`, `/cards/autocomplete`, `/cards/named`. Cache server-side.
