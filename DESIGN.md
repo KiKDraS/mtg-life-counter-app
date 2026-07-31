@@ -403,35 +403,42 @@ card or rule…" placeholder. Maximized modal, #000 backdrop.
 
 ### 6.5 Color Picker (per player)
 
-Triggered by gear icon on zone. 80/20 vertical split.
+Triggered by gear icon on zone. 90/10 horizontal split.
 
 ```
-┌──────────────────────────┐
-│ COLOR SELECTION          │ 80%  │
-│ (wheel/dual wheels)      │      │
-├──────────────────────────┤
-│ [mana] guild clan shard  │ 20% — filter strip, never changes
-│      WUBRG  Colorless    │
-└──────────────────────────┘
+┌──────────────────────┬─────────┐
+│                      │  WUBRG  │ 90% │ 10% filter strip, never changes
+│                      │         │
+│                      │  [mana] │
+│                      │         │
+│                      │ guild 1 │
+│  COLOR SELECTION     │         │
+│ (wheel/dual wheels)  │ guild 2 │
+│                      │         │
+|                      │  clan   │
+│                      │         │
+│                      │  shard  │
+└──────────────────────┴─────────┘
+
 ```
 
-#### Filter Strip (bottom 20%)
+#### Filter Strip (right 10%)
 
-Six items row. Always visible. Active filter highlighted (filled BG, inverted
-text).
+Four items column. Always visible. Active filter highlighted (filled BG,
+inverted text).
 
-| Item          | Type   | Action                                       |
-| ------------- | ------ | -------------------------------------------- |
-| **mana**      | Tab    | 5-color WUBRG wheel (default)                |
-| **guild**     | Tab    | Two 5-symbol side-by-side wheels (10 guilds) |
-| **clan**      | Tab    | Single 5-symbol wheel (5 clans)              |
-| **shard**     | Tab    | Single 5-symbol wheel (5 shards)             |
-| **WUBRG**     | Action | 5-color gradient. Closes immediately.        |
-| **Colorless** | Action | Solid `#CAC5C0`. Closes immediately.         |
+| Item        | Type   | Action                                             |
+| ----------- | ------ | -------------------------------------------------- |
+| **mana**    | Tab    | 7-color wheel. 5-color WUBRG + Colorless (default) |
+| **guild 1** | Tab    | Single 5-symbol (5 guilds)                         |
+| **guild 2** | Tab    | Single 5-symbol (5 guilds)                         |
+| **clan**    | Tab    | Single 5-symbol wheel (5 clans)                    |
+| **shard**   | Tab    | Single 5-symbol wheel (5 shards)                   |
+| **WUBRG**   | Action | 5-color gradient. Closes immediately.              |
 
 #### Mana Tab (default)
 
-Circular wheel, WUBRG order clockwise. Tap → solid color → close.
+Circular wheel, WUBRG order + Colorless clockwise. Tap → solid color → close.
 
 #### Guild Tab
 

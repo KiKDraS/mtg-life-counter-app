@@ -1,23 +1,11 @@
-import type { ManaColor } from "@/shared/lib/constants/colors";
-import { MANA } from "@/shared/lib/constants/colors";
 import { WUBRG } from "@/features/player-zone/constants/player";
-import { cn } from "@/shared/lib/cn";
 import { DialogShell } from "@/shared/components/DialogShell";
-import ManaSelector from "@/shared/components/icons/ManaSelector";
 import { ManaActionButton } from "./ManaActionButton";
+import { ManaWheel } from "./color-wheels/ManaWheel";
 
 interface ColorPickerProps {
   readonly id: string;
 }
-
-/* MANA keys in WUBRG order, slice off Colorless for the 5-color wheel. */
-const MANA_KEYS = Object.keys(MANA).slice(0, 5) as ManaColor[];
-
-const manaWheelBtnClass = cn(
-  "absolute rounded-full",
-  "transition-transform",
-  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white cursor-pointer",
-);
 
 /**
  * §6.5 Color Picker Modal (RSC shell).
@@ -35,44 +23,21 @@ export function ColorPicker({ id }: ColorPickerProps) {
   return (
     <DialogShell id={id} ariaLabelledBy="color-picker-title">
       {/* 80% — color selection area */}
-      <div className="relative flex items-center justify-center w-81.25 h-full m-auto">
-        {MANA_KEYS.map((color, i) => {
-          const angle = i * 72;
-          return (
-            <ManaActionButton
-              key={color}
-              color={color}
-              dialogId={id}
-              className={manaWheelBtnClass}
-              style={{
-                left: "50%",
-                top: "50%",
-                transform: `translate(-50%,-50%) rotate(${angle}deg) translateY(-6.5rem) rotate(-${angle}deg)`,
-              }}
-            >
-              <ManaSelector color={color} size={72} />
-            </ManaActionButton>
-          );
-        })}
-      </div>
+      <div className="w-full h-full max-w-4/5 m-auto grid grid-rows-1 grid-cols-[80%_20%]">
+        <div className="relative flex w-full h-full m-auto items-center justify-center">
+          <ManaWheel id={id} />
+        </div>
 
-      {/* 20% — filter strip (§6.5) */}
-      <div className="flex h-14 shrink-0 items-center justify-around border-t border-white/10 px-4">
-        <ManaActionButton
-          color={WUBRG}
-          dialogId={id}
-          className="rounded px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white cursor-pointer"
-        >
-          WUBRG
-        </ManaActionButton>
-
-        <ManaActionButton
-          color="c"
-          dialogId={id}
-          className="rounded px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white cursor-pointer"
-        >
-          Colorless
-        </ManaActionButton>
+        {/* 20% — filter strip (§6.5) */}
+        <div className="flex h-14 shrink-0 items-center justify-around border-t border-white/10">
+          <ManaActionButton
+            color={WUBRG}
+            dialogId={id}
+            className="rounded px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white cursor-pointer"
+          >
+            WUBRG
+          </ManaActionButton>
+        </div>
       </div>
     </DialogShell>
   );

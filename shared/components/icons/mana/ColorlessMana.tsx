@@ -1,19 +1,22 @@
 import type { SVGAttributes } from "react";
 import { MANA, UI } from "@/shared/lib/constants/colors";
+import { cn } from "@/shared/lib/cn";
 
 type ColorlessManaProps = {
-  size?: number;
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
 
-function ColorlessMana({ size = 48, className, ...props }: ColorlessManaProps) {
+function ColorlessMana({ className, ...props }: ColorlessManaProps) {
   return (
-    <span role="img" aria-label="Colorless mana" className={className}>
+    <span
+      role="img"
+      aria-label="Colorless mana"
+      className={cn("inline-block", className)}
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 100 100"
-        width={size}
-        height={size}
+        className="w-full h-full"
         {...props}
       >
         <path
