@@ -403,11 +403,11 @@ card or rule…" placeholder. Maximized modal, #000 backdrop.
 
 ### 6.5 Color Picker (per player)
 
-Triggered by gear icon on zone. 90/10 horizontal split.
+Triggered by gear icon on zone. 80/20 horizontal split.
 
 ```
 ┌──────────────────────┬─────────┐
-│                      │  WUBRG  │ 90% │ 10% filter strip, never changes
+│                      │  WUBRG  │ 80% │ 20% filter strip, never changes
 │                      │         │
 │                      │  [mana] │
 │                      │         │

@@ -23,17 +23,17 @@ export function ColorPicker({ id }: ColorPickerProps) {
   return (
     <DialogShell id={id} ariaLabelledBy="color-picker-title">
       {/* 80% — color selection area */}
-      <div className="w-full h-full max-w-4/5 m-auto grid grid-rows-1 grid-cols-[80%_20%]">
+      <div className="w-full h-full m-auto grid grid-rows-1 grid-cols-[80%_20%]">
         <div className="relative flex w-full h-full m-auto items-center justify-center">
           <ManaWheel id={id} />
         </div>
 
         {/* 20% — filter strip (§6.5) */}
-        <div className="flex h-14 shrink-0 items-center justify-around border-t border-white/10">
+        <div className="flex h-14 min-w-0 shrink-0 items-center justify-around overflow-hidden border-t border-white/10">
           <ManaActionButton
             color={WUBRG}
             dialogId={id}
-            className="rounded px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white cursor-pointer"
+            className="max-w-full truncate rounded px-0.5 py-1.5 text-sm font-medium transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white cursor-pointer"
           >
             WUBRG
           </ManaActionButton>

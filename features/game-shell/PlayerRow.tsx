@@ -71,7 +71,7 @@ export function PlayerRow({
           <PlayerProvider
             playerIndex={playerId}
             playerZoneRotation={rotation}
-            isOnBottomSlot
+            isOnBottomSlot={isBottomSlot}
           >
             <PlayerZone />
           </PlayerProvider>

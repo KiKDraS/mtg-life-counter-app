@@ -27,7 +27,7 @@ export const ManaWheel = ({ id }: { readonly id: string }) => {
             style={{
               left: "50%",
               top: "50%",
-              transform: `translate(-50%,-50%) rotate(${angle}deg) translateY(max(-6.5rem, -32cqmin)) rotate(-${angle}deg)`,
+              transform: `translate(-50%,-50%) rotate(${angle}deg) translateY(max(-6.5rem, -27cqmin)) rotate(-${angle}deg)`,
             }}
           >
             <ManaSelector

@@ -1,12 +1,15 @@
 "use client";
 
-import { useRef, useCallback, type ReactNode, PropsWithChildren } from "react";
+import { useRef, useCallback, type PropsWithChildren } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
   INCREMENT_LIFE,
   DECREMENT_LIFE,
 } from "@/features/player-zone/constants/life";
-import { usePlayerStateContext } from "@/features/player-zone/state/player-state-context";
+import {
+  PlayerState,
+  usePlayerStateContext,
+} from "@/features/player-zone/state/player-state-context";
 import { POISON_LETHAL } from "@/features/player-zone/constants/counter";
 import { COMMANDER_LETHAL_DAMAGE } from "@/features/player-zone/constants/commander";
 import { useSwipe } from "@/features/player-zone/hooks/use-swipe";
@@ -14,6 +17,12 @@ import { zoneStylesFor } from "@/features/player-zone/utils/zone-styles";
 import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 import { LifeAdjustmentButton } from "./LifeAdjustemntButton";
 import { LifeTotalDisplay } from "./LifeTotalDisplay";
+import { Counter } from "@/features/player-zone/types/counter";
+import { CommanderDamage } from "@/features/player-zone/types/CommanderDamage";
+
+// ============================================================================
+// TYPES AND INTERFACES
+// ============================================================================
 
 interface PlayerZoneIds {
   readonly colorPicker: string;
@@ -26,108 +35,109 @@ interface PlayerZoneInteractiveProps extends PropsWithChildren {
   readonly ids: PlayerZoneIds;
 }
 
+// ============================================================================
+// Calculation Helpers
+// ============================================================================
+
+const getDialog = (id: string) =>
+  document.getElementById(id) as HTMLDialogElement | null;
+
+const getDimensionClasses = (rotation: number) => {
+  const isSideways = rotation === 90 || rotation === -90;
+  return isSideways ? "w-[100cqh] h-[100cqw]" : "w-[100cqw] h-[100cqh]";
+};
+
+const getGearPositionClasses = (isOnBottomSlot: boolean, rotation: number) => {
+  return (isOnBottomSlot && rotation === -90) ||
+    (!isOnBottomSlot && rotation === 90)
+    ? "right-6"
+    : "";
+};
+
+const checkLethality = (state: PlayerState) => {
+  const isPoisonLethal =
+    (state.counters.find((c: Counter) => c.type === "poison")?.value ?? 0) >=
+    POISON_LETHAL;
+  const isCommanderLethal = state.commanderDamage.some(
+    (cd: CommanderDamage) => cd.value >= COMMANDER_LETHAL_DAMAGE,
+  );
+
+  return {
+    isPoisonLethal,
+    isCommanderLethal,
+    isLethal: state.life <= 0 || isCommanderLethal || isPoisonLethal,
+  };
+};
+
 /**
  * @description
  * Client leaf that wraps the interactive player zone content.
- *
- * Context & Architecture:
- * - Acts as an orchestrator for gestures and layout.
- * - Sub-components handle their specific DOM events and context interactions.
  */
 export function PlayerZoneInteractive({
   ids,
   children,
 }: Readonly<PlayerZoneInteractiveProps>) {
-  const { state, playerZoneRotation: rotation } = usePlayerStateContext();
+  const {
+    state,
+    playerZoneRotation: rotation,
+    isOnBottomSlot,
+  } = usePlayerStateContext();
   const zoneRef = useRef<HTMLDivElement>(null);
 
   /* 
-    =================
-      DOM Utilities 
-    ================= 
+    ======================
+      Gestures & Modals
+    ====================== 
   */
-
-  const getDialog = (id: string) =>
-    document.getElementById(id) as HTMLDialogElement | null;
-
   const openDialog = useCallback((dialogId: string) => {
     getDialog(dialogId)?.show();
   }, []);
 
-  const closeOverlays = useCallback(() => {
-    const commander = getDialog(ids.commanderDmg);
-    const counters = getDialog(ids.counters);
-
-    if (commander?.open || counters?.open) {
-      commander?.close();
-      counters?.close();
-      return true;
-    }
-    return false;
-  }, [ids.commanderDmg, ids.counters]);
-
-  /* 
-    ======================
-      Gestures Handlers 
-    ====================== 
-  */
   const handleSwipe = useCallback(
     (targetDialogId: string) => {
-      const isColorPickerOpen = getDialog(ids.colorPicker)?.open;
-      if (isColorPickerOpen) return;
+      if (getDialog(ids.colorPicker)?.open) return;
 
-      const didCloseAnOverlay = closeOverlays();
-      if (didCloseAnOverlay) return;
+      const commander = getDialog(ids.commanderDmg);
+      const counters = getDialog(ids.counters);
+
+      if (commander?.open || counters?.open) {
+        commander?.close();
+        counters?.close();
+        return; // Salida temprana si cerramos un modal
+      }
 
       openDialog(targetDialogId);
     },
-    [ids.colorPicker, closeOverlays, openDialog],
+    [ids, openDialog],
   );
 
-  const handleSwipeLeft = useCallback(() => {
-    handleSwipe(ids.commanderDmg);
-  }, [handleSwipe, ids.commanderDmg]);
-
-  const handleSwipeRight = useCallback(() => {
-    handleSwipe(ids.counters);
-  }, [handleSwipe, ids.counters]);
-
   useSwipe(zoneRef, {
-    onSwipeLeft: handleSwipeLeft,
-    onSwipeRight: handleSwipeRight,
+    onSwipeLeft: useCallback(
+      () => handleSwipe(ids.commanderDmg),
+      [handleSwipe, ids],
+    ),
+    onSwipeRight: useCallback(
+      () => handleSwipe(ids.counters),
+      [handleSwipe, ids],
+    ),
   });
 
   /* 
     =================
-      Derived State 
+      Derived UI 
     ================= 
   */
-  const poisonCounter = state.counters.find((c) => c.type === "poison");
-  const isPoisonLethal = (poisonCounter?.value ?? 0) >= POISON_LETHAL;
-  const isCommanderLethal = state.commanderDamage.some(
-    (cd) => cd.value >= COMMANDER_LETHAL_DAMAGE,
-  );
-  const isLifeZeroOrBelow = state.life <= 0;
-  const isLethal = isLifeZeroOrBelow || isCommanderLethal || isPoisonLethal;
-
   const { background, textColor } = zoneStylesFor(state.color);
-
-  const isSideways = rotation === 90 || rotation === -90;
-
-  const dimensionClasses = isSideways
-    ? "w-[100cqh] h-[100cqw]"
-    : "w-[100cqw] h-[100cqh]";
+  const { isPoisonLethal, isCommanderLethal, isLethal } = checkLethality(state);
 
   return (
     <div
       ref={zoneRef}
       className={cn(
         "relative top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-        dimensionClasses,
+        getDimensionClasses(rotation),
       )}
-      style={{
-        transform: `rotate(${rotation}deg)`,
-      }}
+      style={{ transform: `rotate(${rotation}deg)` }}
     >
       <section
         aria-label={`Player ${state.playerId + 1}: ${state.life} life`}
@@ -158,11 +168,12 @@ export function PlayerZoneInteractive({
             aria-label="Change color"
             onClick={() => openDialog(ids.colorPicker)}
             className={cn(
-              "absolute right-1 top-1 z-10 flex size-11 items-center justify-center rounded-full transition-colors cursor-pointer",
+              "absolute right-1 top-1 z-10 flex w-[18cqmin] h-[18cqmin] max-w-11 max-h-11 items-center justify-center rounded-full transition-colors cursor-pointer",
               "hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current",
+              getGearPositionClasses(isOnBottomSlot, rotation),
             )}
           >
-            <ColorSettings size={24} fill="currentColor" />
+            <ColorSettings className="w-full h-full" fill="currentColor" />
           </button>
 
           <LifeAdjustmentButton

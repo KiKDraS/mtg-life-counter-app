@@ -140,6 +140,7 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
 interface PlayerContextValue {
   readonly state: PlayerState;
   readonly playerZoneRotation: PlayerZoneRotation;
+  readonly isOnBottomSlot: boolean;
   readonly dispatch: React.Dispatch<PlayerAction>;
 }
 
@@ -168,6 +169,7 @@ interface PlayerProviderProps extends PropsWithChildren {
 export function PlayerProvider({
   playerIndex,
   playerZoneRotation,
+  isOnBottomSlot,
   children,
 }: Readonly<PlayerProviderProps>) {
   /* Always call hooks at the top level — Rules of Hooks compliant. */
@@ -190,8 +192,8 @@ export function PlayerProvider({
   const [state, dispatch] = useReducer(playerReducer, initialState);
 
   const value: PlayerContextValue = useMemo(
-    () => ({ state, playerZoneRotation, dispatch }),
-    [state, playerZoneRotation],
+    () => ({ state, playerZoneRotation, isOnBottomSlot, dispatch }),
+    [state, playerZoneRotation, isOnBottomSlot],
   );
 
   return <PlayerContext value={value}>{children}</PlayerContext>;
