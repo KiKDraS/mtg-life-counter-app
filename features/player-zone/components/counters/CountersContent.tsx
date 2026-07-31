@@ -27,10 +27,7 @@ export function CountersContent({ customCounterId }: CountersContentProps) {
 
   return (
     <div className="flex w-full flex-1 flex-col items-center justify-center gap-8">
-      <h2
-        id="counters-title"
-        className="text-heading font-bold text-ui-textLight"
-      >
+      <h2 id="counters-title" className="sr-only">
         Counters
       </h2>
 

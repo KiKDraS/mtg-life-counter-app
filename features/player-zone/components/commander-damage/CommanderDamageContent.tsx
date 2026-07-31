@@ -58,10 +58,7 @@ export function CommanderDamageContent() {
    */
   return (
     <div className="flex w-full flex-1 flex-col items-center justify-center gap-6">
-      <h2
-        id="commander-damage-title"
-        className="text-ui-textLight text-heading font-bold"
-      >
+      <h2 id="commander-damage-title" className="sr-only">
         Commander Damage
       </h2>
 
