@@ -1,9 +1,17 @@
 "use client";
 
-import { createContext, use, useMemo, useReducer, type ReactNode } from "react";
+import {
+  createContext,
+  PropsWithChildren,
+  use,
+  useMemo,
+  useReducer,
+  type ReactNode,
+} from "react";
 import type {
   PlayerColor,
   PlayerId,
+  PlayerZoneRotation,
 } from "@/features/player-zone/types/player";
 import type { CommanderDamage } from "@/features/player-zone/types/CommanderDamage";
 import type { Counter } from "@/features/player-zone/types/counter";
@@ -131,10 +139,17 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
 /* ── Context ── */
 interface PlayerContextValue {
   readonly state: PlayerState;
+  readonly playerZoneRotation: PlayerZoneRotation;
   readonly dispatch: React.Dispatch<PlayerAction>;
 }
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
+
+interface PlayerProviderProps extends PropsWithChildren {
+  playerIndex: number;
+  playerZoneRotation: PlayerZoneRotation;
+  isOnBottomSlot: boolean;
+}
 
 /**
  * §2 — Per-player state provider.
@@ -152,11 +167,9 @@ const PlayerContext = createContext<PlayerContextValue | null>(null);
  */
 export function PlayerProvider({
   playerIndex,
+  playerZoneRotation,
   children,
-}: {
-  readonly playerIndex?: number;
-  readonly children: ReactNode;
-}) {
+}: Readonly<PlayerProviderProps>) {
   /* Always call hooks at the top level — Rules of Hooks compliant. */
   const gameCtx = useOptionalGameStateContext();
   const hasGameCtx = playerIndex !== undefined && gameCtx !== null;
@@ -177,8 +190,8 @@ export function PlayerProvider({
   const [state, dispatch] = useReducer(playerReducer, initialState);
 
   const value: PlayerContextValue = useMemo(
-    () => ({ state, dispatch }),
-    [state, dispatch],
+    () => ({ state, playerZoneRotation, dispatch }),
+    [state, playerZoneRotation],
   );
 
   return <PlayerContext value={value}>{children}</PlayerContext>;

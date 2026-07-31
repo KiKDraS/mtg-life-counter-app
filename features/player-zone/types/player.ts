@@ -4,3 +4,5 @@ import type { ManaColor } from "@/shared/lib/constants/colors";
 export type PlayerColor = ManaColor | "wubrg";
 
 export type PlayerId = 0 | 1 | 2 | 3 | 4 | 5;
+
+export type PlayerZoneRotation = 0 | 90 | -90 | 180;

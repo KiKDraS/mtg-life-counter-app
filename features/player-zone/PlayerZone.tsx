@@ -1,14 +1,9 @@
 import { PlayerZoneInteractive } from "./components/PlayerZoneInteractive";
-import { PlayerProvider } from "./state/player-state-context";
 import { ColorPicker } from "@/features/player-zone/components/color-picker/ColorPicker";
 import { LifeNumpad } from "@/features/player-zone/components/life-numpad/LifeNumpad";
 import { CommanderDamage } from "@/features/player-zone/components/commander-damage/CommanderDamage";
 import { Counters } from "@/features/player-zone/components/counters/Counters";
-
-interface PlayerZoneProps {
-  readonly playerId: 0 | 1 | 2 | 3 | 4 | 5;
-  readonly rotation?: 0 | 90 | -90 | 180;
-}
+import { usePlayerStateContext } from "./state/player-state-context";
 
 /**
  * §4.2 Player Zone — RSC shell.
@@ -22,7 +17,11 @@ interface PlayerZoneProps {
  *
  * @see DESIGN.md §4 — Player Zone
  */
-export function PlayerZone({ playerId, rotation = 0 }: PlayerZoneProps) {
+export function PlayerZone() {
+  const {
+    state: { playerId },
+  } = usePlayerStateContext();
+
   const ids = {
     colorPicker: `color-picker-${playerId}`,
     numpad: `numpad-${playerId}`,
@@ -31,15 +30,13 @@ export function PlayerZone({ playerId, rotation = 0 }: PlayerZoneProps) {
   };
 
   return (
-    <PlayerProvider playerIndex={playerId}>
-      <PlayerZoneInteractive playerId={playerId} rotation={rotation} ids={ids}>
-        {/* Modal shells — passed as children so they render inside the zone div.
+    <PlayerZoneInteractive ids={ids}>
+      {/* Modal shells — passed as children so they render inside the zone div.
             RSC shells wrap client DialogShell (Donut Hole pattern). */}
-        <ColorPicker id={ids.colorPicker} />
-        <LifeNumpad id={ids.numpad} />
-        <CommanderDamage id={ids.commanderDmg} />
-        <Counters id={ids.counters} />
-      </PlayerZoneInteractive>
-    </PlayerProvider>
+      <ColorPicker id={ids.colorPicker} />
+      <LifeNumpad id={ids.numpad} />
+      <CommanderDamage id={ids.commanderDmg} />
+      <Counters id={ids.counters} />
+    </PlayerZoneInteractive>
   );
 }

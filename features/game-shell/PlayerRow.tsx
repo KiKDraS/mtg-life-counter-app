@@ -1,11 +1,14 @@
 import { PlayerProvider } from "@/features/player-zone/state/player-state-context";
-import { PlayerId } from "@/features/player-zone/types/player";
+import {
+  PlayerId,
+  PlayerZoneRotation,
+} from "@/features/player-zone/types/player";
 import { PlayerZone } from "@/features/player-zone/PlayerZone";
 import { cn } from "@/shared/lib/cn";
 
 interface PlayerSlot {
   readonly playerId: PlayerId;
-  readonly rotation: 0 | 90 | -90 | 180;
+  readonly rotation: PlayerZoneRotation;
 }
 
 interface PlayerRowProps {
@@ -65,8 +68,12 @@ export function PlayerRow({
           className={layout.getChildClass(index, isBottomSlot)}
           data-id={`player-${playerId}`}
         >
-          <PlayerProvider playerIndex={playerId}>
-            <PlayerZone playerId={playerId} rotation={rotation} />
+          <PlayerProvider
+            playerIndex={playerId}
+            playerZoneRotation={rotation}
+            isOnBottomSlot
+          >
+            <PlayerZone />
           </PlayerProvider>
         </div>
       ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, type ReactNode } from "react";
+import { useRef, useCallback, type ReactNode, PropsWithChildren } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
   INCREMENT_LIFE,
@@ -22,11 +22,8 @@ interface PlayerZoneIds {
   readonly counters: string;
 }
 
-interface PlayerZoneInteractiveProps {
-  readonly playerId: 0 | 1 | 2 | 3 | 4 | 5;
-  readonly rotation: 0 | 90 | -90 | 180;
+interface PlayerZoneInteractiveProps extends PropsWithChildren {
   readonly ids: PlayerZoneIds;
-  readonly children?: ReactNode;
 }
 
 /**
@@ -38,12 +35,10 @@ interface PlayerZoneInteractiveProps {
  * - Sub-components handle their specific DOM events and context interactions.
  */
 export function PlayerZoneInteractive({
-  playerId,
-  rotation,
   ids,
   children,
-}: PlayerZoneInteractiveProps) {
-  const { state } = usePlayerStateContext();
+}: Readonly<PlayerZoneInteractiveProps>) {
+  const { state, playerZoneRotation: rotation } = usePlayerStateContext();
   const zoneRef = useRef<HTMLDivElement>(null);
 
   /* 
@@ -135,7 +130,7 @@ export function PlayerZoneInteractive({
       }}
     >
       <section
-        aria-label={`Player ${playerId + 1}: ${state.life} life`}
+        aria-label={`Player ${state.playerId + 1}: ${state.life} life`}
         className="grid h-full w-full grid-cols-3"
         style={{ background, color: textColor }}
       >
