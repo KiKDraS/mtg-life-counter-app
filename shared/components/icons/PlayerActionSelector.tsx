@@ -8,7 +8,6 @@ import ColorSettings from "./player-actions/Settings";
 
 type PlayerActionSelectorProps = {
   action: PlayerAction;
-  size?: number;
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
 

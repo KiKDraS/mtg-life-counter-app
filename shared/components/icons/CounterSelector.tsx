@@ -12,7 +12,6 @@ export type CounterType =
 
 type CounterSelectorProps = {
   counter: CounterType;
-  size?: number;
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
 

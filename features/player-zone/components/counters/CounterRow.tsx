@@ -86,7 +86,7 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
     if (!iconData) return null;
 
     const { Component, label } = iconData;
-    return <Component size={28} aria-label={label} />;
+    return <Component className="size-7" aria-label={label} />;
   };
 
   return (
