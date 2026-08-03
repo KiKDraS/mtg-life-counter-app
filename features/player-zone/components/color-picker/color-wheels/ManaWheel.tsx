@@ -5,6 +5,7 @@ import type { ManaColor } from "@/shared/lib/constants/colors";
 import { ManaActionButton } from "../ManaActionButton";
 import { ColorlessButton } from "./ColorlessButton";
 import ManaSelector from "@/shared/components/icons/ManaSelector";
+import { MANA_BTN_SIZE } from "../constants/mana";
 
 /**
  * §6.5 — Circular wheel order, clockwise from top:
@@ -29,12 +30,7 @@ export const ManaWheel = ({ id }: { readonly id: string }) => {
           top: "50%",
           transform: `translate(-50%,-50%) rotate(${angle}deg) translateY(max(-6.5rem, -27cqmin)) rotate(-${angle}deg)`,
         };
-        const icon = (
-          <ManaSelector
-            color={color}
-            className="w-[18cqmin] h-[18cqmin] min-w-8 min-h-8 max-w-18 max-h-18"
-          />
-        );
+        const icon = <ManaSelector color={color} className={MANA_BTN_SIZE} />;
         // ponytail: Colorless is single-tap-apply-and-close, the rest toggle.
         return color === "c" ? (
           <ColorlessButton

@@ -1,6 +1,9 @@
 "use client";
 
+import CheckCircle from "@/shared/components/icons/CheckCirecle";
 import { UI } from "@/shared/lib/constants/colors";
+import { MANA_BTN_SIZE } from "../constants/mana";
+import { cn } from "@/shared/lib/cn";
 
 interface ConfirmButtonProps {
   readonly id: string;
@@ -23,7 +26,7 @@ export function ConfirmButton({ id, className }: Readonly<ConfirmButtonProps>) {
     <button
       type="button"
       aria-label="Confirm color"
-      className={className}
+      className={cn("cursor-pointer", className)}
       style={{
         position: "absolute",
         left: "50%",
@@ -32,18 +35,7 @@ export function ConfirmButton({ id, className }: Readonly<ConfirmButtonProps>) {
       }}
       onClick={handleClick}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        className="w-[18cqmin] h-[18cqmin] min-w-8 min-h-8 max-w-18 max-h-18"
-      >
-        <circle cx="12" cy="12" r="11" fill={UI.iconLight} />
-        <path
-          fill={UI.belt}
-          d="M10.2 16.2 6 12l1.4-1.4 2.8 2.8 6-6L17.6 8.8z"
-        />
-      </svg>
+      <CheckCircle className={MANA_BTN_SIZE} fill={UI.iconLight} />
     </button>
   );
 }

@@ -13,6 +13,7 @@ import {
   setGamePlayerColor,
 } from "@/features/game-shell/state/game-state-context";
 import { DEFAULT_PLAYER_COLOR } from "@/features/player-zone/constants/player";
+import { MANA_BTN_SIZE } from "./constants/mana";
 
 interface ManaActionButtonProps {
   readonly color: ManaColor;
@@ -72,7 +73,11 @@ export function ManaActionButton({
       aria-pressed={isSelected}
       // dialogId consumed on the client; kept on element for testability/ID.
       data-dialog-id={dialogId}
-      className={cn(className, isSelected && "ring-4 ring-white/60")}
+      className={cn(
+        className,
+        MANA_BTN_SIZE,
+        isSelected && "ring-4 ring-white/60",
+      )}
       style={style}
       onClick={handleClick}
     >
