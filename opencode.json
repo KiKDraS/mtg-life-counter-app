@@ -46,19 +46,31 @@
     "frontend-dev": {
       "description": "Consolidated developer sub-agent. Builds cohesive features writing HTML structures, modular styles, and JS interaction in tandem.",
       "mode": "subagent",
-      "tools": { "write": true, "edit": true, "read": true, "bash": true },
+      "tools": {
+        "task": true,
+        "write": true,
+        "edit": true,
+        "read": true,
+        "bash": true
+      },
       "prompt": "{file:.opencode/prompts/agent-knowledge-awareness.md}"
     },
     "ai-engineer": {
       "description": "AI integration specialist. OpenRouter SDK, MTG rules RAG, prompt engineering, streaming /api/judge route, citation formatting.",
       "mode": "subagent",
-      "tools": { "read": true, "write": true, "edit": true, "bash": true },
+      "tools": {
+        "task": true,
+        "read": true,
+        "write": true,
+        "edit": true,
+        "bash": true
+      },
       "prompt": "{file:.opencode/prompts/agent-knowledge-awareness.md}"
     },
     "code-review": {
       "description": "Strict compliance auditor. Verifies generated code against the requested specifications and skills checklists.",
       "mode": "subagent",
-      "tools": { "read": true }
+      "tools": { "task": true, "read": true }
     },
     "release-manager": {
       "description": "Release coordinator. Creates release branches, runs pre-release checks, merges to main, tags versions, and generates changelogs.",

@@ -18,7 +18,7 @@ Tailwind classes with separate CSS per component.
 articles/filler/pleasantries/hedging. Fragments OK. Pattern:
 `[thing] [action] [reason].` Spec: `.opencode/skills/caveman/SKILL.md`
 
-**Caveman ultra enforced** on edits to `AGENTS.md`, `DESIGN.md*`,
+**Caveman ultra enforced** on edits to `AGENTS.md`, `DESIGN.md*`, `SPEC.md`,
 `.opencode/agents/*.md`. Max compression. These are meta files — no prose, no
 explanations, no pleasantries. If reading: caveman ultra. If writing: caveman
 ultra.
@@ -28,8 +28,8 @@ lib/framework/API/CLI questions. Spec: `.opencode/skills/context7-mcp/SKILL.md`
 
 **CodeGraph mandatory.** `.codegraph/` in root? **USE CODEGRAPH FIRST.** No
 grep/find/Read before. MCP `codegraph_codegraph_explore`: source + line nums +
-call paths + dynamic-dispatch grep misses. Fallback chain: MCP → shell
-`codegraph explore` → grep/Read. No `.codegraph/` dir? Skip. Indexing user
-choice.
+call paths + dynamic-dispatch grep misses. Insufficient/empty context? →
+`@explore` (Task tool, subagent `explore`). Still no answer → grep/Read last. No
+`.codegraph/` dir or no index? → `@explore` first. Indexing user choice.
 
 ---
