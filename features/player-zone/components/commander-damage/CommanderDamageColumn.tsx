@@ -54,11 +54,7 @@ export function CommanderDamageColumn({
           className="flex size-14 shrink-0 items-center justify-center rounded-full"
           style={{ background: pillBg }}
         >
-          <PlaneswalkerSymbol
-            size={28}
-            fill={pillFg}
-            className="flex items-center justify-center"
-          />
+          <PlaneswalkerSymbol className="size-7" fill={pillFg} />
         </span>
 
         {/* Damage total */}

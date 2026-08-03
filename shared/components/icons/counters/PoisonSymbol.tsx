@@ -1,19 +1,22 @@
 import type { SVGAttributes } from "react";
 import { UI } from "@/shared/lib/constants/colors";
+import { cn } from "@/shared/lib/cn";
 
 type PoisonSymbolProps = {
-  size?: number;
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
 
-function PoisonSymbol({ size = 24, className, ...props }: PoisonSymbolProps) {
+function PoisonSymbol({ className, ...props }: PoisonSymbolProps) {
   return (
-    <span role="img" aria-label="Poison counter" className={className}>
+    <span
+      role="img"
+      aria-label="Poison counter"
+      className={cn("inline-block", className)}
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 57 100"
-        width={size}
-        height={size}
+        className="w-full h-full"
         {...props}
       >
         <path

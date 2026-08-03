@@ -1,19 +1,22 @@
 import type { SVGAttributes } from "react";
 import { UI } from "@/shared/lib/constants/colors";
+import { cn } from "@/shared/lib/cn";
 
 type EnergySymbolProps = {
-  size?: number;
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
 
-function EnergySymbol({ size = 24, className, ...props }: EnergySymbolProps) {
+function EnergySymbol({ className, ...props }: EnergySymbolProps) {
   return (
-    <span role="img" aria-label="Energy counter" className={className}>
+    <span
+      role="img"
+      aria-label="Energy counter"
+      className={cn("inline-block", className)}
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 102 101"
-        width={size}
-        height={size}
+        className="w-full h-full"
         {...props}
       >
         <g stroke={UI.iconLight} fill="none">

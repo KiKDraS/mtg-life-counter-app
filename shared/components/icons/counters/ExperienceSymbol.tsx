@@ -1,23 +1,22 @@
 import type { SVGAttributes } from "react";
 import { UI } from "@/shared/lib/constants/colors";
+import { cn } from "@/shared/lib/cn";
 
 type ExperienceSymbolProps = {
-  size?: number;
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
 
-function ExperienceSymbol({
-  size = 24,
-  className,
-  ...props
-}: ExperienceSymbolProps) {
+function ExperienceSymbol({ className, ...props }: ExperienceSymbolProps) {
   return (
-    <span role="img" aria-label="Experience counter" className={className}>
+    <span
+      role="img"
+      aria-label="Experience counter"
+      className={cn("inline-block", className)}
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 132 102"
-        width={size}
-        height={size}
+        className="w-full h-full"
         {...props}
       >
         <path

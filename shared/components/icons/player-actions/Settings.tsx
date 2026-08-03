@@ -6,7 +6,7 @@ type SettingsProps = {
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
 
-function ColorSettings({ className = "size-12", ...props }: SettingsProps) {
+function ColorSettings({ className, ...props }: SettingsProps) {
   return (
     <span
       role="img"

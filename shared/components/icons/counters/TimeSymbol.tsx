@@ -1,19 +1,22 @@
 import type { SVGAttributes } from "react";
 import { UI } from "@/shared/lib/constants/colors";
+import { cn } from "@/shared/lib/cn";
 
 type TimeSymbolProps = {
-  size?: number;
   className?: string;
 } & SVGAttributes<SVGSVGElement>;
 
-function TimeSymbol({ size = 24, className, ...props }: TimeSymbolProps) {
+function TimeSymbol({ className, ...props }: TimeSymbolProps) {
   return (
-    <span role="img" aria-label="Time counter" className={className}>
+    <span
+      role="img"
+      aria-label="Time counter"
+      className={cn("inline-block", className)}
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 1000 1000"
-        width={size}
-        height={size}
+        className="w-full h-full"
         {...props}
       >
         <path
