@@ -15,18 +15,18 @@
   --color-mana-c: #CAC5C0;
 
   /* UI & shell colors (§2.2) */
-  --color-ui-overlay:   #1A1A1A;
-  --color-ui-belt:      #000000;
-  --color-ui-danger:    #D50000;
+  --color-ui-overlay: #1A1A1A;
+  --color-ui-belt: #000000;
+  --color-ui-danger: #D50000;
   --color-ui-textLight: #FAF8F5;
-  --color-ui-textDark:  #1A1A1A;
-  --color-ui-iconDark:  #0D0F0F;
+  --color-ui-textDark: #1A1A1A;
+  --color-ui-iconDark: #0D0F0F;
   --color-ui-iconLight: #FAF8F5;
 
   /* Typography (§3.2 / §3.3) */
   --font-sans: var(--font-archivo);
   --font-mono: var(--font-archivo);
-  --text-life: clamp(4rem, 15vw, 12rem);
+  --text-life: clamp(3.5rem, 15vw, 6rem);
   --text-display: clamp(2.5rem, 6vw, 5rem);
   --text-heading: clamp(1.5rem, 3vw, 2.5rem);
   --text-body: 1rem;

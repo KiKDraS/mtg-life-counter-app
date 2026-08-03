@@ -1,6 +1,6 @@
 "use client";
 
-import CheckCircle from "@/shared/components/icons/CheckCirecle";
+import CheckCircle from "@/shared/components/icons/CheckCircle";
 import { UI } from "@/shared/lib/constants/colors";
 import { MANA_BTN_SIZE } from "../constants/mana";
 import { cn } from "@/shared/lib/cn";

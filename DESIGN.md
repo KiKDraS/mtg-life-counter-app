@@ -133,7 +133,7 @@ Life total = hero. All else secondary.
 
 | Token            | Value                        | Weight      | Usage                       |
 | ---------------- | ---------------------------- | ----------- | --------------------------- |
-| `--text-life`    | `clamp(4rem, 15vw, 12rem)`   | Black 900   | Life total number           |
+| `--text-life`    | `clamp(3.5rem, 15vw, 6rem)`  | Black 900   | Life total number           |
 | `--text-display` | `clamp(2.5rem, 6vw, 5rem)`   | Black 900   | Commander damage big number |
 | `--text-heading` | `clamp(1.5rem, 3vw, 2.5rem)` | Bold 700    | Modal titles                |
 | `--text-body`    | `1rem`                       | Medium 500  | UI labels, buttons          |
