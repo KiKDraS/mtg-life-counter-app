@@ -403,63 +403,37 @@ card or rule…" placeholder. Maximized modal, #000 backdrop.
 
 ### 6.5 Color Picker (per player)
 
-Triggered by gear icon on zone. 80/20 horizontal split.
+Triggered by gear icon on zone. Width = fit-content
 
 ```
-┌──────────────────────┬─────────┐
-│                      │  WUBRG  │ 80% │ 20% filter strip, never changes
-│                      │         │
-│                      │  [mana] │
-│                      │         │
-│                      │ guild 1 │
-│  COLOR SELECTION     │         │
-│ (wheel/dual wheels)  │ guild 2 │
-│                      │         │
-|                      │  clan   │
-│                      │         │
-│                      │  shard  │
-└──────────────────────┴─────────┘
+┌───────────────────────┐
+│                       │
+│                       │
+│                       │
+│        [C] [W]        │
+│      [G] [✓] [U]      │
+│        [R] [B]        │
+│                       │
+│                       │
+│                       │
+└───────────────────────┘
 
 ```
 
-#### Filter Strip (right 10%)
+#### COLOR SELECTION WHEEL
 
-Four items column. Always visible. Active filter highlighted (filled BG,
-inverted text).
-
-| Item        | Type   | Action                                             |
-| ----------- | ------ | -------------------------------------------------- |
-| **mana**    | Tab    | 7-color wheel. 5-color WUBRG + Colorless (default) |
-| **guild 1** | Tab    | Single 5-symbol (5 guilds)                         |
-| **guild 2** | Tab    | Single 5-symbol (5 guilds)                         |
-| **clan**    | Tab    | Single 5-symbol wheel (5 clans)                    |
-| **shard**   | Tab    | Single 5-symbol wheel (5 shards)                   |
-| **WUBRG**   | Action | 5-color gradient. Closes immediately.              |
-
-#### Mana Tab (default)
-
-Circular wheel, WUBRG order + Colorless clockwise. Tap → solid color → close.
-
-#### Guild Tab
-
-Two 5-symbol wheels side-by-side. Tap → 2-color `linear-gradient` → close.
-24×24px badge bottom-right.
-
-#### Clan Tab
-
-Single 5-symbol wheel. Tap → 3-color gradient → close. Badge 24×24px
-bottom-right.
-
-#### Shard Tab
-
-Same as clan. 3-color gradient → close. Badge 24×24px bottom-right.
+Circular wheel, WUBRG order + Colorless clockwise.
 
 #### Behavior Summary
 
-- **Any selection closes modal instantly.** No Apply button.
+- Tap WUBRG → highlight selection (overlay, Modal BG color) → apply bg gradient
+  with selection.
+  - Tap same color → un-select (remove overlay) → update bg gradient
+- Tap CheckCircle → close
+- Tap Colorless → solid color → close.
 - Zone previews change in real-time inside modal.
-- Filter strip always shows active tab highlighted.
-- Badges via `GuildSelector`, `ClanSelector`, `ShardSelector` at 24×24px.
+  - bg gradient, solid color delimitation, equally distributed (e.g w → w(0%,
+    100%); wu → w(0%, 50%), u(50%, 100%))
 
 ### 6.6 Modal: Custom Counter Name
 
