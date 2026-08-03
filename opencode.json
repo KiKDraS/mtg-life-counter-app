@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "instructions": ["AGENTS.md"],
+  "instructions": [".opencode/docs/skills-settings-rules.md"],
   "permission": {
     "bash": {
       "*": "ask",
@@ -40,17 +40,42 @@
     "orchestrator": {
       "description": "Main orchestrator. Brainstorms, maps architectural blueprints, and executes the sequential development and testing pipeline.",
       "mode": "primary",
-      "tools": { "task": true, "read": true }
+      "tools": { "task": true, "read": true },
+      "prompt": "{file:.opencode/prompts/agent-knowledge-awareness.md}"
     },
     "frontend-dev": {
       "description": "Consolidated developer sub-agent. Builds cohesive features writing HTML structures, modular styles, and JS interaction in tandem.",
       "mode": "subagent",
-      "tools": { "write": true, "edit": true, "read": true, "bash": true }
+      "tools": {
+        "task": true,
+        "write": true,
+        "edit": true,
+        "read": true,
+        "bash": true
+      },
+      "prompt": "{file:.opencode/prompts/agent-knowledge-awareness.md}"
+    },
+    "ai-engineer": {
+      "description": "AI integration specialist. OpenRouter SDK, MTG rules RAG, prompt engineering, streaming /api/judge route, citation formatting.",
+      "mode": "subagent",
+      "tools": {
+        "task": true,
+        "read": true,
+        "write": true,
+        "edit": true,
+        "bash": true
+      },
+      "prompt": "{file:.opencode/prompts/agent-knowledge-awareness.md}"
     },
     "code-review": {
       "description": "Strict compliance auditor. Verifies generated code against the requested specifications and skills checklists.",
       "mode": "subagent",
-      "tools": { "read": true }
+      "tools": { "task": true, "read": true }
+    },
+    "release-manager": {
+      "description": "Release coordinator. Creates release branches, runs pre-release checks, merges to main, tags versions, and generates changelogs.",
+      "mode": "subagent",
+      "tools": { "bash": true, "read": true, "write": true, "edit": true }
     },
     "playwright-test-planner": {
       "description": "Use this agent to create a comprehensive test plan markdown by exploring the web interface.",
@@ -78,11 +103,6 @@
         "playwright-test*generator_*": true
       }
     },
-    "release-manager": {
-      "description": "Release coordinator. Creates release branches, runs pre-release checks, merges to main, tags versions, and generates changelogs.",
-      "mode": "subagent",
-      "tools": { "bash": true, "read": true, "write": true, "edit": true }
-    },
     "playwright-test-healer": {
       "description": "Use this agent to run, debug, and auto-heal/fix failing Playwright tests dynamically.",
       "mode": "subagent",
@@ -97,11 +117,6 @@
         "playwright-test*browser_*": true,
         "playwright-test*test_*": true
       }
-    },
-    "ai-engineer": {
-      "description": "AI integration specialist. OpenRouter SDK, MTG rules RAG, prompt engineering, streaming /api/judge route, citation formatting.",
-      "mode": "subagent",
-      "tools": { "read": true, "write": true, "edit": true, "bash": true }
     }
   }
 }
