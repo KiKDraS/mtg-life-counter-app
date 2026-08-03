@@ -82,13 +82,14 @@ Two stores — separate initial values from live state.
 ## 5. Data Model
 
 ```typescript
-import type { PlayerId, PlayerColor } from "@/features/player-zone/types/player";
+import type { PlayerId } from "@/features/player-zone/types/player";
+import type { ManaColor } from "@/shared/lib/constants/colors";
 
 // Store 1 — persisted initial values (written by setup actions)
 interface GameInit {
   players: number;                    // 2-6
   initialLife: number;                // 20|30|40|60|custom
-  playerColors: Record<PlayerId, PlayerColor>;
+  playerColors: Record<PlayerId, ManaColor[]>;  // multi-select (§6.5)
 }
 
 // Store 2 — persisted current per-player values
@@ -111,7 +112,7 @@ interface Counter {
 interface PlayerState {
   playerId: PlayerId;
   life: number;
-  color: PlayerColor;
+  color: ManaColor[];                // multi-select (§6.5)
   counters: Counter[];
   commanderDamage: CommanderDamage[];
 }
@@ -226,6 +227,31 @@ Edge cases:
 | Updates init? | Yes — `playerColors[playerId]`        |
 | Resets game?  | No — color only                        |
 | Persists restart? | Yes                               |
+
+#### 8.5.1 Selection Behavior
+
+WYSIWYG multi-select. Dispatch on every toggle. Zone preview = live state.
+
+| Gesture              | Behavior                                                         |
+| -------------------- | ---------------------------------------------------------------- |
+| Tap mana color       | Toggle ON: dispatch `addColor`. Add to `PlayerState.color`.      |
+| Tap same color again | Toggle OFF: dispatch `removeColor`. Remove from `PlayerState.color`. |
+| Tap Colorless        | Dispatch `setColor(["c"])`. Close immediately.                   |
+| Tap ✓ (CheckCircle)  | Close. No dispatch — colors already applied.                     |
+| Escape / backdrop    | Close. No dispatch — colors already applied.                     |
+
+**Zone preview:** Real-time. Background reads `PlayerState.color` directly.
+
+**Gradient:** Equal hard stops per selected color, left-to-right linear gradient.
+
+| Selected       | CSS background                                                   |
+| -------------- | ---------------------------------------------------------------- |
+| `["w"]`        | `w(0%,100%)` — solid white                                       |
+| `["w","u"]`    | `w(0%,50%), u(50%,100%)`                                         |
+| `["w","u","b"]`| `w(0%,33.3%), u(33.3%,66.6%), b(66.6%,100%)`                    |
+| WUBRG           | `w(0%,20%), u(20%,40%), b(40%,60%), r(60%,80%), g(80%,100%)`    |
+
+Empty selection: default red (§3).
 
 ---
 

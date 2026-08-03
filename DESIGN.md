@@ -424,17 +424,6 @@ Triggered by gear icon on zone. Width = fit-content
 
 Circular wheel, WUBRG order + Colorless clockwise.
 
-#### Behavior Summary
-
-- Tap WUBRG → highlight selection (overlay, Modal BG color) → apply bg gradient
-  with selection.
-  - Tap same color → un-select (remove overlay) → update bg gradient
-- Tap CheckCircle → close
-- Tap Colorless → solid color → close.
-- Zone previews change in real-time inside modal.
-  - bg gradient, solid color delimitation, equally distributed (e.g w → w(0%,
-    100%); wu → w(0%, 50%), u(50%, 100%))
-
 ### 6.6 Modal: Custom Counter Name
 
 Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
