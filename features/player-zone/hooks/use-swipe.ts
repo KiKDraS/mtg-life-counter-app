@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { PlayerZoneRotation } from "../types/player";
 
 /* §4.2 — Minimum horizontal movement (in pixels) required to qualify as a swipe. */
 const SWIPE_THRESHOLD_PX = 10;
@@ -11,6 +12,8 @@ const SWIPE_TIMEOUT_MS = 300;
 interface UseSwipeOptions {
   readonly onSwipeLeft: () => void;
   readonly onSwipeRight: () => void;
+  /** §4.3 — Screen rotation angle for the player slot. Determines gesture mapping. */
+  readonly rotation?: PlayerZoneRotation;
 }
 
 /**
@@ -18,33 +21,20 @@ interface UseSwipeOptions {
  * Hook to detect horizontal swipe gestures on a given element.
  *
  * Context & Architecture:
- * - Uses the "Latest Callback" ref pattern to avoid re-binding event listeners on every render.
- * - Marks pointer events as `passive: true` to prevent main-thread blocking and allow native scroll (pan-y).
- * - Evaluates physical distance and time elapsed to distinguish intentional swipes from accidental touches.
- *
- * @param {React.RefObject<HTMLElement | null>} ref - Reference to the target DOM element.
- * @param {UseSwipeOptions} options - Callbacks for swipe directions.
- * @returns {void}
- *
- * Usage:
- * ```tsx
- * const zoneRef = useRef<HTMLDivElement>(null);
- * useSwipe(zoneRef, { onSwipeLeft: () => ..., onSwipeRight: () => ... });
- * ```
- *
- *  @see DESIGN.md §7.2
+ * - Translates raw screen coordinates (e.clientX/Y) into the player's visual coordinate system based on their rotation.
+ * - Dynamically adjusts `touch-action` to allow native vertical scrolling from the player's perspective.
  */
 export function useSwipe(
   ref: React.RefObject<HTMLElement | null>,
-  { onSwipeLeft, onSwipeRight }: UseSwipeOptions,
+  { onSwipeLeft, onSwipeRight, rotation = 0 }: UseSwipeOptions,
 ): void {
-  /*
-   * Latest Callback Pattern: Store callbacks in a mutable ref.
-   * Also stores transient gesture state — merged into one ref to reduce hook count.
-   */
   const stateRef = useRef({
     callbacks: { onSwipeLeft, onSwipeRight },
-    gesture: null as { startX: number; startTime: number } | null,
+    gesture: null as {
+      startX: number;
+      startY: number;
+      startTime: number;
+    } | null,
   });
 
   useEffect(() => {
@@ -57,44 +47,74 @@ export function useSwipe(
 
     /*
      * Touch Action manipulation:
-     * Instruct the browser to handle vertical scrolling ('pan-y') natively,
-     * while allowing JS to intercept and handle horizontal gestures (swipe left/right).
+     * Native vertical scroll ('pan-y') for normal/upside-down players.
+     * Native horizontal scroll ('pan-x') for sideways players, because their
+     * vertical visual axis aligns with the screen's horizontal axis.
      */
+    const isSideways = rotation === 90 || rotation === -90;
     const previousTouchAction = el.style.touchAction;
-    el.style.touchAction = "pan-y";
+    el.style.touchAction = isSideways ? "pan-x" : "pan-y";
 
     const handlePointerDown = (e: PointerEvent) => {
-      const isPrimaryClick = e.button === 0;
-      if (!isPrimaryClick) return;
+      if (e.button !== 0) return;
 
-      stateRef.current.gesture = { startX: e.clientX, startTime: performance.now() };
+      // Now tracking both X and Y to calculate rotation vectors
+      stateRef.current.gesture = {
+        startX: e.clientX,
+        startY: e.clientY,
+        startTime: performance.now(),
+      };
     };
 
     const handlePointerUp = (e: PointerEvent) => {
       const gesture = stateRef.current.gesture;
       if (!gesture) return;
 
-      /* Immediately clear gesture state to prevent double-firing or stale state. */
       stateRef.current.gesture = null;
 
-      /* Calculate raw physical and temporal vectors. */
-      const distanceX = e.clientX - gesture.startX;
+      // Raw physical vectors on the screen
+      const rawDistanceX = e.clientX - gesture.startX;
+      const rawDistanceY = e.clientY - gesture.startY;
       const elapsedMs = performance.now() - gesture.startTime;
 
+      // Translate physical vectors to the player's logical point of view
+      let logicalDeltaX = 0;
+      let logicalDeltaY = 0;
+
+      switch (rotation) {
+        case 0: // Normal
+          logicalDeltaX = rawDistanceX;
+          logicalDeltaY = rawDistanceY;
+          break;
+        case 180: // Upside down
+          logicalDeltaX = -rawDistanceX;
+          logicalDeltaY = -rawDistanceY;
+          break;
+        case 90: // Player on the right side, looking left
+          logicalDeltaX = rawDistanceY;
+          logicalDeltaY = -rawDistanceX;
+          break;
+        case -90: // Player on the left side, looking right
+          logicalDeltaX = -rawDistanceY;
+          logicalDeltaY = rawDistanceX;
+          break;
+      }
+
       /*
-       * Self-documenting variables:
-       * Explicitly map raw math to human-readable boolean states and magnitudes.
+       * Gesture Validation:
+       * Abort if the movement was mostly vertical from the player's perspective,
+       * preventing false positives while they scroll their life up/down.
        */
-      const isSwipeLeft = distanceX < 0;
-      const horizontalDistance = isSwipeLeft ? -distanceX : distanceX;
+      if (Math.abs(logicalDeltaX) <= Math.abs(logicalDeltaY)) return;
+
+      const isSwipeLeft = logicalDeltaX < 0;
+      const horizontalDistance = Math.abs(logicalDeltaX);
 
       const isHorizontalEnough = horizontalDistance >= SWIPE_THRESHOLD_PX;
       const isFastEnough = elapsedMs <= SWIPE_TIMEOUT_MS;
 
-      /* Evaluate gesture validity: abort if the gesture was too slow or too short. */
       if (!isHorizontalEnough || !isFastEnough) return;
 
-      /* Trigger appropriate callback using the latest reference. */
       if (isSwipeLeft) {
         stateRef.current.callbacks.onSwipeLeft();
       } else {
@@ -102,12 +122,10 @@ export function useSwipe(
       }
     };
 
-    /* Abort in-progress gestures safely if the pointer leaves the element or is canceled by the OS. */
     const handleCancel = () => {
       stateRef.current.gesture = null;
     };
 
-    /* Use passive listeners to ensure native scrolling performance is not degraded. */
     const eventOptions: AddEventListenerOptions = { passive: true };
 
     el.addEventListener("pointerdown", handlePointerDown, eventOptions);
@@ -116,13 +134,11 @@ export function useSwipe(
     el.addEventListener("pointerleave", handleCancel, eventOptions);
 
     return () => {
-      /* Restore original touch action on cleanup to avoid style side-effects. */
       el.style.touchAction = previousTouchAction;
-
       el.removeEventListener("pointerdown", handlePointerDown);
       el.removeEventListener("pointerup", handlePointerUp);
       el.removeEventListener("pointercancel", handleCancel);
       el.removeEventListener("pointerleave", handleCancel);
     };
-  }, [ref]); // Hook dependencies remain clean; callbacks are safely accessed via ref.
+  }, [ref, rotation]); // Re-binds physics if the player slot orientation changes
 }

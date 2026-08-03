@@ -120,6 +120,7 @@ export function PlayerZoneInteractive({
       () => handleSwipe(ids.counters),
       [handleSwipe, ids],
     ),
+    rotation,
   });
 
   /* 
