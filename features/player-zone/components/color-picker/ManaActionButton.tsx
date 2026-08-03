@@ -3,7 +3,7 @@
 import { type ReactNode } from "react";
 import { MANA_LABELS } from "@/shared/lib/constants/labels";
 import type { ManaColor } from "@/shared/lib/constants/colors";
-import { WUBRG } from "@/features/player-zone/constants/player";
+import { cn } from "@/shared/lib/cn";
 import {
   usePlayerStateContext,
   setColor,
@@ -12,27 +12,28 @@ import {
   useGameStateContext,
   setGamePlayerColor,
 } from "@/features/game-shell/state/game-state-context";
-import type { PlayerColor } from "@/features/player-zone/types/player";
+import { DEFAULT_PLAYER_COLOR } from "@/features/player-zone/constants/player";
 
 interface ManaActionButtonProps {
-  readonly color: PlayerColor;
+  readonly color: ManaColor;
   readonly dialogId: string;
   readonly children: ReactNode;
   readonly className?: string;
   readonly style?: React.CSSProperties;
 }
 
-function isManaColor(c: PlayerColor): c is ManaColor {
-  return c !== WUBRG;
-}
-
 /**
- * Client leaf for the color picker mana wheel.
- * Dispatches SET_COLOR to PlayerState and SET_GAME_PLAYER_COLOR to
- * GameState (for cross-player color lookup in CommanderDamage),
- * then closes the dialog natively via DOM ID.
+ * §6.5 / §8.5.1 — WYSIWYG multi-select toggle for a real mana color
+ * (w/u/b/r/g). Computes `nextColors` locally and dispatches `setColor`
+ * (replace) to PlayerState + `setGamePlayerColor` to GameState (commander
+ * damage lookup). Does NOT close the dialog — only ✓ / Colorless / backdrop /
+ * Escape close.
  *
- * @see DESIGN.md §6.5
+ * Toggle rule (SPEC §8.5.1):
+ * - Tap unselected: current = default `["r"]` → REPLACE `[color]`; otherwise ADD.
+ * - Tap selected: single → NO-OP (keep last); multi → REMOVE.
+ *
+ * @see DESIGN.md §6.5, SPEC.md §8.5.1
  */
 export function ManaActionButton({
   color,
@@ -40,26 +41,40 @@ export function ManaActionButton({
   children,
   className,
   style,
-}: ManaActionButtonProps) {
-  const { state: playerState, dispatch: playerDispatch } =
-    usePlayerStateContext();
+}: Readonly<ManaActionButtonProps>) {
+  const { state, dispatch: playerDispatch } = usePlayerStateContext();
   const { dispatch: gameDispatch } = useGameStateContext();
 
-  const label = isManaColor(color) ? MANA_LABELS[color] : "WUBRG colors";
+  const isSelected = state.color.includes(color);
+
+  const handleClick = () => {
+    const current = state.color;
+    const isPresent = current.includes(color);
+    let nextColors: ManaColor[];
+    if (isPresent) {
+      // ponytail: single-color NO-OP ties to the §8.5.1 "can't remove last" rule.
+      if (current.length === 1) return;
+      nextColors = current.filter((c) => c !== color);
+    } else {
+      // ponytail: replace only when escaping default ["r"] (§3), else accumulate.
+      const isDefault =
+        current.length === 1 && current[0] === DEFAULT_PLAYER_COLOR[0];
+      nextColors = isDefault ? [color] : [...current, color];
+    }
+    playerDispatch(setColor(nextColors));
+    gameDispatch(setGamePlayerColor(state.playerId, nextColors));
+  };
 
   return (
     <button
       type="button"
-      aria-label={label}
-      className={className}
+      aria-label={MANA_LABELS[color]}
+      aria-pressed={isSelected}
+      // dialogId consumed on the client; kept on element for testability/ID.
+      data-dialog-id={dialogId}
+      className={cn(className, isSelected && "ring-4 ring-white/60")}
       style={style}
-      onClick={() => {
-        playerDispatch(setColor(color));
-        gameDispatch(setGamePlayerColor(playerState.playerId, color));
-        (
-          document.getElementById(dialogId) as HTMLDialogElement | null
-        )?.close();
-      }}
+      onClick={handleClick}
     >
       {children}
     </button>

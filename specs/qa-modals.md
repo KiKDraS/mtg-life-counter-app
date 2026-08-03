@@ -456,9 +456,9 @@
 
 ---
 
-### TC-6.3: Multi-select — replace single, add multi
+### TC-6.3: Multi-select — replace default, add non-default
 
-**Description:** Single color replaced on tap different. Multi adds. Remove disallowed on last color.
+**Description:** Default `["r"]` replaced on tap. Non-default adds. Remove disallowed on last color.
 
 **Steps:**
 1. Open Color Picker for Player 1 (default `["r"]` → Red highlighted)
@@ -484,14 +484,14 @@
 5. Tap Green
 
 **Expected Results:**
-- White stays, Green highlights
+- White stays highlighted, Green highlights
 - Zone preview: White+Green gradient
 
-6. Tap Red mana symbol
+6. Tap White mana symbol
 
 **Expected Results:**
-- White un-highlights, Red highlights
-- Zone preview: Red+Green gradient
+- White un-highlights (`aria-pressed="false"`)
+- Zone preview: solid green (`#A3C095`)
 
 ---
 
@@ -500,18 +500,19 @@
 **Description:** Colorless = single-tap-apply. ✓ = confirm close.
 
 **Steps:**
-1. Set Player 1 to White+Blue via TC-6.3
-2. Reopen Color Picker for Player 1
-3. Tap Colorless (C) mana symbol
+1. Open Color Picker for Player 1 (default `["r"]`)
+2. Tap White → Red un-highlights, White highlights (dialog stays open)
+3. Tap Blue → both highlighted (dialog stays open, gradient preview)
+4. Tap Colorless (C) mana symbol
 
 **Expected Results:**
 - Dialog closes immediately
 - Player 1 zone solid colorless (`#CAC5C0`)
 - `PlayerState.color` = `["c"]`
 
-4. Open Color Picker for Player 2 (default `["r"]`)
-5. Tap White → zone preview updates to white (dialog stays open)
-6. Tap CheckCircle ✓
+5. Open Color Picker for Player 2 (default `["r"]`)
+6. Tap White → zone preview updates to white (dialog stays open)
+7. Tap CheckCircle ✓
 
 **Expected Results:**
 - Dialog closes
