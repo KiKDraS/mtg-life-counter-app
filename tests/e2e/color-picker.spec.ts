@@ -1,4 +1,4 @@
-// spec: specs/qa-modals.md
+// spec: specs/qa-modals.md Suite 6 (behavior per SPEC.md §8.5.1 — spec trumps plan)
 // seed: tests/seed.spec.ts
 
 import { test, expect, type Locator, type Page } from "@playwright/test";
@@ -13,118 +13,230 @@ function colorPickerDialog(page: Page, playerId: number): Locator {
   return page.locator(`dialog[id="color-picker-${playerId}"]`);
 }
 
+/** Read a player zone's effective background (handles gradient or solid). */
+async function zoneBackground(page: Page, n: number): Promise<string> {
+  // The <section role="region"> carries the zone's `background` style directly.
+  return zone(page, n).evaluate((el) => {
+    const style = getComputedStyle(el);
+    return `${style.backgroundImage} | ${style.backgroundColor}`;
+  });
+}
+
 /* ───────────────────────────────────────────────
- * §6 — Color Picker
- * ─────────────────────────────────────────────── */
+ * §6 — Color Picker (per SPEC.md §8.5.1)
+ * ───────────────────────────────────────────────
+ */
 
 test.describe("Color Picker", () => {
   test("TC-6.1: Gear icon opens color picker dialog", async ({ page }) => {
-    // 1. Navigate to /
     await page.goto("/");
 
-    // 2. Tap gear icon on Player 1 zone
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
 
-    // expect: Native dialog opens with id="color-picker-0"
     const dialog = colorPickerDialog(page, 0);
     await expect(dialog).toBeVisible();
     await expect(dialog).toHaveAttribute("aria-modal", "true");
-    await expect(dialog).toHaveAttribute("aria-labelledby", "color-picker-title");
+    await expect(dialog).toHaveAttribute(
+      "aria-labelledby",
+      "color-picker-title",
+    );
   });
 
-  test("TC-6.2: WUBRG wheel renders 5 mana symbols", async ({ page }) => {
-    // 1. Open Color Picker for Player 1
+  test("TC-6.2: Circular wheel renders 6 mana symbols + CheckCircle, default Red pressed", async ({
+    page,
+  }) => {
     await page.goto("/");
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
     const dialog = colorPickerDialog(page, 0);
 
-    // expect: 5 mana symbol buttons visible
-    await expect(dialog.getByRole("button", { name: "White mana" })).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Blue mana" })).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Black mana" })).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Red mana" })).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Green mana" })).toBeVisible();
+    // 6 mana symbol buttons visible clockwise from top: C, W, U, B, R, G
+    await expect(
+      dialog.getByRole("button", { name: "Colorless mana" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "White mana" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Blue mana" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Black mana" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Red mana" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Green mana" }),
+    ).toBeVisible();
 
-    // expect: Bottom filter strip with WUBRG and Colorless
-    await expect(dialog.getByRole("button", { name: "WUBRG colors" })).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Colorless mana" })).toBeVisible();
+    // CheckCircle ✓ centered (§6.5)
+    await expect(
+      dialog.getByRole("button", { name: "Confirm color" }),
+    ).toBeVisible();
+
+    // No WUBRG filter-strip action button (old 80/20 layout gone)
+    await expect(
+      dialog.getByRole("button", { name: "WUBRG colors" }),
+    ).toHaveCount(0);
+
+    // Default ["r"] — Red aria-pressed=true; WUBRG siblings false
+    await expect(
+      dialog.getByRole("button", { name: "Red mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      dialog.getByRole("button", { name: "White mana" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      dialog.getByRole("button", { name: "Blue mana" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      dialog.getByRole("button", { name: "Black mana" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      dialog.getByRole("button", { name: "Green mana" }),
+    ).toHaveAttribute("aria-pressed", "false");
   });
 
-  test("TC-6.3: Tap mana color closes dialog updates zone", async ({ page }) => {
-    // 1. Open Color Picker for Player 1
+  test("TC-6.3: Multi-select — replace default, add non-default, remove multi, NO-OP last", async ({
+    page,
+  }) => {
     await page.goto("/");
+
+    // Sanity: default Player 1 zone is red (#E49977)
+    await expect
+      .poll(() => zoneBackground(page, 1))
+      .toContain("rgb(228, 153, 119)");
+
+    // Open Color Picker for Player 1
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
+    const dialog = colorPickerDialog(page, 0);
 
-    // 2. Tap Red mana symbol
-    await page.getByRole("button", { name: "Red mana" }).first().click();
+    const tap = (name: string) =>
+      page.getByRole("button", { name: name }).first().click();
 
-    // expect: Dialog closes immediately
-    await expect(colorPickerDialog(page, 0)).not.toBeVisible();
+    // 1. Tap White: unselected + default (["r"]) → REPLACE → ["w"]
+    await tap("White mana");
+    await expect(
+      dialog.getByRole("button", { name: "Red mana" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      dialog.getByRole("button", { name: "White mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(dialog).toBeVisible(); // dialog stays open
+    await expect
+      .poll(() => zoneBackground(page, 1))
+      .toContain("rgb(248, 246, 216)"); // #F8F6D8 — solid white
 
-    // expect: Player 1 zone background changes to red (#E49977)
-    await expect(zone(page, 1)).toHaveCSS("background-color", "rgb(228, 153, 119)");
+    // 2. Tap Blue: unselected + non-default (["w"]) → ADD → ["w","u"]
+    await tap("Blue mana");
+    await expect(
+      dialog.getByRole("button", { name: "White mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      dialog.getByRole("button", { name: "Blue mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => zoneBackground(page, 1)).toContain("gradient");
 
-    // 3. Open Color Picker for Player 1 again
+    // 3. Tap Blue again: selected + multi → REMOVE → ["w"]
+    await tap("Blue mana");
+    await expect(
+      dialog.getByRole("button", { name: "Blue mana" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      dialog.getByRole("button", { name: "White mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect
+      .poll(() => zoneBackground(page, 1))
+      .toContain("rgb(248, 246, 216)"); // back to solid white
+
+    // 4. Tap White again: selected + length 1 → NO-OP (cannot remove last)
+    await tap("White mana");
+    await expect(
+      dialog.getByRole("button", { name: "White mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect
+      .poll(() => zoneBackground(page, 1))
+      .toContain("rgb(248, 246, 216)"); // unchanged
+
+    // 5. Tap Green: unselected + non-default single (["w"]) → ADD → ["w","g"]
+    await tap("Green mana");
+    await expect(
+      dialog.getByRole("button", { name: "White mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      dialog.getByRole("button", { name: "Green mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => zoneBackground(page, 1)).toContain("gradient");
+
+    // 6. Tap White: selected + multi → REMOVE → ["g"] solid green
+    await tap("White mana");
+    await expect(
+      dialog.getByRole("button", { name: "White mana" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      dialog.getByRole("button", { name: "Green mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect
+      .poll(() => zoneBackground(page, 1))
+      .toContain("rgb(163, 192, 149)"); // #A3C095 — solid green
+  });
+
+  test("TC-6.4: Colorless closes immediately, CheckCircle closes without dispatch", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // Player 1 — Colorless dispatches ["c"] and closes immediately
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
+    const dialog0 = colorPickerDialog(page, 0);
+    await page
+      .getByRole("button", { name: "Colorless mana" })
+      .first()
+      .click();
+    await expect(dialog0).not.toBeVisible();
+    await expect
+      .poll(() => zoneBackground(page, 1))
+      .toContain("rgb(202, 197, 192)"); // #CAC5C0 — solid colorless
 
-    // 4. Tap Blue mana symbol
+    // Player 2 — White (toggle, dialog stays open) then ✓ close (no resetBehavior)
+    await zone(page, 2).getByRole("button", { name: "Change color" }).click();
+    const dialog1 = colorPickerDialog(page, 1);
+    await expect(dialog1).toBeVisible();
+
+    await page.getByRole("button", { name: "White mana" }).first().click();
+    await expect(dialog1).toBeVisible(); // toggle does NOT close
+    await expect
+      .poll(() => zoneBackground(page, 2))
+      .toContain("rgb(248, 246, 216)"); // white applied live
+
+    await dialog1.getByRole("button", { name: "Confirm color" }).click();
+    await expect(dialog1).not.toBeVisible();
+    // Color stays white — Confirm closes only, no dispatch per §8.5.1
+    await expect
+      .poll(() => zoneBackground(page, 2))
+      .toContain("rgb(248, 246, 216)");
+  });
+
+  test("TC-6.5: Backdrop/Escape closes — colors already applied (no revert)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    await zone(page, 1).getByRole("button", { name: "Change color" }).click();
+    const dialog = colorPickerDialog(page, 0);
+
+    // Tap Blue: REPLACE from ["r"] → ["b"], goes live, dialog stays open
     await page.getByRole("button", { name: "Blue mana" }).first().click();
+    await expect(dialog).toBeVisible();
+    await expect
+      .poll(() => zoneBackground(page, 1))
+      .toContain("rgb(193, 215, 233)"); // #C1D7E9 — solid blue
 
-    // expect: Dialog closes
-    await expect(colorPickerDialog(page, 0)).not.toBeVisible();
-
-    // expect: Player 1 zone changes to blue (#C1D7E9)
-    await expect(zone(page, 1)).toHaveCSS("background-color", "rgb(193, 215, 233)");
-  });
-
-  test("TC-6.4: WUBRG and Colorless actions work", async ({ page }) => {
-    // 1. Open Color Picker for Player 2
-    await page.goto("/");
-    await zone(page, 2).getByRole("button", { name: "Change color" }).click();
-
-    // 2. Tap WUBRG action button
-    // There are 2 WUBRG buttons (one per player dialog), pick the last-opened one
-    await page.getByRole("button", { name: "WUBRG colors" }).last().click();
-
-    // expect: Dialog closes
-    await expect(colorPickerDialog(page, 1)).not.toBeVisible();
-
-    // expect: Player 2 zone background is no longer default red
-    // WUBRG gradient won't match a single color, so checking it changed
-    const p2Bg = await zone(page, 2).evaluate((el) => getComputedStyle(el).background);
-    expect(p2Bg).not.toBe("rgb(228, 153, 119)");
-
-    // 3. Open Color Picker for Player 2 again
-    await zone(page, 2).getByRole("button", { name: "Change color" }).click();
-
-    // 4. Tap Colorless action button
-    await page.getByRole("button", { name: "Colorless mana" }).last().click();
-
-    // expect: Dialog closes
-    await expect(colorPickerDialog(page, 1)).not.toBeVisible();
-
-    // expect: Player 2 zone changes to colorless (#CAC5C0)
-    await expect(zone(page, 2)).toHaveCSS("background-color", "rgb(202, 197, 192)");
-  });
-
-  test("TC-6.5: Escape closes without change", async ({ page }) => {
-    // 1. Set Player 1 to Red first
-    await page.goto("/");
-    await zone(page, 1).getByRole("button", { name: "Change color" }).click();
-    await page.getByRole("button", { name: "Red mana" }).first().click();
-    await expect(zone(page, 1)).toHaveCSS("background-color", "rgb(228, 153, 119)");
-
-    // 2. Open Color Picker for Player 1
-    await zone(page, 1).getByRole("button", { name: "Change color" }).click();
-    await expect(colorPickerDialog(page, 0)).toBeVisible();
-
-    // 3. Press Escape
+    // Escape closes; color persists (WYSIWYG — no revert)
     await page.keyboard.press("Escape");
-
-    // expect: Dialog closes
-    await expect(colorPickerDialog(page, 0)).not.toBeVisible();
-
-    // expect: Player 1 remains Red (no change)
-    await expect(zone(page, 1)).toHaveCSS("background-color", "rgb(228, 153, 119)");
+    await expect(dialog).not.toBeVisible();
+    await expect
+      .poll(() => zoneBackground(page, 1))
+      .toContain("rgb(193, 215, 233)");
   });
 });

@@ -236,13 +236,13 @@ Edge cases:
 
 WYSIWYG multi-select. Dispatch on every toggle. Zone preview = live state.
 
-| Gesture              | Behavior                                                             |
-| -------------------- | -------------------------------------------------------------------- |
-| Tap unselected color | Single-color? Replace. Multi-color? Add. Dispatch immediately.       |
-| Tap selected color   | Single-color? No-op. Multi-color? Remove. Dispatch immediately.         |
-| Tap Colorless        | Dispatch `setColor(["c"])`. Close immediately.                       |
-| Tap ✓ (CheckCircle)  | Close. No dispatch — colors already applied.                         |
-| Escape / backdrop    | Close. No dispatch — colors already applied.                         |
+| Gesture              | Behavior                                                        |
+| -------------------- | --------------------------------------------------------------- |
+| Tap unselected color | Current = default `["r"]` (§3)? Replace → `[color]`. Otherwise add → `[...cur, color]`. Dispatch immediately. |
+| Tap selected color   | Single-color (length 1)? No-op. Multi-color? Remove → filter out. Dispatch immediately. |
+| Tap Colorless        | Dispatch `setColor(["c"])`. Close immediately.                  |
+| Tap ✓ (CheckCircle)  | Close. No dispatch — colors already applied.                    |
+| Escape / backdrop    | Close. No dispatch — colors already applied.                    |
 
 **Zone preview:** Real-time. Background reads `PlayerState.color` directly.
 

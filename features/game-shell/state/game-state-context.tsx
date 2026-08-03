@@ -15,7 +15,7 @@ export interface GameState {
   readonly initialLife: number;
   /** Bumped on restart → PlayerProvider key changes → remount with fresh defaults. */
   readonly version: number;
-  /** §6.5 — Per-player color identity, synced by ColorPicker. All "r" until changed. */
+  /** §8.5.1 — multi-select color identity per player. Default `["r"]`. */
   readonly playerColors: Record<PlayerId, PlayerColor>;
 }
 
@@ -67,7 +67,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         const extras = Object.fromEntries(
           Array.from({ length: newCount - oldCount }, (_, i) => [
             String(oldCount + i),
-            DEFAULT_PLAYER_COLOR,
+            [...DEFAULT_PLAYER_COLOR],
           ]),
         );
         newColors = { ...state.playerColors, ...extras } as Record<
@@ -115,10 +115,7 @@ const GameContext = createContext<GameContextValue | null>(null);
 /* §3 defaults: 2 players, 40 life, version=0. */
 function initPlayerColors(count: number): Record<PlayerId, PlayerColor> {
   return Object.fromEntries(
-    Array.from({ length: count }, (_, i) => [
-      i,
-      DEFAULT_PLAYER_COLOR as PlayerColor,
-    ]),
+    Array.from({ length: count }, (_, i) => [i, [...DEFAULT_PLAYER_COLOR]]),
   ) as Record<PlayerId, PlayerColor>;
 }
 
