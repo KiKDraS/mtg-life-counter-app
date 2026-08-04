@@ -63,7 +63,7 @@ test.describe("Counters Overlay — Layout & Content", () => {
     await expect(zone(page, 2)).toBeVisible();
 
     // 2. Swipe right (~50px, <300ms) on the P1 zone wrapper
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
 
     // expect: A dialog with aria-labelledby="counters-title" opens
     const dlg = page.getByRole("dialog", { name: "Counters" });
@@ -95,7 +95,7 @@ test.describe("Counters Overlay — Layout & Content", () => {
   test("1.2. Four default counters render with icons", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone to open Counters overlay
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     await expect(dlg).toBeVisible();
 
@@ -140,7 +140,7 @@ test.describe("Counters Overlay — Layout & Content", () => {
   test("1.3. [+] button renders at bottom-right", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone to open Counters overlay
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     await expect(dlg).toBeVisible();
 
@@ -169,7 +169,7 @@ test.describe("Counters Overlay — Counter Adjustment", () => {
   test("2.1. Tap [+]/[-] adjusts by exactly 1 per counter", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone to open Counters overlay
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     await expect(dlg).toBeVisible();
 
@@ -204,7 +204,7 @@ test.describe("Counters Overlay — Counter Adjustment", () => {
   test("2.2. Counter adjustment is independent per player", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone, set poison to 5, close (Escape)
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg1 = page.getByRole("dialog", { name: "Counters" });
     const plusPoison = dlg1.getByRole("button", { name: "+1 poison counter" });
     for (let i = 0; i < 5; i++) {
@@ -233,7 +233,7 @@ test.describe("Counters Overlay — Counter Adjustment", () => {
     await page.keyboard.press("Escape");
 
     // 5. Swipe right on P1 zone
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg1Reopen = page.getByRole("dialog", { name: "Counters" });
     await expect(dlg1Reopen).toBeVisible();
     // expect: P1 poison still reads 5
@@ -245,7 +245,7 @@ test.describe("Counters Overlay — Counter Adjustment", () => {
   test("2.3. Hold [+] accelerates to +10 after 1s", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone to open Counters overlay
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     // expect: Poison counter reads 0
     await expect(counterValue(dlg, "poison")).toHaveText("0");
@@ -264,7 +264,7 @@ test.describe("Counters Overlay — Counter Adjustment", () => {
   test("2.4. Hold [-] also accelerates", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone, tap +1 poison 15 times (total=15)
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     const plusPoison = dlg.getByRole("button", { name: "+1 poison counter" });
     for (let i = 0; i < 15; i++) {
@@ -294,7 +294,7 @@ test.describe("Counters Overlay — Poison Lethal State", () => {
     await expect(lifeTotal(zone(page, 1))).toHaveText("40");
 
     // 2. Swipe right on P1 zone, set poison to 10 (tap +1 poison 10 times), close dialog
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     const plusPoison = dlg.getByRole("button", { name: "+1 poison counter" });
     for (let i = 0; i < 10; i++) {
@@ -321,7 +321,7 @@ test.describe("Counters Overlay — Poison Lethal State", () => {
     await expect(lifeTotal(zone(page, 2))).not.toHaveCSS("color", "rgb(213, 0, 0)");
 
     // 5. Reopen P1 Counters overlay
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlgReopen = page.getByRole("dialog", { name: "Counters" });
     await expect(dlgReopen).toBeVisible();
     // expect: Poison counter value = 10
@@ -333,7 +333,7 @@ test.describe("Counters Overlay — Poison Lethal State", () => {
   test("3.2. Poison below 10 is not lethal", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone, set poison to 9, close dialog
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     const plusPoison = dlg.getByRole("button", { name: "+1 poison counter" });
     for (let i = 0; i < 9; i++) {
@@ -353,7 +353,7 @@ test.describe("Counters Overlay — Poison Lethal State", () => {
     await expect(lifeTotal(zone(page, 1))).not.toHaveCSS("color", "rgb(213, 0, 0)");
 
     // 3. Reopen P1 Counters, tap +1 poison once (total=10)
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlgReopen = page.getByRole("dialog", { name: "Counters" });
     await dlgReopen.getByRole("button", { name: "+1 poison counter" }).click();
     // expect: Poison value turns rgb(213, 0, 0)
@@ -363,7 +363,7 @@ test.describe("Counters Overlay — Poison Lethal State", () => {
   test("3.3. Poison lethal persists across open/close", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone, set poison to 10, close
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     const plusPoison = dlg.getByRole("button", { name: "+1 poison counter" });
     for (let i = 0; i < 10; i++) {
@@ -379,7 +379,7 @@ test.describe("Counters Overlay — Poison Lethal State", () => {
     await expect(lifeTotal(zone(page, 1))).toHaveCSS("color", "rgb(213, 0, 0)");
 
     // 2. Reopen P1 Counters overlay
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg2 = page.getByRole("dialog", { name: "Counters" });
     // expect: Poison still reads 10, still danger red
     await expect(counterValue(dlg2, "poison")).toHaveText("10");
@@ -387,7 +387,7 @@ test.describe("Counters Overlay — Poison Lethal State", () => {
     await page.keyboard.press("Escape");
 
     // 3. Close and reopen again
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg3 = page.getByRole("dialog", { name: "Counters" });
     // expect: Poison still reads 10, still danger red
     await expect(counterValue(dlg3, "poison")).toHaveText("10");
@@ -406,7 +406,7 @@ test.describe("Counters Overlay — Closing Mechanisms", () => {
   test("4.1. Backdrop click dismisses Counters overlay", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     // expect: Counters overlay opens
     await expect(dlg).toBeVisible();
@@ -423,7 +423,7 @@ test.describe("Counters Overlay — Closing Mechanisms", () => {
   test("4.2. Escape dismisses Counters overlay", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     // expect: Counters overlay opens
     await expect(dlg).toBeVisible();
@@ -436,7 +436,7 @@ test.describe("Counters Overlay — Closing Mechanisms", () => {
     await expect(lifeTotal(zone(page, 1))).toHaveText("40");
 
     // 3. Reopen and press Escape again
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     await expect(dlg).toBeVisible();
     await page.keyboard.press("Escape");
     // expect: Dialog closes again
@@ -446,7 +446,7 @@ test.describe("Counters Overlay — Closing Mechanisms", () => {
   test("4.3. Swipe on overlay content closes Counters overlay", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     // expect: Counters overlay opens
     await expect(dlg).toBeVisible();
@@ -459,7 +459,7 @@ test.describe("Counters Overlay — Closing Mechanisms", () => {
     await expect(page.getByRole("dialog", { name: "Commander Damage" })).toHaveCount(0);
 
     // 3. Swipe right on P1 zone to reopen, then swipe right on overlay content
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     await expect(dlg).toBeVisible();
     await swipeOn(dlg, "right");
     // expect: Dialog also closes with right-direction swipe on content

@@ -26,7 +26,6 @@ import { CommanderDamage } from "@/features/player-zone/types/CommanderDamage";
 
 interface PlayerZoneIds {
   readonly colorPicker: string;
-  readonly numpad: string;
   readonly commanderDmg: string;
   readonly counters: string;
 }
@@ -159,7 +158,6 @@ export function PlayerZoneInteractive({
           isLethal={isLethal}
           isCommanderLethal={isCommanderLethal}
           isPoisonLethal={isPoisonLethal}
-          onOpenNumpad={() => openDialog(ids.numpad)}
         />
 
         {/* Right Column */}
@@ -169,7 +167,8 @@ export function PlayerZoneInteractive({
             aria-label="Change color"
             onClick={() => openDialog(ids.colorPicker)}
             className={cn(
-              "absolute right-1 top-1 z-10 flex w-[18cqmin] h-[18cqmin] max-w-11 max-h-11 items-center justify-center rounded-full transition-colors cursor-pointer",
+              "w-[18cqmin] h-[18cqmin] max-w-11 max-h-11",
+              "absolute right-1 top-1 z-10 flex items-center justify-center rounded-full transition-colors cursor-pointer",
               "hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current",
               getGearPositionClasses(isOnBottomSlot, rotation),
             )}

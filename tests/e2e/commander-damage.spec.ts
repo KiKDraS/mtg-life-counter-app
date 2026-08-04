@@ -67,7 +67,7 @@ test.describe("Commander Damage — Opening the Overlay", () => {
     await page.goto("/");
 
     // 2. Perform a horizontal swipe left (~50px, < 300ms) on the P1 zone
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
 
     // expect: A dialog with aria-labelledby="commander-damage-title" opens
     const dlg = commanderDlg(page);
@@ -97,17 +97,17 @@ test.describe("Commander Damage — Opening the Overlay", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog appears
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     await expect(dlg).toBeVisible();
 
     // 3. Swipe left on P1 zone again → dialog closes cleanly (overlay's pointer
     //    handlers call stopPropagation, zone behind doesn't react)
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     await expect(dlg).not.toBeVisible();
 
     // 4. Swipe left again to reopen
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     await expect(dlg).toBeVisible();
 
     // 5. Close via Escape
@@ -170,7 +170,7 @@ test.describe("Commander Damage — Opening the Overlay", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     await expect(dlg).toBeVisible();
 
@@ -195,7 +195,7 @@ test.describe("Commander Damage — Layout & Content", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
 
     // 3. Locate the element with id="commander-damage-title"
@@ -216,7 +216,7 @@ test.describe("Commander Damage — Layout & Content", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens (P1's opponent is red `r`)
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
 
     // 3. Locate the opponent pill: a rounded pill with opponent's color
@@ -243,7 +243,7 @@ test.describe("Commander Damage — Layout & Content", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     const counter = damageCounter(dlg);
 
@@ -264,7 +264,7 @@ test.describe("Commander Damage — Layout & Content", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
 
     // 3. Locate the button by aria-label="+1 commander damage"
@@ -290,7 +290,7 @@ test.describe("Commander Damage — Damage Adjustment", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     const counter = damageCounter(dlg);
     const btn = plusButton(dlg);
@@ -322,7 +322,7 @@ test.describe("Commander Damage — Damage Adjustment", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → tap [+] five times
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg1 = commanderDlg(page);
     await plusButton(dlg1).click();
     await plusButton(dlg1).click();
@@ -348,7 +348,7 @@ test.describe("Commander Damage — Damage Adjustment", () => {
 
     // 5. Close P2 dialog, swipe left on P1 zone
     await page.keyboard.press("Escape");
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     // expect: P1 damage still reads `5`
     await expect(damageCounter(commanderDlg(page))).toHaveText("5");
   });
@@ -358,7 +358,7 @@ test.describe("Commander Damage — Damage Adjustment", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     // expect: Damage reads `0`
     await expect(damageCounter(dlg)).toHaveText("0");
@@ -379,7 +379,7 @@ test.describe("Commander Damage — Damage Adjustment", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     const btn = plusButton(dlg);
 
@@ -404,7 +404,7 @@ test.describe("Commander Damage — Life Reduction", () => {
     await expect(lifeTotal(zone(page, 1))).toHaveText("40");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     const btn = plusButton(dlg);
 
@@ -435,7 +435,7 @@ test.describe("Commander Damage — Life Reduction", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 → tap [+] three times (damage=3), close
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg1 = commanderDlg(page);
     await plusButton(dlg1).click();
     await plusButton(dlg1).click();
@@ -455,7 +455,7 @@ test.describe("Commander Damage — Life Reduction", () => {
     await expect(lifeTotal(zone(page, 2))).toHaveText("33");
 
     // expect: P1 damage = 3, P2 damage = 7
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     await expect(damageCounter(commanderDlg(page))).toHaveText("3");
     await page.keyboard.press("Escape");
 
@@ -468,7 +468,7 @@ test.describe("Commander Damage — Life Reduction", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 → tap [+] ten times, close
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     for (let i = 0; i < 10; i++) {
       await plusButton(dlg).click();
@@ -486,7 +486,7 @@ test.describe("Commander Damage — Life Reduction", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 → hold [+] for 1200ms
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     await holdButton(page, plusButton(dlg), 1200);
 
@@ -506,7 +506,7 @@ test.describe("Commander Damage — Life Reduction", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 → tap [+] 41 times (start=40 life, 40−41 = −1)
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     const btn = plusButton(dlg);
     for (let i = 0; i < 41; i++) {
@@ -534,7 +534,7 @@ test.describe("Commander Damage — Lethal State", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 → tap [+] twenty times (damage=20)
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     const btn = plusButton(dlg);
     for (let i = 0; i < 20; i++) {
@@ -569,7 +569,7 @@ test.describe("Commander Damage — Lethal State", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 → tap [+] 21 times (damage=21, life=19)
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     for (let i = 0; i < 21; i++) {
       await plusButton(dlg).click();
@@ -589,7 +589,7 @@ test.describe("Commander Damage — Lethal State", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 → tap [+] 21 times (damage=21)
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     for (let i = 0; i < 21; i++) {
       await plusButton(dlg).click();
@@ -621,7 +621,7 @@ test.describe("Commander Damage — Lethal State", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 → tap [+] 5 times, close
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     for (let i = 0; i < 5; i++) {
       await plusButton(dlg).click();
@@ -629,7 +629,7 @@ test.describe("Commander Damage — Lethal State", () => {
     await page.keyboard.press("Escape");
 
     // 3. Reopen P1 Commander Damage overlay
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     // expect: Damage reads `5` (persisted)
     await expect(damageCounter(commanderDlg(page))).toHaveText("5");
 
@@ -643,7 +643,7 @@ test.describe("Commander Damage — Lethal State", () => {
 
     // 5. Close and reopen
     await page.keyboard.press("Escape");
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     // expect: Damage still reads `21`
     await expect(damageCounter(commanderDlg(page))).toHaveText("21");
     // expect: Lethal badge still visible
@@ -663,7 +663,7 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     // expect: Dialog is open
     await expect(dlg).toBeVisible();
@@ -676,7 +676,7 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await expect(lifeTotal(zone(page, 1))).toHaveText("40");
 
     // 4. Reopen, then swipe right on overlay content → also closes
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     await expect(dlg).toBeVisible();
     await swipeOn(commanderDlg(page), "right");
     await expect(dlg).not.toBeVisible();
@@ -690,7 +690,7 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     await expect(dlg).toBeVisible();
 
@@ -702,7 +702,7 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await expect(lifeTotal(zone(page, 1))).toHaveText("40");
 
     // 4. Reopen and press Escape again
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     await expect(dlg).toBeVisible();
     await page.keyboard.press("Escape");
     // expect: Dialog closes
@@ -714,19 +714,21 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     await expect(dlg).toBeVisible();
 
-    // 3. Tap the heading (a non-interactive area of the overlay)
-    await dlg.getByRole("heading", { name: "Commander Damage" }).click();
+    // 3. Tap the overlay backdrop (top-left corner, outside centered content).
+    // NOTE: the dialog title is sr-only — clipped to 1px and covered by the
+    // centered content grid — so it is not a usable click target.
+    await dlg.click({ position: { x: 5, y: 5 } });
     // expect: Dialog closes
     await expect(dlg).not.toBeVisible();
     // expect: P1 life unchanged (not a damage tap)
     await expect(lifeTotal(zone(page, 1))).toHaveText("40");
 
     // 4. Reopen and tap [+] — should add damage, NOT close
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     await expect(dlg).toBeVisible();
     await plusButton(dlg).click();
     // expect: Damage was added
@@ -740,7 +742,7 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → P1 Commander Damage opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     // expect: Dialog bounding box is within P1's viewport half (top half)
     const dlgBox = await dlg.boundingBox();
@@ -770,7 +772,7 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 → Commander Damage opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     await expect(commanderDlg(page)).toBeVisible();
 
     // 3. Close via Escape
@@ -784,8 +786,8 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await zone(page, 2).getByRole("button", { name: "+1 life" }).click();
     await expect(lifeTotal(zone(page, 2))).toHaveText("41");
 
-    // expect: Swipe right on P1 zone opens Counters dialog (other overlay unaffected)
-    await swipeOn(zone(page, 1), "right");
+    // expect: Swipe right on P1 zone opens Counters dialog (other overlay unaffected) — P1 is 180° so player-left = screen right opens Commander; player-right (screen-left) opens Counters
+    await swipeOn(zone(page, 1), "left");
     const countersDlg = page.getByRole("dialog", { name: "Counters" });
     await expect(countersDlg).toBeVisible();
 
@@ -805,7 +807,7 @@ test.describe("Commander Damage — Accessibility & Edge Cases", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
 
     // expect: `<dialog>` has aria-modal="true"
@@ -823,7 +825,7 @@ test.describe("Commander Damage — Accessibility & Edge Cases", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
 
     // 3. Read bounding box of aria-label="+1 commander damage"
@@ -840,7 +842,7 @@ test.describe("Commander Damage — Accessibility & Edge Cases", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
 
     // 3. Locate the damage counter element
@@ -865,7 +867,7 @@ test.describe("Commander Damage — Accessibility & Edge Cases", () => {
     await page.goto("/");
 
     // 2. Swipe left on P1 zone → Commander Damage dialog opens
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     const btn = plusButton(dlg);
 

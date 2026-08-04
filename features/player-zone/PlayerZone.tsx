@@ -1,6 +1,5 @@
 import { PlayerZoneInteractive } from "./components/PlayerZoneInteractive";
 import { ColorPicker } from "@/features/player-zone/components/color-picker/ColorPicker";
-import { LifeNumpad } from "@/features/player-zone/components/life-numpad/LifeNumpad";
 import { CommanderDamage } from "@/features/player-zone/components/commander-damage/CommanderDamage";
 import { Counters } from "@/features/player-zone/components/counters/Counters";
 import { usePlayerStateContext } from "./state/player-state-context";
@@ -24,7 +23,6 @@ export function PlayerZone() {
 
   const ids = {
     colorPicker: `color-picker-${playerId}`,
-    numpad: `numpad-${playerId}`,
     commanderDmg: `commander-dmg-${playerId}`,
     counters: `counters-${playerId}`,
   };
@@ -34,7 +32,6 @@ export function PlayerZone() {
       {/* Modal shells — passed as children so they render inside the zone div.
             RSC shells wrap client DialogShell (Donut Hole pattern). */}
       <ColorPicker id={ids.colorPicker} />
-      <LifeNumpad id={ids.numpad} />
       <CommanderDamage id={ids.commanderDmg} />
       <Counters id={ids.counters} />
     </PlayerZoneInteractive>

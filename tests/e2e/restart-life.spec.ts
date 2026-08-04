@@ -84,7 +84,7 @@ test.describe("Restart Life", () => {
     await page.goto("/");
 
     // 2. Open Counters overlay for Player 1
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const countersDlg = page.getByRole("dialog", { name: "Counters" });
     await expect(countersDlg).toBeVisible();
 
@@ -122,7 +122,7 @@ test.describe("Restart Life", () => {
     await expect(belt(page)).not.toBeChecked();
 
     // 7. Reopen Counters overlay for Player 1
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     await expect(countersDlg).toBeVisible();
 
     // expect: Custom counter "Lore" absent
@@ -142,6 +142,10 @@ test.describe("Restart Life", () => {
     const colorPicker = page.locator(`dialog[id="color-picker-0"]`);
     await expect(colorPicker).toBeVisible();
     await colorPicker.getByRole("button", { name: "Red mana" }).click();
+
+    // Red is the default §8.5.1 color — a color tap toggles selection but does
+    // not close the picker (only ✓/Colorless/backdrop/Escape close). Confirm.
+    await colorPicker.getByRole("button", { name: "Confirm color" }).click();
 
     // expect: P1 zone background changes to red
     await expect(colorPicker).not.toBeVisible();

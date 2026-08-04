@@ -148,7 +148,7 @@
 
 **Steps:**
 1. Set initialLife to 40
-2. Open Counters overlay for Player 1 (swipe right)
+2. Open Counters overlay for Player 1 (swipe left — P1 is 180°)
 3. Verify 4 default counters visible
 4. Tap `[+]` → Custom Counter modal → type "Lore" → submit
 5. Verify Lore appears in counters grid (value 0)
@@ -542,7 +542,7 @@
 **Description:** Swiping right on a player zone opens the Counters overlay.
 
 **Steps:**
-1. On Player 1 zone, perform a swipe-right gesture (≥10px horizontal movement, <300ms)
+1. On Player 1 zone, perform a swipe-left gesture (≥10px horizontal movement, <300ms; P1 is 180° so player-right = physical-left)
 
 **Expected Results:**
 - Counters overlay opens as a full-screen dialog with `id="counters-0"`

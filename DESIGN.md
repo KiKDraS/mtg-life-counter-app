@@ -258,11 +258,12 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
   zone color. Text auto-selects per luminance.
 - **Press feedback:** `pointerdown` → col BG overlays `rgba(0,0,0,0.08)`. 150ms
   fade in/out on col BG itself — no extra DOM.
-- **Tap:** ±1. **Hold:** ±10 after 1s. **Double-tap life total:** numpad for
-  exact entry.
+- **Tap:** ±1. **Hold:** ±10 after 1s.
 - **Lethal:** Life ≤ 0 → `#D50000`. ± cols unaffected.
-- **Swipe left:** Commander damage overlay. **Swipe right:** Counters overlay.
-  Threshold: ≥10px horizontal before 300ms. Vertical ignored.
+- **Swipe (player-relative):** From each player's own perspective, swipe left =
+  Commander damage overlay; swipe right = Counters overlay. Physical screen
+  direction flips on rotated slots (§4.3: P1 top slot = 180° → invert the swipe
+  direction you physically make). Threshold: ≥10px before 300ms. Vertical ignored.
 - **Overlay open:** Either X-direction swipe closes overlay → return to life.
 
 ### 4.3 Zone Rotation
@@ -471,14 +472,13 @@ Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
 | --------------------- | ---------------------------- |
 | Tap [+] / [-]         | +1 / -1 life                 |
 | Hold [+] / [-]        | ±10 after 1s                 |
-| Double-tap life total | Opens numpad for exact entry |
 
 ### 7.2 Swipe
 
-| Gesture                 | Result                                            |
+| Gesture | Result |
 | ----------------------- | ------------------------------------------------- |
-| Swipe left on zone      | Commander damage overlay                          |
-| Swipe right on zone     | Counters overlay                                  |
+| Swipe left on zone (player-relative) | Commander damage overlay. Physical direction flips on rotated slots (§4.3) |
+| Swipe right on zone (player-relative) | Counters overlay. Physical direction flips on rotated slots (§4.3) |
 | X-axis swipe on overlay | Closes overlay, returns to life. Either direction |
 
 ### 7.3 Commander Damage

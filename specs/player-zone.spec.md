@@ -2,7 +2,7 @@
 
 ## Application Overview
 
-MTG Life Counter — Player Zone milestone (branch `feature/player-zone`). Two player zones on a full-viewport vertical split: Player 1 (blue mana #C1D7E9, rotated 180°) on top, Player 2 (red mana #E49977) on bottom, both starting at 40 life. Each zone has a massive Archivo Black life total with aria-live="polite", and −/+ buttons with tap = ±1 and hold acceleration. New in this update: double-tap the life total opens a phone-style numpad dialog for exact life entry (§7.1).
+MTG Life Counter — Player Zone milestone (branch `feature/player-zone`). Two player zones on a full-viewport vertical split: Player 1 (blue mana #C1D7E9, rotated 180°) on top, Player 2 (red mana #E49977) on bottom, both starting at 40 life. Each zone has a massive Archivo Black life total with aria-live="polite", and −/+ buttons with tap = ±1 and hold acceleration.
 
 ## Test Scenarios
 
@@ -184,120 +184,23 @@ MTG Life Counter — Player Zone milestone (branch `feature/player-zone`). Two p
   1. Read boundingBox of all 4 buttons
     - expect: Every button width ≥ 44 and height ≥ 44
 
-### 8. Double-tap Numpad (§7.1, §4.2)
-
-**Seed:** `tests/seed.spec.ts`
-
-#### 8.1. Double-tap life total opens the numpad dialog
-
-**File:** `tests/e2e/player-zone.spec.ts`
-
-**Steps:**
-  1. Navigate to /
-    - expect: Life total reads 40
-    - expect: No dialog present before gesture
-  2. Double-click P1 life total via dblclick()
-    - expect: Dialog 'Set life total' appears
-    - expect: Status shows — (em dash) for empty
-    - expect: Dialog bounding box within P1 zone
-
-#### 8.2. Numpad displays typed digits and shows — when empty
-
-**File:** `tests/e2e/player-zone.spec.ts`
-
-**Steps:**
-  1. Open numpad; type 1 then 5 then 0
-    - expect: Status reads — initially
-    - expect: After each: 1 → 15 → 150
-  2. Close and reopen
-    - expect: Status reads — again (fresh start)
-
-#### 8.3. Backspace removes the last digit
-
-**File:** `tests/e2e/player-zone.spec.ts`
-
-**Steps:**
-  1. Open numpad; type 257
-    - expect: Status reads 257
-  2. Click Backspace three times
-    - expect: Status: 25 → 2 → —
-  3. Click Backspace again on empty
-    - expect: Status still —, no error
-
-#### 8.4. Confirm sets the life total to the entered value
-
-**File:** `tests/e2e/player-zone.spec.ts`
-
-**Steps:**
-  1. Open numpad; type 37 and Confirm
-    - expect: Dialog closes
-    - expect: P1 life = 37
-    - expect: P2 life = 40 unchanged
-  2. Reopen numpad; type 0 and Confirm
-    - expect: P1 life = 0
-    - expect: Life total turns danger red rgb(213, 0, 0)
-
-#### 8.5. Cancel (✕) closes dialog without changing life total
-
-**File:** `tests/e2e/player-zone.spec.ts`
-
-**Steps:**
-  1. Open numpad; type 99; click Cancel
-    - expect: Dialog closes
-    - expect: P1 life still 40
-    - expect: P2 life still 40
-  2. Reopen numpad
-    - expect: Status shows — (fresh start)
-
-#### 8.6. Escape key closes dialog without changing life total
-
-**File:** `tests/e2e/player-zone.spec.ts`
-
-**Steps:**
-  1. Open numpad; type 50; press Escape
-    - expect: Dialog closes
-    - expect: P1 life still 40
-    - expect: P2 life still 40
-  2. Reopen numpad
-    - expect: Status shows — (fresh start)
-
-#### 8.7. Numpad is scoped to the player zone
-
-**File:** `tests/e2e/player-zone.spec.ts`
-
-**Steps:**
-  1. Double-click P2 life total; type 25; Confirm
-    - expect: Dialog in P2 zone
-    - expect: P2 = 25, P1 = 40
-  2. Double-click P1 life total; type 50; Confirm
-    - expect: Dialog in P1 zone
-    - expect: P1 = 50, P2 = 25
-
-#### 8.8. Leading zeros preserved in display but stripped on confirm
-
-**File:** `tests/e2e/player-zone.spec.ts`
-
-**Steps:**
-   1. Open numpad; type 005
-     - expect: Status reads 005
-   2. Click Confirm
-     - expect: P1 life reads 5, not 005
-
 ### 9. Swipe Gestures (§7.2)
 
 **Seed:** `tests/seed.spec.ts`
 
 #### 9.1. Swipe left opens Commander Damage overlay; swipe right opens Counters overlay
 
+Gestures are **player-relative** (per DESIGN.md §7.2 / §4.3). P2 (rotation 0) uses physical screen direction. P1 (rotation 180°, top slot) inverts it: physical **right** = player-left = Commander; physical **left** = player-right = Counters.
+
 **File:** `tests/e2e/player-zone.spec.ts`
 
 **Steps:**
    1. Navigate to `/`
-   2. Swipe left (~50px) on the P1 zone (wrapper `<div>`)
+   2. Swipe right (~50px) on the P1 zone (wrapper `<div>`) — player-left on the 180° slot
      - expect: Commander Damage dialog appears with `aria-labelledby="commander-damage-title"`
    3. Press Escape to close
      - expect: Dialog closes
-   4. Swipe right (~50px) on the P1 zone
+   4. Swipe left (~50px) on the P1 zone
      - expect: Counters dialog appears with `aria-labelledby="counters-title"`
    5. Press Escape to close
      - expect: Dialog closes
