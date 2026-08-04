@@ -17,7 +17,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **Steps:**
   1. Navigate to /
     - expect: Page loads with two player zones
-  2. Swipe right (~50px, <300ms) on the P1 zone wrapper
+  2. Swipe left (~50px, <300ms) on the P1 zone wrapper (P1 is 180° → player-right is physical-left)
     - expect: A dialog with aria-labelledby="counters-title" opens
     - expect: Dialog is contained within P1's viewport half
   3. Locate the element with id="counters-title"
@@ -32,7 +32,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **File:** `tests/e2e/counters-overlay.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe right on P1 zone to open Counters overlay
+  1. Navigate to /, swipe left on P1 zone to open Counters overlay
     - expect: Counters overlay dialog is open
   2. Check for default counter icons
     - expect: "Poison counter" icon is visible
@@ -58,7 +58,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **File:** `tests/e2e/counters-overlay.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe right on P1 zone to open Counters overlay
+  1. Navigate to /, swipe left on P1 zone to open Counters overlay
     - expect: Counters overlay dialog is open
   2. Locate the + button by aria-label="Add custom counter"
     - expect: Button is visible and enabled
@@ -75,7 +75,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **File:** `tests/e2e/counters-overlay.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe right on P1 zone to open Counters overlay
+  1. Navigate to /, swipe left on P1 zone to open Counters overlay
     - expect: Counters overlay dialog is open
     - expect: Poison counter reads 0
   2. Tap +1 poison counter once
@@ -92,7 +92,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **File:** `tests/e2e/counters-overlay.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe right on P1 zone, set poison to 5, close (Escape)
+  1. Navigate to /, swipe left on P1 zone, set poison to 5, close (Escape)
     - expect: P1 poison = 5
   2. Swipe right on P2 zone (bottom half)
     - expect: P2 Counters overlay opens
@@ -100,7 +100,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
     - expect: P2 poison reads 0 (independent from P1)
   4. Set P2 energy to 3, close (Escape)
     - expect: P2 energy = 3
-  5. Swipe right on P1 zone
+  5. Swipe left on P1 zone
     - expect: P1 poison still reads 5
     - expect: P1 energy still reads 0
 
@@ -109,7 +109,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **File:** `tests/e2e/counters-overlay.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe right on P1 zone to open Counters overlay
+  1. Navigate to /, swipe left on P1 zone to open Counters overlay
     - expect: Poison counter reads 0
   2. Hold (pointerdown) the +1 poison counter button for 1200ms, then release
     - expect: Poison counter >= 10
@@ -120,7 +120,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **File:** `tests/e2e/counters-overlay.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe right on P1 zone, tap +1 poison 15 times (total=15)
+  1. Navigate to /, swipe left on P1 zone, tap +1 poison 15 times (total=15)
     - expect: Poison counter reads 15
   2. Hold -1 poison counter for 1200ms, then release
     - expect: Poison counter <= 5
@@ -136,7 +136,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **Steps:**
   1. Navigate to /
     - expect: P1 life reads 40
-  2. Swipe right on P1 zone, set poison to 10 (tap +1 poison 10 times), close dialog
+  2. Swipe left on P1 zone, set poison to 10 (tap +1 poison 10 times), close dialog
     - expect: Poison set to 10
   3. Read P1 life total
     - expect: P1 life = 30 (40 - 10)
@@ -153,7 +153,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **File:** `tests/e2e/counters-overlay.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe right on P1 zone, set poison to 9, close dialog
+  1. Navigate to /, swipe left on P1 zone, set poison to 9, close dialog
     - expect: P1 poison = 9
   2. Read P1 life
     - expect: P1 life = 31 (40 - 9)
@@ -166,7 +166,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **File:** `tests/e2e/counters-overlay.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe right on P1 zone, set poison to 10, close
+  1. Navigate to /, swipe left on P1 zone, set poison to 10, close
     - expect: Poison set to 10, life at 30, life is danger red
   2. Reopen P1 Counters overlay
     - expect: Poison still reads 10, still danger red
@@ -183,7 +183,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **File:** `tests/e2e/counters-overlay.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe right on P1 zone
+  1. Navigate to /, swipe left on P1 zone
     - expect: Counters overlay opens
   2. Click the dialog backdrop (top-left corner, outside content area)
     - expect: Dialog closes
@@ -194,7 +194,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **File:** `tests/e2e/counters-overlay.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe right on P1 zone
+  1. Navigate to /, swipe left on P1 zone
     - expect: Counters overlay opens
   2. Press Escape
     - expect: Dialog closes
@@ -207,12 +207,12 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **File:** `tests/e2e/counters-overlay.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe right on P1 zone
+  1. Navigate to /, swipe left on P1 zone
     - expect: Counters overlay opens
   2. Swipe left on the overlay content (the div inside the dialog)
     - expect: Dialog closes
     - expect: Commander Damage overlay was NOT opened (zone behind didn't react)
-  3. Swipe right on P1 zone to reopen, then swipe right on overlay content
+  3. Swipe left on P1 zone to reopen, then swipe right on overlay content
     - expect: Dialog also closes with right-direction swipe on content
 
 ### 5. Custom Counter Dialog — Modal
@@ -224,7 +224,7 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **File:** `tests/e2e/custom-counter-dialog.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe right on P1 zone to open Counters overlay
+  1. Navigate to /, swipe left on P1 zone to open Counters overlay
     - expect: Counters overlay is open
   2. Tap the "Add custom counter" button (+)
     - expect: A native <dialog> modal opens

@@ -30,7 +30,7 @@ MTG Life Counter — Commander Damage overlay (§7.3). Each player zone supports
 **File:** `tests/e2e/commander-damage.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe left on P1
+  1. Navigate to /, swipe right on P1 (180° slot)
     - expect: Dialog is open
   2. Swipe left on P1 again
     - expect: Dialog closes

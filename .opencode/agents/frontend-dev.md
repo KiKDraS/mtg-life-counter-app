@@ -139,7 +139,6 @@ Deliver across 4 layers:
   - No player names — color + position identifies
 - **Key interactions (DESIGN.md §7):**
   - Tap +/- for ±1. Hold for rapid acceleration (±5 → ±10 after 1s).
-  - Double-tap life total → numpad for direct entry.
   - Swipe left → commander damage overlay. Swipe right → counters overlay
     (poison, energy, experience, time, custom).
   - Top-row zones rotate 180° (CSS `rotate(180deg)`).

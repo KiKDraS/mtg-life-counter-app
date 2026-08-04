@@ -147,8 +147,10 @@ test.describe("Initial Life Modal", () => {
     const dialog = page.locator("dialog#initial-life-modal");
     await expect(dialog).toBeVisible();
 
-    // 3. Click the heading (inside the dialog content)
-    await dialog.locator("h2#initial-life-title").click();
+    // 3. Click the dialog content (top-left corner of the inner content wrapper,
+    // away from the preset buttons). NOTE: the h2 title is sr-only — clipped to
+    // 1px and covered by the preset grid — so it cannot be clicked directly.
+    await dialog.click({ position: { x: 5, y: 5 } });
 
     // expect: Modal stays open (click on child does not trigger backdrop close)
     await expect(dialog).toBeVisible();

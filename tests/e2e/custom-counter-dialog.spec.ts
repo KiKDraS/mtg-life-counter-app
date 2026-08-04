@@ -48,7 +48,7 @@ function counterValue(dlg: Locator, name: string): Locator {
 
 async function openCounters(page: Page): Promise<Locator> {
   await page.goto("/");
-  await swipeOn(zone(page, 1), "right");
+  await swipeOn(zone(page, 1), "left");
   const dlg = page.getByRole("dialog", { name: "Counters" });
   await expect(dlg).toBeVisible();
   return dlg;
