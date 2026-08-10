@@ -127,7 +127,7 @@ export function PlayerZoneInteractive({
       Derived UI 
     ================= 
   */
-  const { background, textColor } = zoneStylesFor(state.color);
+  const { background, textColor, textShadow } = zoneStylesFor(state.color);
   const { isPoisonLethal, isCommanderLethal, isLethal } = checkLethality(state);
 
   return (
@@ -142,7 +142,7 @@ export function PlayerZoneInteractive({
       <section
         aria-label={`Player ${state.playerId + 1}: ${state.life} life`}
         className="grid h-full w-full grid-cols-3"
-        style={{ background, color: textColor }}
+        style={{ background, color: textColor, textShadow }}
       >
         {/* Left Column */}
         <LifeAdjustmentButton

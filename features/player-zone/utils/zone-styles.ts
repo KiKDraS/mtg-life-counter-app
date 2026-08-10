@@ -1,9 +1,10 @@
-import { MANA, ManaColor } from "@/shared/lib/constants/colors";
+import { MANA, ManaColor, UI } from "@/shared/lib/constants/colors";
 import { textColorFor } from "@/shared/lib/text-color-for";
 
 export interface ZoneStyles {
   readonly background: string;
   readonly textColor: string;
+  readonly textShadow: string;
 }
 
 /**
@@ -35,9 +36,19 @@ function buildGradient(colors: ManaColor[]): string {
  *
  * @see SPEC.md §8.5.1, DESIGN.md §6.5
  */
-export function zoneStylesFor(color: ManaColor[]): ZoneStyles {
+export function zoneStylesFor(colors: ManaColor[]): ZoneStyles {
+  const hexes = colors.map((c) => MANA[c]);
+
+  const textColor = textColorFor(hexes);
+
+  const textShadow =
+    textColor === UI.textLight
+      ? "0px 2px 2px rgba(0,0,0,0.4), 0px 0px 2px rgba(0,0,0,0.8)"
+      : "0px 2px 2px rgba(255,255,255,0.5), 0px 0px 2px rgba(255,255,255,0.9)";
+
   return {
-    background: buildGradient(color),
-    textColor: textColorFor(MANA[color[0]]),
+    background: buildGradient(colors),
+    textColor,
+    textShadow,
   };
 }
