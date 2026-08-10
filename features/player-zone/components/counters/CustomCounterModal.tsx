@@ -7,8 +7,6 @@ import {
   usePlayerStateContext,
   addCounter,
 } from "@/features/player-zone/state/player-state-context";
-import { cn } from "@/shared/lib/cn";
-import { TEXT_CLASSES } from "../../constants/counter";
 
 interface CustomCounterModalProps {
   readonly id: string;

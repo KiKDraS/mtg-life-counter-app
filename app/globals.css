@@ -50,10 +50,6 @@ dialog::backdrop {
 }
 
 @container zone (height <=150px) {
-  .zone-max-h-150 {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
   .zone-max-h-150-top {
     top: calc(var(--spacing) * 2);
     right: calc(var(--spacing) * 2);

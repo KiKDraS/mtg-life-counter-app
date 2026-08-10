@@ -8,6 +8,7 @@ import { useGameStateContext } from "@/features/game-shell/state/game-state-cont
 import { CommanderDamageColumn } from "./CommanderDamageColumn";
 import type { PlayerId } from "@/features/player-zone/types/player";
 import { COMMANDER_LETHAL_DAMAGE } from "../../constants/commander";
+import { cn } from "@/shared/lib/cn";
 
 /**
  * @description
@@ -53,6 +54,11 @@ export function CommanderDamageContent() {
     });
   }, [playerCount, playerColors, commanderDamage]);
 
+  const GRID_COLS =
+    (playerCount > 4 && state.playerId === 0) || state.playerId === 5
+      ? "grid-cols-3"
+      : "grid-cols-2";
+
   /*
    * 2. Pure Declarative UI
    */
@@ -62,7 +68,7 @@ export function CommanderDamageContent() {
         Commander Damage
       </h2>
 
-      <div className="grid w-full max-w-md zone-max-h-150 grid-cols-2 gap-4">
+      <div className={cn("grid w-full max-w-md", GRID_COLS, "gap-4")}>
         {damageColumns.map((col) => (
           <CommanderDamageColumn
             key={col.pid}
