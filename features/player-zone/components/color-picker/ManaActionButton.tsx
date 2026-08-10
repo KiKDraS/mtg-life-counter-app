@@ -51,11 +51,16 @@ export function ManaActionButton({
   const handleClick = () => {
     const current = state.color;
     const isPresent = current.includes(color);
+    const isColorless = current.length === 1 && current[0] === "c";
+
     let nextColors: ManaColor[];
     if (isPresent) {
       // ponytail: single-color NO-OP ties to the §8.5.1 "can't remove last" rule.
       if (current.length === 1) return;
       nextColors = current.filter((c) => c !== color);
+    } else if (isColorless) {
+      // ponytail: replace colorless with the new color.
+      nextColors = [color];
     } else {
       // ponytail: replace only when escaping default ["r"] (§3), else accumulate.
       const isDefault =
