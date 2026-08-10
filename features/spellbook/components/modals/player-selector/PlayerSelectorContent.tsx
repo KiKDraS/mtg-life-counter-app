@@ -40,7 +40,7 @@ export function PlayerSelectorContent({
   );
 
   return (
-    <div className="grid w-full max-w-xs grid-cols-2 gap-3">
+    <div className="grid w-full max-w-xs grid-cols-2 gap-6 justify-items-center-safe">
       {PLAYER_COUNTS.map((count) => {
         const isSingle = count === 6;
         return (
@@ -50,10 +50,10 @@ export function PlayerSelectorContent({
             aria-label={`${count} players`}
             onClick={() => selectCount(count)}
             className={cn(
-              "flex aspect-3/4 items-center justify-center rounded-lg border border-white/10 p-3",
+              "flex aspect-3/4 items-center justify-center rounded-lg border border-white/10 p-1",
               "hover:bg-white/10 transition-colors",
               "focus-visible:outline-2 focus-visible:outline-white",
-              "cursor-pointer",
+              "cursor-pointer max-w-32.5",
               isSingle && "col-span-2 mx-auto w-1/2",
             )}
           >

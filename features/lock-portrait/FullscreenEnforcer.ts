@@ -55,7 +55,11 @@ export function FullscreenEnforcer() {
       // Block portrait orientation on fullscreen mode
       try {
         if ("orientation" in screen && "lock" in screen.orientation) {
-          await (screen.orientation as ScreenOrientation).lock("portrait");
+          // TS lib lacks ScreenOrientation.lock typing; cast covers it.
+          const so = screen.orientation as ScreenOrientation & {
+            lock: (o: "portrait") => Promise<void>;
+          };
+          await so.lock("portrait");
         }
 
         isLockedRef.current = true;

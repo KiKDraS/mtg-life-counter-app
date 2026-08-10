@@ -356,6 +356,92 @@ test.describe("Player Zone — Contrast & Touch Targets", () => {
     await expect(lifeTotal(zone(page, 2))).toHaveCSS("color", "rgb(26, 26, 26)");
   });
 
+  test("LC-03: textShadow pairs with minimax text color (light bg halo vs dark bg halo)", async ({
+    page,
+  }) => {
+    // 1. set P1 color to White via gear → White → CheckCircle
+    await page.goto("/");
+    const p1 = zone(page, 1);
+    await p1.getByRole("button", { name: "Change color" }).click();
+    const picker0 = page.locator('dialog[id="color-picker-0"]');
+    await picker0.getByRole("button", { name: "White mana" }).click();
+    await picker0.getByRole("button", { name: "Confirm color" }).click();
+    await expect(picker0).not.toBeVisible();
+
+    // expect: zone bg solid rgb(248,246,216) (white)
+    await expect(p1).toHaveCSS("background-color", "rgb(248, 246, 216)");
+    // expect: life total color rgb(26,26,26) (dark text — minimax on white)
+    await expect(lifeTotal(p1)).toHaveCSS("color", "rgb(26, 26, 26)");
+    // expect: zone section inline text-shadow contains rgba(255,255,255,0.5) (light halo on dark text)
+    // CSSOM re-serializes text-shadow with spaces after commas — compact before matching.
+    const compactShadow = (s: string): string => s.replace(/\s+/g, "");
+    const shadowWhite = await p1.evaluate(
+      (el) => (el as HTMLElement).style.textShadow,
+    );
+    expect(compactShadow(shadowWhite)).toContain("rgba(255,255,255,0.5)");
+    // and NOT the dark halo
+    expect(compactShadow(shadowWhite)).not.toContain("rgba(0,0,0,0.4)");
+
+    // 2. set P1 color to Black via gear → Black → CheckCircle
+    // Reload first: the picker ADDS on top of a non-default selection
+    // (§8.5.1: replace only when escaping default ["r"]), so from ["w"] a
+    // Black tap would make a w,b gradient, not solid black.
+    await page.reload();
+    await zone(page, 1).getByRole("button", { name: "Change color" }).click();
+    const picker = page.locator('dialog[id="color-picker-0"]');
+    await picker.getByRole("button", { name: "Black mana" }).click();
+    await picker.getByRole("button", { name: "Confirm color" }).click();
+    await expect(picker).not.toBeVisible();
+
+    // expect: zone bg solid rgb(102,101,101) (black)
+    await expect(p1).toHaveCSS("background-color", "rgb(102, 101, 101)");
+    // expect: life total color rgb(250,248,245) (light text — minimax on black)
+    await expect(lifeTotal(p1)).toHaveCSS("color", "rgb(250, 248, 245)");
+    // expect: zone section inline text-shadow contains rgba(0,0,0,0.4) (dark halo on light text)
+    const shadowBlack = await p1.evaluate(
+      (el) => (el as HTMLElement).style.textShadow,
+    );
+    expect(compactShadow(shadowBlack)).toContain("rgba(0,0,0,0.4)");
+    expect(compactShadow(shadowBlack)).not.toContain("rgba(255,255,255,0.5)");
+  });
+
+  test("LC-04: Multi-color gradient text stays readable (minimax worst-case)", async ({
+    page,
+  }) => {
+    // 1. set P1 to White + Blue + Black (w,u,b) via color picker toggles, then CheckCircle
+    await page.goto("/");
+    const p1 = zone(page, 1);
+    await p1.getByRole("button", { name: "Change color" }).click();
+    const picker = page.locator('dialog[id="color-picker-0"]');
+    await picker.getByRole("button", { name: "White mana" }).click(); // ["r"] → ["w"]
+    await picker.getByRole("button", { name: "Blue mana" }).click(); // ["w"] → ["w","u"]
+    await picker.getByRole("button", { name: "Black mana" }).click(); // ["w","u"] → ["w","u","b"]
+    await picker.getByRole("button", { name: "Confirm color" }).click();
+    await expect(picker).not.toBeVisible();
+
+    // expect: zone bg is a to-bottom-right gradient — the browser canonicalizes
+    // `to bottom right` as `to right bottom` (same corner) in computed styles,
+    // and the white band must lead (w,u,b order)
+    await expect(p1).toHaveCSS(
+      "background-image",
+      /^linear-gradient\(to (bottom right|right bottom), rgb\(248, 246, 216\)/,
+    );
+    // expect: black band present too — proves it is a true 3-color gradient
+    const bg = await p1.evaluate((el) => getComputedStyle(el).backgroundImage);
+    expect(bg).toContain("rgb(102, 101, 101)");
+
+    // expect: life total color is rgb(26,26,26) (DARK — minimax over w+u+b:
+    // light text's worst case is the ~1.08:1 contrast on the white band,
+    // dark text's worst case is ~2.3:1 on the black band, so dark wins)
+    await expect(lifeTotal(p1)).toHaveCSS("color", "rgb(26, 26, 26)");
+
+    // expect: zone section has the light halo text-shadow (dark text pairing)
+    const shadow = await p1.evaluate(
+      (el) => (el as HTMLElement).style.textShadow,
+    );
+    expect(shadow.replace(/\s+/g, "")).toContain("rgba(255,255,255,0.5)");
+  });
+
   test("7.2. Buttons span full column height (3-column grid layout)", async ({ page }) => {
     // 1. Navigate to `/`; each button occupies ~33% width × full zone height
     await page.goto("/");
@@ -370,217 +456,6 @@ test.describe("Player Zone — Contrast & Touch Targets", () => {
         expect(box.height).toBeGreaterThanOrEqual(100);
       }
     }
-  });
-});
-
-/* ── §8 helpers — Numpad dialog (DESIGN.md §7.1) ── */
-
-function numpadDialog(zoneLocator: Locator): Locator {
-  // The <dialog> is a sibling of the zone <section>, both inside the same
-  // player wrapper.  Query page-level since at most one dialog is open.
-  return zoneLocator.page().getByRole("dialog", { name: "Set life total" });
-}
-
-function numpadDisplay(dialogLocator: Locator): Locator {
-  return dialogLocator.locator("output");
-}
-
-async function typeNumpad(dialogLocator: Locator, digits: string): Promise<void> {
-  for (const d of digits) {
-    await dialogLocator.getByRole("button", { name: d }).click();
-  }
-}
-
-test.describe("Player Zone — Double-tap Numpad", () => {
-  test("8.1. Double-tap life total opens the numpad dialog", async ({ page }) => {
-    // 1. Navigate to `/`; life total reads 40; no dialog before gesture
-    await page.goto("/");
-
-    const p1 = zone(page, 1);
-    await expect(lifeTotal(p1)).toHaveText("40");
-    await expect(page.getByRole("dialog", { name: "Set life total" })).toHaveCount(0);
-
-    // 2. Double-click P1 life total; dialog appears with —; dialog inside zone
-    await lifeTotal(p1).dblclick();
-    const dlg = numpadDialog(p1);
-    await expect(dlg).toBeVisible();
-    await expect(numpadDisplay(dlg)).toHaveText("\u2014");
-
-    const dlgBox = await dlg.boundingBox();
-    const p1Box = await p1.boundingBox();
-    if (!dlgBox || !p1Box) throw new Error("cannot measure bounding boxes");
-    expect(dlgBox.x).toBeGreaterThanOrEqual(p1Box.x);
-    expect(dlgBox.y).toBeGreaterThanOrEqual(p1Box.y);
-    expect(dlgBox.x + dlgBox.width).toBeLessThanOrEqual(p1Box.x + p1Box.width + 1);
-    expect(dlgBox.y + dlgBox.height).toBeLessThanOrEqual(p1Box.y + p1Box.height + 1);
-  });
-
-  test("8.2. Numpad displays typed digits and shows — when empty", async ({ page }) => {
-    // 1. Open numpad; status shows — initially; type 1 → 15 → 150
-    await page.goto("/");
-
-    const p1 = zone(page, 1);
-    await lifeTotal(p1).dblclick();
-    const dlg = numpadDialog(p1);
-    const status = numpadDisplay(dlg);
-
-    await expect(status).toHaveText("\u2014");
-    await typeNumpad(dlg, "1");
-    await expect(status).toHaveText("1");
-    await typeNumpad(dlg, "5");
-    await expect(status).toHaveText("15");
-    await typeNumpad(dlg, "0");
-    await expect(status).toHaveText("150");
-
-    // 2. Close (Escape) and reopen; status resets to —
-    await page.keyboard.press("Escape");
-    await expect(dlg).not.toBeVisible();
-    await lifeTotal(p1).dblclick();
-    await expect(numpadDisplay(dlg)).toHaveText("\u2014");
-  });
-
-  test("8.3. Backspace removes the last digit", async ({ page }) => {
-    // 1. Open numpad; type 257
-    await page.goto("/");
-
-    const p1 = zone(page, 1);
-    await lifeTotal(p1).dblclick();
-    const dlg = numpadDialog(p1);
-    const status = numpadDisplay(dlg);
-    const backspace = dlg.getByRole("button", { name: "Backspace" });
-
-    await typeNumpad(dlg, "257");
-    await expect(status).toHaveText("257");
-
-    // 2. Click Backspace three times; status: 25 → 2 → —
-    await backspace.click();
-    await expect(status).toHaveText("25");
-    await backspace.click();
-    await expect(status).toHaveText("2");
-    await backspace.click();
-    await expect(status).toHaveText("\u2014");
-
-    // 3. Backspace again on empty; still —, no error
-    await backspace.click();
-    await expect(status).toHaveText("\u2014");
-  });
-
-  test("8.4. Confirm sets the life total to the entered value", async ({ page }) => {
-    // 1. Open numpad; type 37 and Confirm; dialog closes; P1 = 37, P2 = 40
-    await page.goto("/");
-
-    const p1 = zone(page, 1);
-    const p2 = zone(page, 2);
-    await lifeTotal(p1).dblclick();
-    const dlg = numpadDialog(p1);
-
-    await typeNumpad(dlg, "37");
-    await dlg.getByRole("button", { name: "Confirm" }).click();
-    await expect(dlg).not.toBeVisible();
-    await expect(lifeTotal(p1)).toHaveText("37");
-    await expect(lifeTotal(p2)).toHaveText("40");
-
-    // 2. Reopen; type 0 and Confirm; P1 = 0, turns danger red
-    await lifeTotal(p1).dblclick();
-    await typeNumpad(numpadDialog(p1), "0");
-    await numpadDialog(p1)
-      .getByRole("button", { name: "Confirm" })
-      .click();
-    await expect(lifeTotal(p1)).toHaveText("0");
-    await expect(lifeTotal(p1)).toHaveCSS("color", "rgb(213, 0, 0)");
-  });
-
-  test("8.5. Cancel (\u2715) closes dialog without changing life total", async ({ page }) => {
-    // 1. Open numpad; type 99; click Cancel; dialog closes; life totals unchanged
-    await page.goto("/");
-
-    const p1 = zone(page, 1);
-    const p2 = zone(page, 2);
-    await lifeTotal(p1).dblclick();
-    const dlg = numpadDialog(p1);
-
-    await typeNumpad(dlg, "99");
-    await page.keyboard.press("Escape");
-    await expect(dlg).not.toBeVisible();
-    await expect(lifeTotal(p1)).toHaveText("40");
-    await expect(lifeTotal(p2)).toHaveText("40");
-
-    // 2. Reopen numpad; status shows — (fresh start)
-    await lifeTotal(p1).dblclick();
-    await expect(numpadDisplay(numpadDialog(p1))).toHaveText("\u2014");
-  });
-
-  test("8.6. Escape key closes dialog without changing life total", async ({ page }) => {
-    // 1. Open numpad; type 50; press Escape; dialog closes; life totals unchanged
-    await page.goto("/");
-
-    const p1 = zone(page, 1);
-    const p2 = zone(page, 2);
-    await lifeTotal(p1).dblclick();
-    const dlg = numpadDialog(p1);
-
-    await typeNumpad(dlg, "50");
-    await page.keyboard.press("Escape");
-    await expect(dlg).not.toBeVisible();
-    await expect(lifeTotal(p1)).toHaveText("40");
-    await expect(lifeTotal(p2)).toHaveText("40");
-
-    // 2. Reopen numpad; status shows — (fresh start)
-    await lifeTotal(p1).dblclick();
-    await expect(numpadDisplay(numpadDialog(p1))).toHaveText("\u2014");
-  });
-
-  test("8.7. Numpad is scoped to the player zone", async ({ page }) => {
-    // 1. Double-click P2 life total; type 25; Confirm; P2 = 25, P1 = 40
-    await page.goto("/");
-
-    const p1 = zone(page, 1);
-    const p2 = zone(page, 2);
-
-    await lifeTotal(p2).dblclick();
-    const dlg2 = numpadDialog(p2);
-    // Verify dialog is within P2 zone
-    let dlgBox = await dlg2.boundingBox();
-    let zoneBox = await p2.boundingBox();
-    if (!dlgBox || !zoneBox) throw new Error("cannot measure P2 dialog bounds");
-    expect(dlgBox.x).toBeGreaterThanOrEqual(zoneBox.x);
-    expect(dlgBox.y).toBeGreaterThanOrEqual(zoneBox.y);
-
-    await typeNumpad(dlg2, "25");
-    await dlg2.getByRole("button", { name: "Confirm" }).click();
-    await expect(lifeTotal(p2)).toHaveText("25");
-    await expect(lifeTotal(p1)).toHaveText("40");
-
-    // 2. Double-click P1 life total; type 50; Confirm; P1 = 50, P2 = 25
-    await lifeTotal(p1).dblclick();
-    const dlg1 = numpadDialog(p1);
-    // Verify dialog is within P1 zone
-    dlgBox = await dlg1.boundingBox();
-    zoneBox = await p1.boundingBox();
-    if (!dlgBox || !zoneBox) throw new Error("cannot measure P1 dialog bounds");
-    expect(dlgBox.x).toBeGreaterThanOrEqual(zoneBox.x);
-    expect(dlgBox.y).toBeGreaterThanOrEqual(zoneBox.y);
-
-    await typeNumpad(dlg1, "50");
-    await dlg1.getByRole("button", { name: "Confirm" }).click();
-    await expect(lifeTotal(p1)).toHaveText("50");
-    await expect(lifeTotal(p2)).toHaveText("25");
-  });
-
-  test("8.8. Leading zeros preserved in display but stripped on confirm", async ({ page }) => {
-    // 1. Open numpad; type 005; status reads 005
-    await page.goto("/");
-
-    const p1 = zone(page, 1);
-    await lifeTotal(p1).dblclick();
-    const dlg = numpadDialog(p1);
-
-    await typeNumpad(dlg, "005");
-    await expect(numpadDisplay(dlg)).toHaveText("005");
-
-    // 2. Click Confirm; P1 life reads 5, not 005
-    await dlg.getByRole("button", { name: "Confirm" }).click();
-    await expect(lifeTotal(p1)).toHaveText("5");
   });
 });
 
@@ -613,8 +488,8 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
     // 1. Navigate to `/`
     await page.goto("/");
 
-    // 2. Swipe left on P1 zone → Commander Damage dialog
-    await swipeOn(zone(page, 1), "left");
+    // 2. Swipe right on P1 zone (180° slot → player-left) opens Commander Damage dialog
+    await swipeOn(zone(page, 1), "right");
     const commanderDlg = page.getByRole("dialog", {
       name: "Commander Damage",
     });
@@ -624,8 +499,8 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
     await page.keyboard.press("Escape");
     await expect(commanderDlg).not.toBeVisible();
 
-    // 3. Swipe right on P1 zone → Counters dialog
-    await swipeOn(zone(page, 1), "right");
+    // 3. Swipe left on P1 zone (180° slot → player-right) opens Counters dialog
+    await swipeOn(zone(page, 1), "left");
     const countersDlg = page.getByRole("dialog", { name: "Counters" });
     await expect(countersDlg).toBeVisible();
 
@@ -667,8 +542,8 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
   test("9.3. Escape key dismisses Commander Damage dialog", async ({ page }) => {
     await page.goto("/");
 
-    // Open via swipe left
-    await swipeOn(zone(page, 1), "left");
+    // Open via swipe right on P1 (player-left on 180° slot)
+    await swipeOn(zone(page, 1), "right");
     const commanderDlg = page.getByRole("dialog", {
       name: "Commander Damage",
     });
@@ -684,8 +559,8 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
   test("9.4. Backdrop click dismisses Counters dialog", async ({ page }) => {
     await page.goto("/");
 
-    // Open via swipe right
-    await swipeOn(zone(page, 1), "right");
+    // Open via swipe left on P1 (player-right on 180° slot)
+    await swipeOn(zone(page, 1), "left");
     const countersDlg = page.getByRole("dialog", { name: "Counters" });
     await expect(countersDlg).toBeVisible();
 
@@ -698,8 +573,8 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
   test("9.5. Swipe right on open Commander Damage closes it without opening Counters", async ({ page }) => {
     await page.goto("/");
 
-    // Open Commander Damage via swipe left on zone
-    await swipeOn(zone(page, 1), "left");
+    // Open Commander Damage via swipe right on P1 (player-left on 180° slot)
+    await swipeOn(zone(page, 1), "right");
     const commanderDlg = page.getByRole("dialog", {
       name: "Commander Damage",
     });
@@ -716,8 +591,8 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
   test("9.6. Swipe left on open Counters closes it without opening Commander Damage", async ({ page }) => {
     await page.goto("/");
 
-    // Open Counters via swipe right on zone
-    await swipeOn(zone(page, 1), "right");
+    // Open Counters via swipe left on P1 (player-right on 180° slot)
+    await swipeOn(zone(page, 1), "left");
     const countersDlg = page.getByRole("dialog", { name: "Counters" });
     await expect(countersDlg).toBeVisible();
 

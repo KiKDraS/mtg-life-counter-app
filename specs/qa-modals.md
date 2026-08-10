@@ -14,7 +14,7 @@
 | 3 | Restart Life | Instant reset, counter/color preservation |
 | 4 | Initial Life Modal | §6.2 preset grid, numpad, backdrop/escape |
 | 5 | Player Selector Modal | §6.3 SVG layouts, count up/down, color preservation |
-| 6 | Color Picker | §6.5 mana wheel, WUBRG/Colorless, backdrop |
+| 6 | Color Picker | §6.5 wheel, multi-select, replace/add, Colorless, CheckCircle |
 | 7 | Counters Overlay | §7.4 default counters, custom counter modal, restart |
 
 ---
@@ -148,7 +148,7 @@
 
 **Steps:**
 1. Set initialLife to 40
-2. Open Counters overlay for Player 1 (swipe right)
+2. Open Counters overlay for Player 1 (swipe left — P1 is 180°)
 3. Verify 4 default counters visible
 4. Tap `[+]` → Custom Counter modal → type "Lore" → submit
 5. Verify Lore appears in counters grid (value 0)
@@ -168,14 +168,15 @@
 
 **Steps:**
 1. Open Color Picker for Player 1 (tap gear icon)
-2. Select Red (R) mana symbol
-3. Verify P1 zone background changes to red
-4. Open belt → tap Restart Life
-5. Check Player 1 zone color
+2. Tap White mana symbol → zone preview updates live
+3. Tap CheckCircle ✓ → dialog closes
+4. Verify P1 zone background changed from default red to white
+5. Open belt → tap Restart Life
+6. Check Player 1 zone color
 
 **Expected Results:**
 - Life totals reset to initialLife
-- Player 1 zone **remains red** (color preserved)
+- Player 1 zone **remains white** (color preserved)
 - `playerColors` state is not affected by `restartGame` action
 
 ---
@@ -422,7 +423,7 @@
 
 ---
 
-## Suite 6: Color Picker (§6.5)
+## Suite 6: Color Picker (§6.5, SPEC §8.5.1)
 
 ### TC-6.1: Gear icon opens color picker dialog
 
@@ -434,82 +435,103 @@
 **Expected Results:**
 - Native `<dialog>` opens with `id="color-picker-0"`
 - Dialog uses `aria-modal="true"` and `aria-labelledby`
+- Width = fit-content
 
 ---
 
-### TC-6.2: WUBRG wheel renders 5 mana symbols
+### TC-6.2: Circular wheel renders 6 mana symbols + CheckCircle
 
-**Description:** The default mana tab shows a circular wheel of 5 mana symbols.
+**Description:** The wheel shows WUBRG + Colorless clockwise + central ✓.
 
 **Steps:**
 1. Open Color Picker for any player
 
 **Expected Results:**
-- 5 mana symbol buttons arranged in a circular wheel (WUBRG order clockwise, 72° apart)
-  - White (W), Blue (U), Black (B), Red (R), Green (G)
-- Each button has a 72×72px `ManaSelector` icon with solid mana color circle
-- Bottom filter strip (20% height) shows:
-  - `mana` tab (active by default, highlighted)
-  - `WUBRG` action button
-  - `Colorless` action button
-- Buttons positioned via CSS transforms (radius ~6.5rem from center)
+- 6 mana symbol buttons arranged in a circular wheel clockwise
+  - Colorless (C), White (W), Blue (U), Black (B), Red (R), Green (G)
+- Each button uses `aria-pressed` to indicate selected state
+- CheckCircle ✓ button centered in wheel (`aria-label="Confirm color"`)
+- No filter strip — all symbols on wheel
+- Default `["r"]` — Red highlighted (`aria-pressed="true"`)
 
 ---
 
-### TC-6.3: Tap mana color closes dialog updates zone
+### TC-6.3: Multi-select — replace default, add non-default
 
-**Description:** Selecting a mana symbol instantly applies the color.
+**Description:** Default `["r"]` replaced on tap. Non-default adds. Remove disallowed on last color.
+
+**Steps:**
+1. Open Color Picker for Player 1 (default `["r"]` → Red highlighted)
+2. Tap White mana symbol
+
+**Expected Results:**
+- Red un-highlights, White highlights (`aria-pressed` toggles)
+- Dialog stays open (no auto-close)
+- Player 1 zone preview updates to white background (`#F8F6D8`)
+
+3. Tap Blue mana symbol
+
+**Expected Results:**
+- White stays highlighted, Blue highlights
+- Player 1 zone preview shows White+Blue gradient
+
+4. Tap Blue again
+
+**Expected Results:**
+- Blue un-highlights (`aria-pressed="false"`)
+- Player 1 zone returns to solid white
+
+5. Tap Green
+
+**Expected Results:**
+- White stays highlighted, Green highlights
+- Zone preview: White+Green gradient
+
+6. Tap White mana symbol
+
+**Expected Results:**
+- White un-highlights (`aria-pressed="false"`)
+- Zone preview: solid green (`#A3C095`)
+
+---
+
+### TC-6.4: Colorless closes immediately, CheckCircle closes
+
+**Description:** Colorless = single-tap-apply. ✓ = confirm close.
+
+**Steps:**
+1. Open Color Picker for Player 1 (default `["r"]`)
+2. Tap White → Red un-highlights, White highlights (dialog stays open)
+3. Tap Blue → both highlighted (dialog stays open, gradient preview)
+4. Tap Colorless (C) mana symbol
+
+**Expected Results:**
+- Dialog closes immediately
+- Player 1 zone solid colorless (`#CAC5C0`)
+- `PlayerState.color` = `["c"]`
+
+5. Open Color Picker for Player 2 (default `["r"]`)
+6. Tap White → zone preview updates to white (dialog stays open)
+7. Tap CheckCircle ✓
+
+**Expected Results:**
+- Dialog closes
+- Player 2 zone remains white (color already applied)
+
+---
+
+### TC-6.5: Backdrop/Escape closes (colors already applied)
+
+**Description:** WYSIWYG — dismissing keeps applied colors. No discard.
 
 **Steps:**
 1. Open Color Picker for Player 1
-2. Tap Red (R) mana symbol
-
-**Expected Results:**
-- Dialog closes immediately (no Apply button per §6.5)
-- Player 1 zone background changes to red (`#E49977`)
-
-3. Open Color Picker for Player 1 again
-4. Tap Blue (U) mana symbol
-
-**Expected Results:**
-- Dialog closes
-- Player 1 zone changes to blue (`#C1D7E9`)
-
----
-
-### TC-6.4: WUBRG and Colorless actions work
-
-**Description:** The filter strip action buttons set full gradient or colorless.
-
-**Steps:**
-1. Open Color Picker for Player 2
-2. Tap `WUBRG` action button in filter strip
-
-**Expected Results:**
-- Dialog closes
-- Player 2 zone background changes to WUBRG 5-color gradient
-
-3. Open Color Picker for Player 2 again
-4. Tap `Colorless` action button
-
-**Expected Results:**
-- Dialog closes
-- Player 2 zone changes to colorless (`#CAC5C0`)
-
----
-
-### TC-6.5: Backdrop/Escape closes without change
-
-**Description:** Dismissing the Color Picker keeps the current color.
-
-**Steps:**
-1. Set Player 1 to Red
-2. Open Color Picker for Player 1
+2. Tap Blue → zone preview updates to blue (dialog stays open)
 3. Click backdrop or press Escape
 
 **Expected Results:**
 - Dialog closes
-- Player 1 remains Red (no change)
+- Player 1 remains Blue (applied on tap, no revert)
 
 ---
 
@@ -520,7 +542,7 @@
 **Description:** Swiping right on a player zone opens the Counters overlay.
 
 **Steps:**
-1. On Player 1 zone, perform a swipe-right gesture (≥10px horizontal movement, <300ms)
+1. On Player 1 zone, perform a swipe-left gesture (≥10px horizontal movement, <300ms; P1 is 180° so player-right = physical-left)
 
 **Expected Results:**
 - Counters overlay opens as a full-screen dialog with `id="counters-0"`

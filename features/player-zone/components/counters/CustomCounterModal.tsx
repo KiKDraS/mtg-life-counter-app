@@ -54,27 +54,23 @@ export function CustomCounterModal({ id }: CustomCounterModalProps) {
       ariaLabelledBy="custom-counter-title"
       className="bg-black/35"
     >
+      {/* ponytail: sr-only h2 restores the dialog's accessible name (aria-labelledby target) */}
+      <h2 id="custom-counter-title" className="sr-only font-bold">
+        Custom Counter
+      </h2>
       {/* pointer-events-none: clicks pass through to <dialog> for backdrop detection.
           pointer-events-auto on the card below catches interactions normally. */}
-      <div className="flex h-full flex-col items-center justify-center px-4 pointer-events-none">
+      <div className="flex h-full flex-col items-center justify-center px-2 @[250px]/zone:px-4 pointer-events-none">
         <div
-          className="w-full max-w-sm rounded-lg p-6 pointer-events-auto"
+          className="w-full max-w-sm rounded-lg p-4 @[250px]/zone:p-6 pointer-events-auto"
           style={{ backgroundColor: UI.overlay }}
         >
-          <h2
-            id="custom-counter-title"
-            className="mb-4 text-center text-heading font-bold"
-            style={{ color: UI.textLight }}
-          >
-            Custom Counter
-          </h2>
-
           <input
             ref={inputRef}
             type="text"
             maxLength={35}
             autoFocus
-            placeholder="Counter"
+            placeholder="Counter name"
             aria-label="Counter name"
             onKeyDown={handleKeyDown}
             className="mb-4 w-full rounded border-0 bg-white/10 px-3 py-2 text-body font-medium placeholder:text-white/50 focus:outline-none"

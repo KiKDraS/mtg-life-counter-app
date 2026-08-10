@@ -1,34 +1,55 @@
-import { MANA, UI } from "@/shared/lib/constants/colors";
+import { MANA, ManaColor, UI } from "@/shared/lib/constants/colors";
 import { textColorFor } from "@/shared/lib/text-color-for";
-import { WUBRG } from "@/features/player-zone/constants/player";
-import type { PlayerColor } from "@/features/player-zone/types/player";
-
-/* §6.5 — hard-stop diagonal bands: W 0‑20%, U 20‑40%, B 40‑60%, R 60‑80%, G 80‑100% */
-const WUBRG_GRADIENT = `linear-gradient(to bottom right, ${MANA.w} 0%,${MANA.w} 20%,${MANA.u} 20%,${MANA.u} 40%,${MANA.b} 40%,${MANA.b} 60%,${MANA.r} 60%,${MANA.r} 80%,${MANA.g} 80%,${MANA.g} 100%)`;
 
 export interface ZoneStyles {
   readonly background: string;
   readonly textColor: string;
+  readonly textShadow: string;
+}
+
+/**
+ * §8.5.1 — Build equal-hard-stop `to bottom right` gradient for selected colors.
+ * Single color → solid. N colors → each `100/N`% band with duplicated stops.
+ *
+ * @see SPEC.md §8.5.1, DESIGN.md §6.5
+ */
+function buildGradient(colors: ManaColor[]): string {
+  if (colors.length === 1) return MANA[colors[0]];
+  const step = 100 / colors.length;
+  const stops = colors
+    .map((c, i) => {
+      const start = i * step;
+      const end = (i + 1) * step;
+      return `${MANA[c]} ${start}%, ${MANA[c]} ${end}%`;
+    })
+    .join(", ");
+  return `linear-gradient(to bottom right, ${stops})`;
 }
 
 /**
  * @description Resolve background + auto-contrast text color for a player zone.
- * WUBRG returns a 5-color diagonal-strip gradient; single-mana colors return
- * a solid background with WCAG-computed light/dark text via textColorFor().
+ * Multi-select → equal-hard-stop `to bottom right` gradient. Text color uses
+ * minimax over ALL gradient hexes (worst-case contrast must stay readable).
+ * Text shadow pairs dark halo on light text, light halo on dark text.
  *
- * @param color — player color identity (ManaColor or "wubrg").
- * @returns CSS background and textColor strings.
+ * @param color — selected mana colors (PlayerState.color per §8.5.1).
+ * @returns CSS background, textColor and textShadow strings.
  *
- * @see DESIGN.md §6.5 — Color Picker / Zone Colors
+ * @see SPEC.md §8.5.1, DESIGN.md §6.5
  */
-export function zoneStylesFor(color: PlayerColor): ZoneStyles {
-  const isWubrg = color === WUBRG;
-  if (isWubrg) {
-    return { background: WUBRG_GRADIENT, textColor: UI.textDark };
-  }
+export function zoneStylesFor(colors: ManaColor[]): ZoneStyles {
+  const hexes = colors.map((c) => MANA[c]);
+
+  const textColor = textColorFor(hexes);
+
+  const textShadow =
+    textColor === UI.textLight
+      ? "0px 2px 2px rgba(0,0,0,0.4), 0px 0px 2px rgba(0,0,0,0.8)"
+      : "0px 2px 2px rgba(255,255,255,0.5), 0px 0px 2px rgba(255,255,255,0.9)";
 
   return {
-    background: MANA[color],
-    textColor: textColorFor(MANA[color]),
+    background: buildGradient(colors),
+    textColor,
+    textShadow,
   };
 }

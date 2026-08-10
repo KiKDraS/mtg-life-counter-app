@@ -2,7 +2,7 @@
 
 ## Application Overview
 
-MTG Life Counter — Commander Damage overlay (branch `feature/player-zone`). Each player zone supports swipe-left to open a full-screen Commander Damage dialog (§7.3). The overlay shows the opponent's mana-color pill with a Planeswalker symbol, the current commander damage total (starting at 0), and a [+] button. Tap [+] adds 1 commander damage while simultaneously reducing that player's life total by 1. Hold [+] accelerates to +10 after 1000ms. At 21+ damage, the damage count turns danger red (`#D50000`) and a "Lethal — Player loses" badge appears; the player's life total also turns red. The overlay closes via swipe-left/right on the overlay content, backdrop click, or Escape.
+MTG Life Counter — Commander Damage overlay (branch `feature/player-zone`). Each player zone supports a player-left swipe to open a full-screen Commander Damage dialog (§7.3). Swipes are player-relative (§4.3): P1 sits on a 180°-rotated slot, so its physical direction is inverted — physical swipe-right on P1 = Commander, physical swipe-left on P2 = Commander. The overlay shows the opponent's mana-color pill with a Planeswalker symbol, the current commander damage total (starting at 0), and a [+] button. Tap [+] adds 1 commander damage while simultaneously reducing that player's life total by 1. Hold [+] accelerates to +10 after 1000ms. At 21+ damage, the damage count turns danger red (`#D50000`) and a "Lethal — Player loses" badge appears; the player's life total also turns red. The overlay closes via swipe-left/right on the overlay content, backdrop click, or Escape.
 
 Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Commander Damage overlay displays the opponent's color pill (P1 sees red `r` opponent pill, P2 sees blue `u` opponent pill).
 
@@ -30,7 +30,7 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
 
 **Steps:**
   1. Navigate to `/`
-  2. Perform a horizontal swipe left (~50px, < 300ms) on the P1 zone wrapper `<div>`
+  2. Perform a horizontal swipe right (~50px, < 300ms) on the P1 zone wrapper `<div>` (P1 is 180° → player-left is physical-right)
     - expect: A dialog with `aria-labelledby="commander-damage-title"` opens
     - expect: The dialog is contained within P1's half of the viewport
   3. Press Escape to close P1 dialog
@@ -168,13 +168,13 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
 
 **Steps:**
   1. Navigate to `/`
-  2. Swipe left on P1 zone → tap [+] five times
+2. Swipe right on P1 zone (180° slot) → tap [+] five times
     - expect: P1 damage reads `5`
-  3. Close P1 dialog (Escape), swipe left on P2 zone
+3. Close P1 dialog (Escape), swipe left on P2 zone
     - expect: P2 damage reads `0`
-  4. Tap P2 [+] three times
+4. Tap P2 [+] three times
     - expect: P2 damage reads `3`
-  5. Close P2 dialog, swipe left on P1 zone
+5. Close P2 dialog, swipe right on P1 zone
     - expect: P1 damage still reads `5`
 
 ### 3.3. Hold [+] accelerates to +10 after 1000ms
@@ -342,12 +342,12 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
 
 **Steps:**
    1. Navigate to `/`
-   2. Swipe left on P1 zone → Commander Damage dialog opens
+2. Swipe right on P1 zone (180° slot) → Commander Damage dialog opens
      - expect: Dialog is open
-   3. Perform a swipe left on the overlay content (the `<div>` inside the dialog)
+3. Perform a swipe left on the overlay content (the `<div>` inside the dialog)
      - expect: Dialog closes (overlay content stops propagation so zone behind doesn't react)
      - expect: P1 life unchanged by the swipe gesture itself
-   4. Swipe left on P1 zone to reopen, then swipe right on overlay content
+4. Swipe right on P1 zone to reopen, then swipe right on overlay content
      - expect: Dialog also closes (both directions close)
    5. Expect: Counters overlay was NOT opened (zone behind didn't react)
 

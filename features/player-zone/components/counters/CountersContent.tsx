@@ -7,6 +7,8 @@ import {
   usePlayerStateContext,
   adjustCounter,
 } from "@/features/player-zone/state/player-state-context";
+import { cn } from "@/shared/lib/cn";
+import { TEXT_CLASSES } from "../../constants/counter";
 interface CountersContentProps {
   readonly customCounterId: string;
 }
@@ -26,15 +28,12 @@ export function CountersContent({ customCounterId }: CountersContentProps) {
   }, [customCounterId]);
 
   return (
-    <div className="flex w-full flex-1 flex-col items-center justify-center gap-8">
-      <h2
-        id="counters-title"
-        className="text-heading font-bold text-ui-textLight"
-      >
+    <>
+      <h2 id="counters-title" className="sr-only">
         Counters
       </h2>
 
-      <div className="grid w-full max-w-lg grid-cols-2 gap-x-10 gap-y-6 px-4">
+      <div className="grid w-full max-w-lg grid-cols-1 grid-rows-3 @[250px]/zone:grid-cols-2 @[250px]/zone:grid-rows-none gap-6">
         {state.counters.map((counter) => (
           <CounterRow
             key={counter.id}
@@ -48,12 +47,17 @@ export function CountersContent({ customCounterId }: CountersContentProps) {
       <button
         type="button"
         aria-label="Add custom counter"
-        className="absolute right-4 bottom-4 z-40 flex size-14 select-none touch-manipulation items-center justify-center rounded-full bg-white/10 text-4xl font-bold leading-none focus-visible:outline-none"
+        className={cn(
+          TEXT_CLASSES,
+          "p-1.5 fixed right-2 bottom-2 @[250px]/zone:right-4 @[250px]/zone:bottom-4 z-40",
+          "flex select-none touch-manipulation items-center justify-center rounded-full bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white",
+          "zone-max-h-150-top",
+        )}
         style={{ color: UI.textLight }}
         onClick={handleOpenCustom}
       >
         +
       </button>
-    </div>
+    </>
   );
 }

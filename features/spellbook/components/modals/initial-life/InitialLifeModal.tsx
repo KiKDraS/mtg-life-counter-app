@@ -30,10 +30,7 @@ export function InitialLifeModal({ id }: InitialLifeModalProps) {
       className={MODAL_CLASSNAMES}
     >
       <div className="flex flex-1 flex-col items-center justify-center px-6">
-        <h2
-          id="initial-life-title"
-          className="text-heading text-ui-textLight mb-8"
-        >
+        <h2 id="initial-life-title" className="sr-only">
           Initial Life
         </h2>
         <InitialLifeContent dialogId={id} />

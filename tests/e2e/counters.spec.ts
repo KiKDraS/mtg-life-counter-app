@@ -49,7 +49,7 @@ test.describe("Counters Overlay", () => {
     await page.goto("/");
 
     // 2. Swipe right on Player 1 zone
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
 
     // expect: Counters overlay opens as dialog with heading "Counters"
     const dlg = page.getByRole("dialog", { name: "Counters" });
@@ -62,7 +62,7 @@ test.describe("Counters Overlay", () => {
   test("TC-7.2: 4 default counters visible", async ({ page }) => {
     // 1. Open Counters overlay for Player 1
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     await expect(dlg).toBeVisible();
 
@@ -83,7 +83,7 @@ test.describe("Counters Overlay", () => {
   test("TC-7.3: Custom counter modal adds new counter", async ({ page }) => {
     // 1. Open Counters overlay
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     await expect(dlg).toBeVisible();
 
@@ -122,7 +122,7 @@ test.describe("Counters Overlay", () => {
   test("TC-7.4: Restart clears custom counters", async ({ page }) => {
     // 1. Add custom counter "Lore"
     await page.goto("/");
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     await expect(dlg).toBeVisible();
 
@@ -149,7 +149,7 @@ test.describe("Counters Overlay", () => {
     await page.getByLabel("Open Spellbook Menu").click();
 
     // 3. Reopen Counters overlay
-    await swipeOn(zone(page, 1), "right");
+    await swipeOn(zone(page, 1), "left");
     await expect(dlg).toBeVisible();
 
     // expect: Custom counter "Lore" absent

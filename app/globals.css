@@ -15,20 +15,20 @@
   --color-mana-c: #CAC5C0;
 
   /* UI & shell colors (§2.2) */
-  --color-ui-overlay:   #1A1A1A;
-  --color-ui-belt:      #000000;
-  --color-ui-danger:    #D50000;
+  --color-ui-overlay: #1A1A1A;
+  --color-ui-belt: #000000;
+  --color-ui-danger: #D50000;
   --color-ui-textLight: #FAF8F5;
-  --color-ui-textDark:  #1A1A1A;
-  --color-ui-iconDark:  #0D0F0F;
+  --color-ui-textDark: #1A1A1A;
+  --color-ui-iconDark: #0D0F0F;
   --color-ui-iconLight: #FAF8F5;
 
   /* Typography (§3.2 / §3.3) */
   --font-sans: var(--font-archivo);
   --font-mono: var(--font-archivo);
-  --text-life: clamp(4rem, 15vw, 12rem);
+  --text-life: clamp(3.5rem, 15vw, 6rem);
   --text-display: clamp(2.5rem, 6vw, 5rem);
-  --text-heading: clamp(1.5rem, 3vw, 2.5rem);
+  --text-heading: clamp(1.8rem, 3vw, 2.8rem);
   --text-body: 1rem;
   --text-body-sm: 0.875rem;
   --text-caption: 0.75rem;
@@ -47,4 +47,14 @@ dialog {
 
 dialog::backdrop {
   background: rgba(0, 0, 0, 0.35);
+}
+
+@container zone (height <=150px) {
+  .zone-max-h-150-top {
+    top: calc(var(--spacing) * 2);
+    right: calc(var(--spacing) * 2);
+    padding: calc(var(--spacing) * .45);
+    bottom: auto;
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+  }
 }

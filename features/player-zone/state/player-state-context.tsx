@@ -1,10 +1,24 @@
 "use client";
 
-import { createContext, use, useReducer, type ReactNode } from "react";
-import type { PlayerColor, PlayerId } from "@/features/player-zone/types/player";
+import {
+  createContext,
+  PropsWithChildren,
+  use,
+  useMemo,
+  useReducer,
+  type ReactNode,
+} from "react";
+import type {
+  PlayerColor,
+  PlayerId,
+  PlayerZoneRotation,
+} from "@/features/player-zone/types/player";
 import type { CommanderDamage } from "@/features/player-zone/types/CommanderDamage";
 import type { Counter } from "@/features/player-zone/types/counter";
-import { DEFAULT_COUNTERS, COUNTER_TYPE_CUSTOM } from "@/features/player-zone/constants/counter";
+import {
+  DEFAULT_COUNTERS,
+  COUNTER_TYPE_CUSTOM,
+} from "@/features/player-zone/constants/counter";
 import { DEFAULT_PLAYER_COLOR } from "@/features/player-zone/constants/player";
 import { useOptionalGameStateContext } from "@/features/game-shell/state/game-state-context";
 
@@ -21,7 +35,6 @@ export interface PlayerState {
 
 /* ── Action types ── */
 const ADJUST_LIFE = "ADJUST_LIFE" as const;
-const SET_LIFE = "SET_LIFE" as const;
 const SET_COLOR = "SET_COLOR" as const;
 const ADJUST_COMMANDER_DAMAGE = "ADJUST_COMMANDER_DAMAGE" as const;
 const ADJUST_COUNTER = "ADJUST_COUNTER" as const;
@@ -29,19 +42,18 @@ const ADD_COUNTER = "ADD_COUNTER" as const;
 
 type PlayerAction =
   | { type: typeof ADJUST_LIFE; delta: number }
-  | { type: typeof SET_LIFE; value: number }
   | { type: typeof SET_COLOR; color: PlayerColor }
-  | { type: typeof ADJUST_COMMANDER_DAMAGE; commanderPlayerId: PlayerId; delta: number }
+  | {
+      type: typeof ADJUST_COMMANDER_DAMAGE;
+      commanderPlayerId: PlayerId;
+      delta: number;
+    }
   | { type: typeof ADJUST_COUNTER; id: string; delta: number }
   | { type: typeof ADD_COUNTER; id: string; name: string };
 
 /* ── Action creators ── */
 export function adjustLife(delta: number): PlayerAction {
   return { type: ADJUST_LIFE, delta };
-}
-
-export function setLife(value: number): PlayerAction {
-  return { type: SET_LIFE, value };
 }
 
 export function setColor(color: PlayerColor): PlayerAction {
@@ -68,8 +80,6 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
   switch (action.type) {
     case ADJUST_LIFE:
       return { ...state, life: state.life + action.delta };
-    case SET_LIFE:
-      return { ...state, life: action.value };
     case SET_COLOR:
       return { ...state, color: action.color };
     case ADJUST_COMMANDER_DAMAGE: {
@@ -78,7 +88,10 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
       );
       const entry: CommanderDamage =
         idx !== -1
-          ? { ...state.commanderDamage[idx], value: state.commanderDamage[idx].value + action.delta }
+          ? {
+              ...state.commanderDamage[idx],
+              value: state.commanderDamage[idx].value + action.delta,
+            }
           : { playerId: action.commanderPlayerId, value: action.delta };
       const next =
         idx !== -1
@@ -118,10 +131,18 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
 /* ── Context ── */
 interface PlayerContextValue {
   readonly state: PlayerState;
+  readonly playerZoneRotation: PlayerZoneRotation;
+  readonly isOnBottomSlot: boolean;
   readonly dispatch: React.Dispatch<PlayerAction>;
 }
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
+
+interface PlayerProviderProps extends PropsWithChildren {
+  playerIndex: number;
+  playerZoneRotation: PlayerZoneRotation;
+  isOnBottomSlot: boolean;
+}
 
 /**
  * §2 — Per-player state provider.
@@ -139,11 +160,10 @@ const PlayerContext = createContext<PlayerContextValue | null>(null);
  */
 export function PlayerProvider({
   playerIndex,
+  playerZoneRotation,
+  isOnBottomSlot,
   children,
-}: {
-  readonly playerIndex?: number;
-  readonly children: ReactNode;
-}) {
+}: Readonly<PlayerProviderProps>) {
   /* Always call hooks at the top level — Rules of Hooks compliant. */
   const gameCtx = useOptionalGameStateContext();
   const hasGameCtx = playerIndex !== undefined && gameCtx !== null;
@@ -152,7 +172,9 @@ export function PlayerProvider({
   const initialState: PlayerState = {
     playerId: (playerIndex ?? 0) as PlayerId,
     life: hasGameCtx ? gameCtx.state.initialLife : 40,
-    color: (hasGameCtx ? gameCtx.state.playerColors[playerIndex as PlayerId] : DEFAULT_PLAYER_COLOR) as PlayerColor,
+    color: (hasGameCtx
+      ? gameCtx.state.playerColors[playerIndex as PlayerId]
+      : DEFAULT_PLAYER_COLOR) as PlayerColor,
     commanderDamage: Array.from({ length: playerCount }, (_, i) => ({
       playerId: i as PlayerId,
       value: 0,
@@ -161,7 +183,12 @@ export function PlayerProvider({
   };
   const [state, dispatch] = useReducer(playerReducer, initialState);
 
-  return <PlayerContext value={{ state, dispatch }}>{children}</PlayerContext>;
+  const value: PlayerContextValue = useMemo(
+    () => ({ state, playerZoneRotation, isOnBottomSlot, dispatch }),
+    [state, playerZoneRotation, isOnBottomSlot],
+  );
+
+  return <PlayerContext value={value}>{children}</PlayerContext>;
 }
 
 /**

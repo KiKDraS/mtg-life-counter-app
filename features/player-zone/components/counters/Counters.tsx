@@ -21,8 +21,15 @@ export function Counters({ id }: CountersProps) {
 
   return (
     <>
-      <DialogShell id={id} ariaLabelledBy="counters-title">
-        <OverlaySurface dialogId={id}>
+      <DialogShell
+        id={id}
+        ariaLabelledBy="counters-title"
+        className="overflow-y-auto scrollbar-none"
+      >
+        <OverlaySurface
+          dialogId={id}
+          className="gap-4 py-1 px-2 @[250px]/zone:gap-8 @[250px]/zone:px-6"
+        >
           <CountersContent customCounterId={customCounterId} />
         </OverlaySurface>
       </DialogShell>

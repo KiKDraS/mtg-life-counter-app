@@ -22,7 +22,10 @@ interface CommanderDamageProps {
 export function CommanderDamage({ id }: CommanderDamageProps) {
   return (
     <DialogShell id={id} ariaLabelledBy="commander-damage-title">
-      <OverlaySurface dialogId={id}>
+      <OverlaySurface
+        dialogId={id}
+        className="gap-4 px-2 @[250px]/zone:gap-8 @[250px]/zone:px-6"
+      >
         <CommanderDamageContent />
       </OverlaySurface>
     </DialogShell>

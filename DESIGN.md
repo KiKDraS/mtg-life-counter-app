@@ -69,7 +69,7 @@ luminance. WCAG 4.5:1.
 | Danger red            | `#D50000`          | Life ≤ 0, commander ≥ 21                     |
 | Text warm white       | `#FAF8F5`          | Life/UI text on overlay & belt BGs           |
 | Text warm near-black  | `#1A1A1A`          | Life/UI text on light mana BGs               |
-| Icon silhouette dark  | `#0D0F0F`          | Mana, shards, clans, guild fills             |
+| Icon silhouette dark  | `#0D0F0F`          | Mana fills                                   |
 | Icon silhouette light | `#FAF8F5`          | Counters, player-actions, Planeswalker fills |
 
 ### 2.3 Guild & Clan Symbols
@@ -83,19 +83,9 @@ All MTG symbols = inline SVG React components. No external `.svg` imports.
 | Icon type     | BG                   | Silhouette  | Selector                       |
 | ------------- | -------------------- | ----------- | ------------------------------ |
 | Mana          | Solid color circle   | `iconDark`  | `ManaSelector`                 |
-| Guild         | 2-color split circle | `iconDark`  | `GuildSelector`                |
-| Clan / Shard  | 3-color split circle | `iconDark`  | `ClanSelector / ShardSelector` |
 | Counter       | None — on overlay    | `iconLight` | `CounterSelector`              |
 | Player-action | None                 | `iconLight` | `PlayerActionSelector`         |
 | Planeswalker  | None — on overlay    | `iconLight` | Direct import                  |
-
-Faction backgrounds: `linear-gradient(to bottom right, ...)` with **hard
-stops**:
-
-- **Guilds:** `color1 0% 50%, color2 50% 100%`
-- **Clans/Shards:** `color1 0% 33.3%, color2 33.3% 66.6%, color3 66.6% 100%`
-
-Stops in `GUILD_COLORS`, `CLAN_COLORS`, `SHARD_COLORS`.
 
 ### 2.5 Symbol Files
 
@@ -105,12 +95,6 @@ Stops in `GUILD_COLORS`, `CLAN_COLORS`, `SHARD_COLORS`.
   Experience, Time. No BG, iconLight. Used by CounterSelector.
 - **Commander:** `shared/components/icons/PlaneswalkerSymbol.tsx` — exclusive to
   commander damage overlay. Not a counter. iconLight.
-- **Guilds (10):** `shared/components/icons/guilds/` — 2-color split circle.
-  Phase 2.
-- **Clans (5):** `shared/components/icons/clans/` — 3-color split circle.
-  Phase 2.
-- **Shards (5):** `shared/components/icons/shards/` — 3-color split circle.
-  Phase 2.
 
 ---
 
@@ -133,7 +117,7 @@ Life total = hero. All else secondary.
 
 | Token            | Value                        | Weight      | Usage                       |
 | ---------------- | ---------------------------- | ----------- | --------------------------- |
-| `--text-life`    | `clamp(4rem, 15vw, 12rem)`   | Black 900   | Life total number           |
+| `--text-life`    | `clamp(3.5rem, 15vw, 6rem)`  | Black 900   | Life total number           |
 | `--text-display` | `clamp(2.5rem, 6vw, 5rem)`   | Black 900   | Commander damage big number |
 | `--text-heading` | `clamp(1.5rem, 3vw, 2.5rem)` | Bold 700    | Modal titles                |
 | `--text-body`    | `1rem`                       | Medium 500  | UI labels, buttons          |
@@ -180,7 +164,7 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 ├────────────────M──────────────────┤
 │   Player 2     │   Player 3       │
 │   37 ★         │   41 ★           │
-│  [+]  [-]      │  [+]  [-]        │ P2: −90°, P3: 90°
+│  [+]  [-]      │  [+]  [-]        │ P2: 90°, P3: −90°
 └────────────────┴──────────────────┘
 ```
 
@@ -188,10 +172,10 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 
 ```
 ┌──────────┬──────────┐
-│ Player 1 │ Player 2 │ P1: −90°, P2: 90°
+│ Player 1 │ Player 2 │ P1: 90°, P2: −90°
 │   40 ★   │   38 ★   │
 ├──────────M──────────┤
-│ Player 3 │ Player 4 │ P3: −90°, P4: 90°
+│ Player 3 │ Player 4 │ P3: 90°, P4: −90°
 │   32 ★   │   41 ★   │
 └──────────┴──────────┘
 ```
@@ -200,14 +184,14 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 
 ```
 ┌─────────────────────┐
-│      Player 5       │ 180° → text faces TOP
+│      Player 1       │ P1: 180° → text faces TOP
 │         40 ★        │
 │      [+]  [-]       │
 ├──────────┬──────────┤
-│ Player 1 │ Player 2 │ P1: −90°, P2: 90°
+│ Player 2 │ Player 3 │ P2: 90°, P3: −90°
 │   40 ★   │   38 ★   │
 ├──────────M──────────┤
-│ Player 3 │ Player 4 │ P3: −90°, P4: 90°
+│ Player 4 │ Player 5 │ P4: 90°, P5: −90°
 │   32 ★   │   41 ★   │
 └──────────┴──────────┘
 ```
@@ -215,14 +199,24 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 **6 Players (Landscape — 2×3)**
 
 ```
-┌─────┬─────┬─────┐
-│ P1  │ P2  │ P3  │ Top row: 180°
-├─────┼──M──┼─────┤
-│ P4  │ P5  │ P6  │
-└─────┴─────┴─────┘
+┌─────────────────────┐
+│      Player 1       │ P1: 180° → text faces TOP
+│         40 ★        │
+│      [+]  [-]       │
+├──────────┬──────────┤
+│ Player 2 │ Player 3 │ P2: 90°, P3: −90°
+│   40 ★   │   38 ★   │
+├──────────M──────────┤
+│ Player 4 │ Player 5 │ P4: 90°, P5: −90°
+│   32 ★   │   41 ★   │
+├──────────┴──────────┤
+│      Player 6       │ P6: 0
+│         40 ★        │
+│      [+]  [-]       │
+└─────────────────────┘
 ```
 
-- **M** = Speelbook menu position.
+- **M** = Spellbook menu position.
 
 ### 4.2 Zone Anatomy
 
@@ -248,11 +242,13 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
   zone color. Text auto-selects per luminance.
 - **Press feedback:** `pointerdown` → col BG overlays `rgba(0,0,0,0.08)`. 150ms
   fade in/out on col BG itself — no extra DOM.
-- **Tap:** ±1. **Hold:** ±10 after 1s. **Double-tap life total:** numpad for
-  exact entry.
+- **Tap:** ±1. **Hold:** ±10 after 1s.
 - **Lethal:** Life ≤ 0 → `#D50000`. ± cols unaffected.
-- **Swipe left:** Commander damage overlay. **Swipe right:** Counters overlay.
-  Threshold: ≥10px horizontal before 300ms. Vertical ignored.
+- **Swipe (player-relative):** From each player's own perspective, swipe left =
+  Commander damage overlay; swipe right = Counters overlay. Physical screen
+  direction flips on rotated slots (§4.3: P1 top slot = 180° → invert the swipe
+  direction you physically make). Threshold: ≥10px before 300ms. Vertical
+  ignored.
 - **Overlay open:** Either X-direction swipe closes overlay → return to life.
 
 ### 4.3 Zone Rotation
@@ -261,10 +257,10 @@ Text readable from table side. Wrapper — interior layout identical.
 
 | Rotation | Angle         | CSS              | Applies                                                 |
 | -------- | ------------- | ---------------- | ------------------------------------------------------- |
-| 180°     | Full flip     | `rotate(180deg)` | Top-side: P1 (2p,3p), P1/P2 (4p), top row (6p), P5 (5p) |
-| −90°     | Quarter left  | `rotate(-90deg)` | Left-side: P2 (3p), P1/P3 (5p)                          |
-| 90°      | Quarter right | `rotate(90deg)`  | Right-side: P3 (3p), P2/P4 (5p)                         |
-| None     | —             | —                | Bottom-side facing user                                 |
+| 180°     | Full flip     | `rotate(180deg)` | Top-side: P1 (2p,3p,5p,6p)                              |
+| 90°      | Quarter right | `rotate(90deg)`  | Left-side: P2 (3p), P1/P3 (4p), P2/P4 (5p,6p)           |
+| −90°     | Quarter left  | `rotate(-90deg)` | Right-side: P3 (3p), P2/P4 (4p), P3/P5 (5p,6p)          |
+| None     | —             | —                | Bottom-side facing user: P2 (2p), P6 (6p)               |
 
 ---
 
@@ -393,56 +389,26 @@ card or rule…" placeholder. Maximized modal, #000 backdrop.
 
 ### 6.5 Color Picker (per player)
 
-Triggered by gear icon on zone. 80/20 vertical split.
+Triggered by gear icon on zone. Width = fit-content
 
 ```
-┌──────────────────────────┐
-│ COLOR SELECTION          │ 80%  │
-│ (wheel/dual wheels)      │      │
-├──────────────────────────┤
-│ [mana] guild clan shard  │ 20% — filter strip, never changes
-│      WUBRG  Colorless    │
-└──────────────────────────┘
+┌───────────────────────┐
+│                       │
+│                       │
+│                       │
+│        [C] [W]        │
+│      [G] [✓] [U]      │
+│        [R] [B]        │
+│                       │
+│                       │
+│                       │
+└───────────────────────┘
+
 ```
 
-#### Filter Strip (bottom 20%)
+#### COLOR SELECTION WHEEL
 
-Six items row. Always visible. Active filter highlighted (filled BG, inverted
-text).
-
-| Item          | Type   | Action                                       |
-| ------------- | ------ | -------------------------------------------- |
-| **mana**      | Tab    | 5-color WUBRG wheel (default)                |
-| **guild**     | Tab    | Two 5-symbol side-by-side wheels (10 guilds) |
-| **clan**      | Tab    | Single 5-symbol wheel (5 clans)              |
-| **shard**     | Tab    | Single 5-symbol wheel (5 shards)             |
-| **WUBRG**     | Action | 5-color gradient. Closes immediately.        |
-| **Colorless** | Action | Solid `#CAC5C0`. Closes immediately.         |
-
-#### Mana Tab (default)
-
-Circular wheel, WUBRG order clockwise. Tap → solid color → close.
-
-#### Guild Tab
-
-Two 5-symbol wheels side-by-side. Tap → 2-color `linear-gradient` → close.
-24×24px badge bottom-right.
-
-#### Clan Tab
-
-Single 5-symbol wheel. Tap → 3-color gradient → close. Badge 24×24px
-bottom-right.
-
-#### Shard Tab
-
-Same as clan. 3-color gradient → close. Badge 24×24px bottom-right.
-
-#### Behavior Summary
-
-- **Any selection closes modal instantly.** No Apply button.
-- Zone previews change in real-time inside modal.
-- Filter strip always shows active tab highlighted.
-- Badges via `GuildSelector`, `ClanSelector`, `ShardSelector` at 24×24px.
+Circular wheel, WUBRG order + Colorless clockwise.
 
 ### 6.6 Modal: Custom Counter Name
 
@@ -487,19 +453,18 @@ Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
 
 ### 7.1 Life Adjustment
 
-| Gesture               | Result                       |
-| --------------------- | ---------------------------- |
-| Tap [+] / [-]         | +1 / -1 life                 |
-| Hold [+] / [-]        | ±10 after 1s                 |
-| Double-tap life total | Opens numpad for exact entry |
+| Gesture        | Result       |
+| -------------- | ------------ |
+| Tap [+] / [-]  | +1 / -1 life |
+| Hold [+] / [-] | ±10 after 1s |
 
 ### 7.2 Swipe
 
-| Gesture                 | Result                                            |
-| ----------------------- | ------------------------------------------------- |
-| Swipe left on zone      | Commander damage overlay                          |
-| Swipe right on zone     | Counters overlay                                  |
-| X-axis swipe on overlay | Closes overlay, returns to life. Either direction |
+| Gesture                               | Result                                                                     |
+| ------------------------------------- | -------------------------------------------------------------------------- |
+| Swipe left on zone (player-relative)  | Commander damage overlay. Physical direction flips on rotated slots (§4.3) |
+| Swipe right on zone (player-relative) | Counters overlay. Physical direction flips on rotated slots (§4.3)         |
+| X-axis swipe on overlay               | Closes overlay, returns to life. Either direction                          |
 
 ### 7.3 Commander Damage
 
@@ -526,7 +491,7 @@ columns for playerId 0 (own commander), 1, 2, 3 (opponents).
 - **Life reduction:** Each commander damage point also −1 life.
   `adjustCommanderDamage(+3)` → life -3.
 - **Lethal:** Any commander ≥21 → current player loses. Value + life total →
-  `#D50000`. "Lethal — Game Over" badge below counter.
+  `#D50000`.
 - **Zone label:** When commander ≥21 & life >0 → small "Commander Damage Lethal"
   in danger red under life total.
 

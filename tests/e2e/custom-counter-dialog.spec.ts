@@ -48,7 +48,7 @@ function counterValue(dlg: Locator, name: string): Locator {
 
 async function openCounters(page: Page): Promise<Locator> {
   await page.goto("/");
-  await swipeOn(zone(page, 1), "right");
+  await swipeOn(zone(page, 1), "left");
   const dlg = page.getByRole("dialog", { name: "Counters" });
   await expect(dlg).toBeVisible();
   return dlg;
@@ -104,8 +104,8 @@ test.describe("Custom Counter Dialog — Modal", () => {
 
     // 3. Locate the text input
     const input = customDlg.getByRole("textbox", { name: "Counter name" });
-    // expect: Input has placeholder "Counter"
-    await expect(input).toHaveAttribute("placeholder", "Counter");
+    // expect: Input has placeholder "Counter name" (matches aria-label)
+    await expect(input).toHaveAttribute("placeholder", "Counter name");
     // expect: Input has maxLength=35
     await expect(input).toHaveAttribute("maxlength", "35");
     // expect: Input is auto-focused (has focus on open)

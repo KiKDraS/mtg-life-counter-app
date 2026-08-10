@@ -6,6 +6,8 @@ import {
   DECREMENT_COUNTER,
   POISON_LETHAL,
   COUNTER_TYPE_CUSTOM,
+  COUNTER_SVG_SIZE,
+  TEXT_CLASSES,
 } from "@/features/player-zone/constants/counter";
 import { UI, MANA } from "@/shared/lib/constants/colors";
 import PoisonSymbol from "@/shared/components/icons/counters/PoisonSymbol";
@@ -13,6 +15,7 @@ import EnergySymbol from "@/shared/components/icons/counters/EnergySymbol";
 import ExperienceSymbol from "@/shared/components/icons/counters/ExperienceSymbol";
 import TimeSymbol from "@/shared/components/icons/counters/TimeSymbol";
 import type { Counter } from "@/features/player-zone/types/counter";
+import { cn } from "@/shared/lib/cn";
 
 interface CounterRowProps {
   readonly counter: Counter;
@@ -23,8 +26,10 @@ interface CounterRowProps {
  * Shared Tailwind classes for layout elements.
  * Extracted to a constant to maintain JSX clean.
  */
-const BORDERLESS_BTN_CLASS =
-  "flex size-14 items-center justify-center text-4xl font-bold leading-none select-none touch-manipulation focus-visible:outline-none";
+const BORDERLESS_BTN_CLASS = cn(
+  TEXT_CLASSES,
+  "select-none touch-manipulation focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white",
+);
 
 /*
  * Static style objects hoisted outside the component.
@@ -73,7 +78,11 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
       const initial = counter.name?.charAt(0).toUpperCase() ?? "?";
       return (
         <span
-          className="flex size-14 items-center justify-center rounded-full text-2xl font-bold leading-none"
+          className={cn(
+            TEXT_CLASSES,
+            "select-none touch-manipulation",
+            "rounded-full uppercase",
+          )}
           style={CUSTOM_PILL_STYLE}
           aria-label={`${accessibleName} counter`}
         >
@@ -86,7 +95,7 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
     if (!iconData) return null;
 
     const { Component, label } = iconData;
-    return <Component size={28} aria-label={label} />;
+    return <Component className={COUNTER_SVG_SIZE} aria-label={label} />;
   };
 
   return (
@@ -95,7 +104,7 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
 
       {/* Value */}
       <span
-        className="min-w-[2ch] text-center text-display font-black tabular-nums leading-tight"
+        className={TEXT_CLASSES}
         style={{ color: isLethal ? UI.danger : UI.textLight }}
         aria-live="polite"
         aria-atomic="true"
