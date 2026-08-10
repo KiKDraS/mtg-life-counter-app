@@ -13,7 +13,7 @@ import {
   setGamePlayerColor,
 } from "@/features/game-shell/state/game-state-context";
 import { DEFAULT_PLAYER_COLOR } from "@/features/player-zone/constants/player";
-import { MANA_BTN_SIZE } from "./constants/mana";
+import { MANA_BTN_SIZE } from "../../constants/color";
 
 interface ManaActionButtonProps {
   readonly color: ManaColor;

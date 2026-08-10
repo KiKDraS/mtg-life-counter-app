@@ -5,7 +5,7 @@ import type { ManaColor } from "@/shared/lib/constants/colors";
 import { ManaActionButton } from "../ManaActionButton";
 import { ColorlessButton } from "./ColorlessButton";
 import ManaSelector from "@/shared/components/icons/ManaSelector";
-import { MANA_BTN_SIZE } from "../constants/mana";
+import { MANA_BTN_SIZE } from "@/features/player-zone/constants/color";
 
 /**
  * §6.5 — Circular wheel order, clockwise from top:

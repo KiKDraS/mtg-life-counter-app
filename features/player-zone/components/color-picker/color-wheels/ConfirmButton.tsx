@@ -2,8 +2,8 @@
 
 import CheckCircle from "@/shared/components/icons/CheckCircle";
 import { UI } from "@/shared/lib/constants/colors";
-import { MANA_BTN_SIZE } from "../constants/mana";
 import { cn } from "@/shared/lib/cn";
+import { MANA_BTN_SIZE } from "@/features/player-zone/constants/color";
 
 interface ConfirmButtonProps {
   readonly id: string;
