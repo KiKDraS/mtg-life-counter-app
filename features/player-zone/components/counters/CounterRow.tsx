@@ -28,7 +28,7 @@ interface CounterRowProps {
  */
 const BORDERLESS_BTN_CLASS = cn(
   TEXT_CLASSES,
-  "select-none touch-manipulation focus-visible:outline-none",
+  "select-none touch-manipulation focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white",
 );
 
 /*
@@ -80,7 +80,7 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
         <span
           className={cn(
             TEXT_CLASSES,
-            "select-none touch-manipulation focus-visible:outline-none",
+            "select-none touch-manipulation",
             "rounded-full uppercase",
           )}
           style={CUSTOM_PILL_STYLE}

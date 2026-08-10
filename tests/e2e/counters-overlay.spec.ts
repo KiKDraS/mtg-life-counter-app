@@ -466,3 +466,76 @@ test.describe("Counters Overlay — Closing Mechanisms", () => {
     await expect(dlg).not.toBeVisible();
   });
 });
+
+/* ───────────────────────────────────────────────
+ * §4.2/4.3 — Plan CT-02 floor invariant + CT-03 lethal badge
+ * ─────────────────────────────────────────────── */
+
+test.describe("Counters Overlay — Custom Counter Floor & Lethal Badge", () => {
+  test("CT-02: Custom counter floors at 0 and persists across reopen", async ({
+    page,
+  }) => {
+    // 1. open Counters (P1); add custom counter 'Lore' via [+] dialog
+    await page.goto("/");
+    await swipeOn(zone(page, 1), "left");
+    const dlg = page.getByRole("dialog", { name: "Counters" });
+    await expect(dlg).toBeVisible();
+    await dlg.getByRole("button", { name: "Add custom counter" }).click();
+    const customDlg = page.getByRole("dialog", { name: "Custom Counter" });
+    await customDlg.getByRole("textbox", { name: "Counter name" }).fill("Lore");
+    await page.keyboard.press("Enter");
+    await expect(customDlg).not.toBeVisible();
+    // expect: Lore pill present at 0
+    await expect(dlg.locator('[aria-label="Lore counter"]')).toBeVisible();
+    await expect(counterValue(dlg, "Lore")).toHaveText("0");
+
+    // 2. tap Lore + twice, then − five times
+    const plusLore = dlg.getByRole("button", { name: "+1 Lore counter" });
+    const minusLore = dlg.getByRole("button", { name: "-1 Lore counter" });
+    await plusLore.click();
+    await plusLore.click();
+    // expect: Lore = 2
+    await expect(counterValue(dlg, "Lore")).toHaveText("2");
+    for (let i = 0; i < 5; i++) {
+      await minusLore.click();
+    }
+    // expect: Lore floors at 0 (never negative)
+    await expect(counterValue(dlg, "Lore")).toHaveText("0");
+
+    // 3. close and reopen Counters
+    await page.keyboard.press("Escape");
+    await expect(dlg).not.toBeVisible();
+    await swipeOn(zone(page, 1), "left");
+    const dlgReopen = page.getByRole("dialog", { name: "Counters" });
+    // expect: Lore still present (persists)
+    await expect(dlgReopen.locator('[aria-label="Lore counter"]')).toBeVisible();
+    await expect(counterValue(dlgReopen, "Lore")).toHaveText("0");
+  });
+
+  test("CT-03: Poison lethal at 10 → badge + danger red", async ({ page }) => {
+    // 1. open Counters (P1); tap Poison + 10 times
+    await page.goto("/");
+    await swipeOn(zone(page, 1), "left");
+    const dlg = page.getByRole("dialog", { name: "Counters" });
+    await expect(dlg).toBeVisible();
+    const plusPoison = dlg.getByRole("button", { name: "+1 poison counter" });
+    for (let i = 0; i < 10; i++) {
+      await plusPoison.click();
+    }
+    // expect: Poison reads 10
+    await expect(counterValue(dlg, "poison")).toHaveText("10");
+    // expect: Poison value color rgb(213,0,0)
+    await expect(counterValue(dlg, "poison")).toHaveCSS(
+      "color",
+      "rgb(213, 0, 0)",
+    );
+
+    // 2. close overlay
+    await page.keyboard.press("Escape");
+    await expect(dlg).not.toBeVisible();
+    // expect: P1 life total color rgb(213,0,0)
+    await expect(lifeTotal(zone(page, 1))).toHaveCSS("color", "rgb(213, 0, 0)");
+    // expect: 'Poison Lethal' badge visible under P1 life
+    await expect(zone(page, 1).getByText("Poison Lethal")).toBeVisible();
+  });
+});

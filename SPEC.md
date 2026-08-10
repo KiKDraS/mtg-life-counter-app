@@ -238,7 +238,7 @@ WYSIWYG multi-select. Dispatch on every toggle. Zone preview = live state.
 
 | Gesture              | Behavior                                                        |
 | -------------------- | --------------------------------------------------------------- |
-| Tap unselected color | Current = default `["r"]` (§3)? Replace → `[color]`. Otherwise add → `[...cur, color]`. Dispatch immediately. |
+| Tap unselected color | Current = default `["r"]` (§3) or single colorless `["c"]`? Replace → `[color]`. Otherwise add → `[...cur, color]`. Dispatch immediately. |
 | Tap selected color   | Single-color (length 1)? No-op. Multi-color? Remove → filter out. Dispatch immediately. |
 | Tap Colorless        | Dispatch `setColor(["c"])`. Close immediately.                  |
 | Tap ✓ (CheckCircle)  | Close. No dispatch — colors already applied.                    |

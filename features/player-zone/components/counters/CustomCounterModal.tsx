@@ -54,6 +54,10 @@ export function CustomCounterModal({ id }: CustomCounterModalProps) {
       ariaLabelledBy="custom-counter-title"
       className="bg-black/35"
     >
+      {/* ponytail: sr-only h2 restores the dialog's accessible name (aria-labelledby target) */}
+      <h2 id="custom-counter-title" className="sr-only font-bold">
+        Custom Counter
+      </h2>
       {/* pointer-events-none: clicks pass through to <dialog> for backdrop detection.
           pointer-events-auto on the card below catches interactions normally. */}
       <div className="flex h-full flex-col items-center justify-center px-2 @[250px]/zone:px-4 pointer-events-none">

@@ -104,8 +104,8 @@ test.describe("Custom Counter Dialog — Modal", () => {
 
     // 3. Locate the text input
     const input = customDlg.getByRole("textbox", { name: "Counter name" });
-    // expect: Input has placeholder "Counter"
-    await expect(input).toHaveAttribute("placeholder", "Counter");
+    // expect: Input has placeholder "Counter name" (matches aria-label)
+    await expect(input).toHaveAttribute("placeholder", "Counter name");
     // expect: Input has maxLength=35
     await expect(input).toHaveAttribute("maxlength", "35");
     // expect: Input is auto-focused (has focus on open)

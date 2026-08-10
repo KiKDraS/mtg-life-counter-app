@@ -50,7 +50,7 @@ export function CountersContent({ customCounterId }: CountersContentProps) {
         className={cn(
           TEXT_CLASSES,
           "p-1.5 fixed right-2 bottom-2 @[250px]/zone:right-4 @[250px]/zone:bottom-4 z-40",
-          "flex select-none touch-manipulation items-center justify-center rounded-full bg-white/10 focus-visible:outline-none",
+          "flex select-none touch-manipulation items-center justify-center rounded-full bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white",
           "zone-max-h-150-top",
         )}
         style={{ color: UI.textLight }}

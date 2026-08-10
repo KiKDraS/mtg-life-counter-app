@@ -61,7 +61,7 @@ const LAYOUTS: Record<number, PlayerRect[]> = {
 /* ── Colors ── */
 
 /** §2.1 — cycle WUBRG for multi-zone layouts to suggest player identity. */
-const MANA_ORDER = [MANA.w, MANA.u, MANA.b, MANA.r, MANA.g] as const;
+const MANA_ORDER = [MANA.w, MANA.u, MANA.b, MANA.r, MANA.g, MANA.c] as const;
 
 /**
  * §6.3 — SVG layout preview for a given player count.

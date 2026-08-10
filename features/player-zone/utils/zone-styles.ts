@@ -29,10 +29,11 @@ function buildGradient(colors: ManaColor[]): string {
 /**
  * @description Resolve background + auto-contrast text color for a player zone.
  * Multi-select → equal-hard-stop `to bottom right` gradient. Text color uses
- * the FIRST (dominant) color for luminance contrast.
+ * minimax over ALL gradient hexes (worst-case contrast must stay readable).
+ * Text shadow pairs dark halo on light text, light halo on dark text.
  *
  * @param color — selected mana colors (PlayerState.color per §8.5.1).
- * @returns CSS background and textColor strings.
+ * @returns CSS background, textColor and textShadow strings.
  *
  * @see SPEC.md §8.5.1, DESIGN.md §6.5
  */

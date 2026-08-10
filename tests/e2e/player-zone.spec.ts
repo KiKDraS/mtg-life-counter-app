@@ -356,6 +356,92 @@ test.describe("Player Zone — Contrast & Touch Targets", () => {
     await expect(lifeTotal(zone(page, 2))).toHaveCSS("color", "rgb(26, 26, 26)");
   });
 
+  test("LC-03: textShadow pairs with minimax text color (light bg halo vs dark bg halo)", async ({
+    page,
+  }) => {
+    // 1. set P1 color to White via gear → White → CheckCircle
+    await page.goto("/");
+    const p1 = zone(page, 1);
+    await p1.getByRole("button", { name: "Change color" }).click();
+    const picker0 = page.locator('dialog[id="color-picker-0"]');
+    await picker0.getByRole("button", { name: "White mana" }).click();
+    await picker0.getByRole("button", { name: "Confirm color" }).click();
+    await expect(picker0).not.toBeVisible();
+
+    // expect: zone bg solid rgb(248,246,216) (white)
+    await expect(p1).toHaveCSS("background-color", "rgb(248, 246, 216)");
+    // expect: life total color rgb(26,26,26) (dark text — minimax on white)
+    await expect(lifeTotal(p1)).toHaveCSS("color", "rgb(26, 26, 26)");
+    // expect: zone section inline text-shadow contains rgba(255,255,255,0.5) (light halo on dark text)
+    // CSSOM re-serializes text-shadow with spaces after commas — compact before matching.
+    const compactShadow = (s: string): string => s.replace(/\s+/g, "");
+    const shadowWhite = await p1.evaluate(
+      (el) => (el as HTMLElement).style.textShadow,
+    );
+    expect(compactShadow(shadowWhite)).toContain("rgba(255,255,255,0.5)");
+    // and NOT the dark halo
+    expect(compactShadow(shadowWhite)).not.toContain("rgba(0,0,0,0.4)");
+
+    // 2. set P1 color to Black via gear → Black → CheckCircle
+    // Reload first: the picker ADDS on top of a non-default selection
+    // (§8.5.1: replace only when escaping default ["r"]), so from ["w"] a
+    // Black tap would make a w,b gradient, not solid black.
+    await page.reload();
+    await zone(page, 1).getByRole("button", { name: "Change color" }).click();
+    const picker = page.locator('dialog[id="color-picker-0"]');
+    await picker.getByRole("button", { name: "Black mana" }).click();
+    await picker.getByRole("button", { name: "Confirm color" }).click();
+    await expect(picker).not.toBeVisible();
+
+    // expect: zone bg solid rgb(102,101,101) (black)
+    await expect(p1).toHaveCSS("background-color", "rgb(102, 101, 101)");
+    // expect: life total color rgb(250,248,245) (light text — minimax on black)
+    await expect(lifeTotal(p1)).toHaveCSS("color", "rgb(250, 248, 245)");
+    // expect: zone section inline text-shadow contains rgba(0,0,0,0.4) (dark halo on light text)
+    const shadowBlack = await p1.evaluate(
+      (el) => (el as HTMLElement).style.textShadow,
+    );
+    expect(compactShadow(shadowBlack)).toContain("rgba(0,0,0,0.4)");
+    expect(compactShadow(shadowBlack)).not.toContain("rgba(255,255,255,0.5)");
+  });
+
+  test("LC-04: Multi-color gradient text stays readable (minimax worst-case)", async ({
+    page,
+  }) => {
+    // 1. set P1 to White + Blue + Black (w,u,b) via color picker toggles, then CheckCircle
+    await page.goto("/");
+    const p1 = zone(page, 1);
+    await p1.getByRole("button", { name: "Change color" }).click();
+    const picker = page.locator('dialog[id="color-picker-0"]');
+    await picker.getByRole("button", { name: "White mana" }).click(); // ["r"] → ["w"]
+    await picker.getByRole("button", { name: "Blue mana" }).click(); // ["w"] → ["w","u"]
+    await picker.getByRole("button", { name: "Black mana" }).click(); // ["w","u"] → ["w","u","b"]
+    await picker.getByRole("button", { name: "Confirm color" }).click();
+    await expect(picker).not.toBeVisible();
+
+    // expect: zone bg is a to-bottom-right gradient — the browser canonicalizes
+    // `to bottom right` as `to right bottom` (same corner) in computed styles,
+    // and the white band must lead (w,u,b order)
+    await expect(p1).toHaveCSS(
+      "background-image",
+      /^linear-gradient\(to (bottom right|right bottom), rgb\(248, 246, 216\)/,
+    );
+    // expect: black band present too — proves it is a true 3-color gradient
+    const bg = await p1.evaluate((el) => getComputedStyle(el).backgroundImage);
+    expect(bg).toContain("rgb(102, 101, 101)");
+
+    // expect: life total color is rgb(26,26,26) (DARK — minimax over w+u+b:
+    // light text's worst case is the ~1.08:1 contrast on the white band,
+    // dark text's worst case is ~2.3:1 on the black band, so dark wins)
+    await expect(lifeTotal(p1)).toHaveCSS("color", "rgb(26, 26, 26)");
+
+    // expect: zone section has the light halo text-shadow (dark text pairing)
+    const shadow = await p1.evaluate(
+      (el) => (el as HTMLElement).style.textShadow,
+    );
+    expect(shadow.replace(/\s+/g, "")).toContain("rgba(255,255,255,0.5)");
+  });
+
   test("7.2. Buttons span full column height (3-column grid layout)", async ({ page }) => {
     // 1. Navigate to `/`; each button occupies ~33% width × full zone height
     await page.goto("/");

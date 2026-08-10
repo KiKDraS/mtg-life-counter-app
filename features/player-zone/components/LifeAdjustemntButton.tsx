@@ -15,10 +15,12 @@ export function LifeAdjustmentButton({
   delta,
   label,
   ariaLabel,
+  style,
 }: {
   readonly delta: LifeSign;
   readonly label: string;
   readonly ariaLabel: string;
+  readonly style?: React.CSSProperties;
 }) {
   const { dispatch } = usePlayerStateContext();
   const adjustment = useLifeAdjustment((d) => dispatch(adjustLife(d)));
@@ -33,6 +35,7 @@ export function LifeAdjustmentButton({
         "transition-shadow duration-150 active:shadow-[inset_0_0_0_9999px_rgba(0,0,0,0.08)]",
         "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current",
       )}
+      style={style}
       {...adjustment(delta)}
     >
       {label}

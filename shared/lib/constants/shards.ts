@@ -2,7 +2,7 @@
  * Alara shard domain types.
  *
  * All 5 shards as a discriminated union.
- * Color gradient stops live in colors.ts (SHARD_COLORS).
+ * Gradient stops removed (cce6e2c) — shards not in active color picker.
  */
 
 export type Shard =

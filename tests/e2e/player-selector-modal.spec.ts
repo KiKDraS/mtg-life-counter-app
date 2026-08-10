@@ -18,6 +18,60 @@ async function openPlayersModal(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Players" }).click();
 }
 
+async function closeBelt(page: Page): Promise<void> {
+  await page.getByLabel("Open Spellbook Menu").click();
+  await expect(page.locator("#spellbook-toggle")).not.toBeChecked();
+  // Belt container animates h-18 → h-0 over 300ms (CSS checkbox hack); wait
+  // for the wrapper to reach 0px height so row geometry is settled before
+  // swipe/click actions on zones.
+  await expect(page.locator("div.relative.z-50").first()).toHaveCSS(
+    "height",
+    "0px",
+  );
+}
+
+async function swipeOn(
+  locator: Locator,
+  direction: "left" | "right",
+  distance = 50,
+): Promise<void> {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error("element not visible for swipe");
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  const targetX = direction === "left" ? cx - distance : cx + distance;
+  const page = locator.page();
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(targetX, cy);
+  await page.mouse.up();
+}
+
+/** Physical vertical swipe (used on ±90° slots where the player's horizontal axis is vertical on screen). */
+async function swipeY(
+  locator: Locator,
+  direction: "up" | "down",
+  distance = 80,
+): Promise<void> {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error("element not visible for swipe");
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  const targetY = direction === "up" ? cy - distance : cy + distance;
+  const page = locator.page();
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx, targetY);
+  await page.mouse.up();
+}
+
+function counterValue(dlg: Locator, name: string): Locator {
+  // Find the `+1 ${name} counter` button, then return its preceding sibling
+  // value span (`aria-live="polite"` is set on the <span> in CounterRow).
+  const btn = dlg.getByRole("button", { name: `+1 ${name} counter` });
+  return btn.locator("xpath=./preceding-sibling::*[@aria-live='polite']");
+}
+
 /* ───────────────────────────────────────────────
  * §5 — Player Selector Modal
  * ─────────────────────────────────────────────── */
@@ -140,5 +194,164 @@ test.describe("Player Selector Modal", () => {
 
     // expect: Player count unchanged (still 2)
     await expect(page.getByRole("region", { name: /^Player \d:/ })).toHaveCount(2);
+  });
+
+  test("PS-01: Count UP 2→5 — new players appended with defaults, existing preserved", async ({
+    page,
+  }) => {
+    // 1. set P1 color White; set initial life 30; tap P1 −2 (life 28)
+    await page.goto("/");
+    const p1 = zone(page, 1);
+    await p1.getByRole("button", { name: "Change color" }).click();
+    const picker = page.locator('dialog[id="color-picker-0"]');
+    await picker.getByRole("button", { name: "White mana" }).click();
+    await picker.getByRole("button", { name: "Confirm color" }).click();
+    await expect(picker).not.toBeVisible();
+    await expect(p1).toHaveCSS("background-color", "rgb(248, 246, 216)");
+
+    await page.getByLabel("Open Spellbook Menu").click();
+    await page.getByRole("button", { name: "Initial Life" }).click();
+    await page.getByRole("button", { name: "Set initial life to 30" }).click();
+    await expect(page.locator("dialog#initial-life-modal")).not.toBeVisible();
+    await closeBelt(page);
+    await expect(lifeTotal(p1)).toHaveText("30");
+
+    const minus = p1.getByRole("button", { name: "-1 life" });
+    await minus.click();
+    await minus.click();
+    // expect: P1 white, life 28
+    await expect(lifeTotal(p1)).toHaveText("28");
+
+    // 2. open belt → Players → tap 5 players
+    await openPlayersModal(page);
+    await page.getByRole("button", { name: "5 players" }).click();
+    await expect(page.locator("dialog#player-selector-modal")).not.toBeVisible();
+    await closeBelt(page);
+    // expect: 5 regions
+    await expect(page.getByRole("region", { name: /^Player \d:/ })).toHaveCount(5);
+    // expect: P1 still white with life 30 (common reset with new count)
+    await expect(p1).toHaveCSS("background-color", "rgb(248, 246, 216)");
+    await expect(lifeTotal(p1)).toHaveText("30");
+    // expect: P2–P5 red default, all at 30
+    for (const n of [2, 3, 4, 5]) {
+      await expect(zone(page, n)).toHaveCSS(
+        "background-color",
+        "rgb(228, 153, 119)",
+      );
+      await expect(lifeTotal(zone(page, n))).toHaveText("30");
+    }
+
+    // 3. open P1 commander grid (180° slot → physical right)
+    await swipeOn(p1, "right");
+    const dlg = page.locator('dialog[id="commander-dmg-0"]');
+    await expect(dlg).toBeVisible();
+    // expect: 5 columns all 0 (array length = new player count)
+    await expect(dlg.locator("span.rounded-full")).toHaveCount(5);
+    await expect(dlg.getByRole("button", { name: "+1 commander damage" })).toHaveCount(5);
+    for (let i = 0; i < 5; i++) {
+      await expect(dlg.locator('[aria-live="polite"]').nth(i)).toHaveText("0");
+    }
+  });
+
+  test("PS-02: Count DOWN 5→2 — removed players gone, commander arrays rebuilt", async ({
+    page,
+  }) => {
+    // 1. select 5 players; open P1 grid, tap +4 on column 5, close
+    await page.goto("/");
+    await openPlayersModal(page);
+    await page.getByRole("button", { name: "5 players" }).click();
+    await expect(page.locator("dialog#player-selector-modal")).not.toBeVisible();
+    await closeBelt(page);
+
+    await swipeOn(zone(page, 1), "right");
+    const dlg5 = page.locator('dialog[id="commander-dmg-0"]');
+    await expect(dlg5).toBeVisible();
+    await expect(dlg5.locator("span.rounded-full")).toHaveCount(5);
+    const col5 = dlg5.getByRole("button", { name: "+1 commander damage" }).nth(4);
+    for (let i = 0; i < 4; i++) {
+      await col5.click();
+    }
+    // expect: P1 life = 36, 5 columns
+    await expect(dlg5.locator('[aria-live="polite"]').nth(4)).toHaveText("4");
+    await expect(lifeTotal(zone(page, 1))).toHaveText("36");
+    await page.keyboard.press("Escape");
+    await expect(dlg5).not.toBeVisible();
+
+    // 2. open belt → Players → tap 2 players
+    await openPlayersModal(page);
+    await page.getByRole("button", { name: "2 players" }).click();
+    await expect(page.locator("dialog#player-selector-modal")).not.toBeVisible();
+    await closeBelt(page);
+    // expect: 2 regions
+    await expect(page.getByRole("region", { name: /^Player \d:/ })).toHaveCount(2);
+    // expect: P1 life reset to 40
+    await expect(lifeTotal(zone(page, 1))).toHaveText("40");
+    // expect: P1 grid shows exactly 2 columns all 0 (damage array rebuilt for new count, §8.4.3)
+    await swipeOn(zone(page, 1), "right");
+    const dlg2 = page.locator('dialog[id="commander-dmg-0"]');
+    await expect(dlg2).toBeVisible();
+    await expect(dlg2.locator("span.rounded-full")).toHaveCount(2);
+    await expect(dlg2.getByRole("button", { name: "+1 commander damage" })).toHaveCount(2);
+    for (let i = 0; i < 2; i++) {
+      await expect(dlg2.locator('[aria-live="polite"]').nth(i)).toHaveText("0");
+    }
+  });
+
+  test("PS-03: Same count re-selected still performs common reset", async ({
+    page,
+  }) => {
+    // 1. select 4 players; tap P1 −5 (life 35); add custom counter 'Lore' to P1
+    await page.goto("/");
+    await openPlayersModal(page);
+    await page.getByRole("button", { name: "4 players" }).click();
+    await expect(page.locator("dialog#player-selector-modal")).not.toBeVisible();
+    await closeBelt(page);
+
+    const p1 = zone(page, 1);
+    const minus = p1.getByRole("button", { name: "-1 life" });
+    for (let i = 0; i < 5; i++) {
+      await minus.click();
+    }
+    // expect: life 35
+    await expect(lifeTotal(p1)).toHaveText("35");
+
+    // P1 at 4p sits on a 90° slot → player-right (Counters) is physical DOWN
+    await swipeY(p1, "down");
+    const counters = page.getByRole("dialog", { name: "Counters" });
+    await expect(counters).toBeVisible();
+    await counters.getByRole("button", { name: "Add custom counter" }).click();
+    const custom = page.getByRole("dialog", { name: "Custom Counter" });
+    await custom.getByRole("textbox", { name: "Counter name" }).fill("Lore");
+    await page.keyboard.press("Enter");
+    await expect(custom).not.toBeVisible();
+    // expect: Lore present
+    await expect(counters.locator('[aria-label="Lore counter"]')).toBeVisible();
+    await expect(counterValue(counters, "Lore")).toHaveText("0");
+    await page.keyboard.press("Escape");
+    await expect(counters).not.toBeVisible();
+
+    // 2. open belt → Players → tap 4 players again
+    await openPlayersModal(page);
+    await page.getByRole("button", { name: "4 players" }).click();
+    await expect(page.locator("dialog#player-selector-modal")).not.toBeVisible();
+    await closeBelt(page);
+
+    // expect: still exactly 4 players
+    await expect(page.getByRole("region", { name: /^Player \d:/ })).toHaveCount(4);
+    // expect: life back to 40 (reset)
+    await expect(lifeTotal(p1)).toHaveText("40");
+    // expect: Lore cleared (custom counters cleared on common reset)
+    await swipeY(p1, "down");
+    const countersReopen = page.getByRole("dialog", { name: "Counters" });
+    await expect(countersReopen).toBeVisible();
+    await expect(
+      countersReopen.locator('[aria-label="Lore counter"]'),
+    ).toHaveCount(0);
+    // exactly 4 default counters all at 0
+    const rows = countersReopen.locator("div.grid > div");
+    await expect(rows).toHaveCount(4);
+    for (const name of ["poison", "energy", "experience", "time"]) {
+      await expect(counterValue(countersReopen, name)).toHaveText("0");
+    }
   });
 });

@@ -69,7 +69,7 @@ luminance. WCAG 4.5:1.
 | Danger red            | `#D50000`          | Life ≤ 0, commander ≥ 21                     |
 | Text warm white       | `#FAF8F5`          | Life/UI text on overlay & belt BGs           |
 | Text warm near-black  | `#1A1A1A`          | Life/UI text on light mana BGs               |
-| Icon silhouette dark  | `#0D0F0F`          | Mana, shards, clans, guild fills             |
+| Icon silhouette dark  | `#0D0F0F`          | Mana fills                                   |
 | Icon silhouette light | `#FAF8F5`          | Counters, player-actions, Planeswalker fills |
 
 ### 2.3 Guild & Clan Symbols
@@ -83,19 +83,9 @@ All MTG symbols = inline SVG React components. No external `.svg` imports.
 | Icon type     | BG                   | Silhouette  | Selector                       |
 | ------------- | -------------------- | ----------- | ------------------------------ |
 | Mana          | Solid color circle   | `iconDark`  | `ManaSelector`                 |
-| Guild         | 2-color split circle | `iconDark`  | `GuildSelector`                |
-| Clan / Shard  | 3-color split circle | `iconDark`  | `ClanSelector / ShardSelector` |
 | Counter       | None — on overlay    | `iconLight` | `CounterSelector`              |
 | Player-action | None                 | `iconLight` | `PlayerActionSelector`         |
 | Planeswalker  | None — on overlay    | `iconLight` | Direct import                  |
-
-Faction backgrounds: `linear-gradient(to bottom right, ...)` with **hard
-stops**:
-
-- **Guilds:** `color1 0% 50%, color2 50% 100%`
-- **Clans/Shards:** `color1 0% 33.3%, color2 33.3% 66.6%, color3 66.6% 100%`
-
-Stops in `GUILD_COLORS`, `CLAN_COLORS`, `SHARD_COLORS`.
 
 ### 2.5 Symbol Files
 
@@ -105,12 +95,6 @@ Stops in `GUILD_COLORS`, `CLAN_COLORS`, `SHARD_COLORS`.
   Experience, Time. No BG, iconLight. Used by CounterSelector.
 - **Commander:** `shared/components/icons/PlaneswalkerSymbol.tsx` — exclusive to
   commander damage overlay. Not a counter. iconLight.
-- **Guilds (10):** `shared/components/icons/guilds/` — 2-color split circle.
-  Phase 2.
-- **Clans (5):** `shared/components/icons/clans/` — 3-color split circle.
-  Phase 2.
-- **Shards (5):** `shared/components/icons/shards/` — 3-color split circle.
-  Phase 2.
 
 ---
 
@@ -180,7 +164,7 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 ├────────────────M──────────────────┤
 │   Player 2     │   Player 3       │
 │   37 ★         │   41 ★           │
-│  [+]  [-]      │  [+]  [-]        │ P2: −90°, P3: 90°
+│  [+]  [-]      │  [+]  [-]        │ P2: 90°, P3: −90°
 └────────────────┴──────────────────┘
 ```
 
@@ -188,10 +172,10 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 
 ```
 ┌──────────┬──────────┐
-│ Player 1 │ Player 2 │ P1: −90°, P2: 90°
+│ Player 1 │ Player 2 │ P1: 90°, P2: −90°
 │   40 ★   │   38 ★   │
 ├──────────M──────────┤
-│ Player 3 │ Player 4 │ P3: −90°, P4: 90°
+│ Player 3 │ Player 4 │ P3: 90°, P4: −90°
 │   32 ★   │   41 ★   │
 └──────────┴──────────┘
 ```
@@ -204,10 +188,10 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 │         40 ★        │
 │      [+]  [-]       │
 ├──────────┬──────────┤
-│ Player 2 │ Player 3 │ P2: −90°, P3: 90°
+│ Player 2 │ Player 3 │ P2: 90°, P3: −90°
 │   40 ★   │   38 ★   │
 ├──────────M──────────┤
-│ Player 4 │ Player 5 │ P4: −90°, P5: 90°
+│ Player 4 │ Player 5 │ P4: 90°, P5: −90°
 │   32 ★   │   41 ★   │
 └──────────┴──────────┘
 ```
@@ -220,10 +204,10 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 │         40 ★        │
 │      [+]  [-]       │
 ├──────────┬──────────┤
-│ Player 2 │ Player 3 │ P2: −90°, P3: 90°
+│ Player 2 │ Player 3 │ P2: 90°, P3: −90°
 │   40 ★   │   38 ★   │
 ├──────────M──────────┤
-│ Player 4 │ Player 5 │ P4: −90°, P5: 90°
+│ Player 4 │ Player 5 │ P4: 90°, P5: −90°
 │   32 ★   │   41 ★   │
 ├──────────┴──────────┤
 │      Player 6       │ P6: 0
@@ -232,7 +216,7 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 └─────────────────────┘
 ```
 
-- **M** = Speelbook menu position.
+- **M** = Spellbook menu position.
 
 ### 4.2 Zone Anatomy
 
@@ -273,10 +257,10 @@ Text readable from table side. Wrapper — interior layout identical.
 
 | Rotation | Angle         | CSS              | Applies                                                 |
 | -------- | ------------- | ---------------- | ------------------------------------------------------- |
-| 180°     | Full flip     | `rotate(180deg)` | Top-side: P1 (2p,3p), P1/P2 (4p), top row (6p), P5 (5p) |
-| −90°     | Quarter left  | `rotate(-90deg)` | Left-side: P2 (3p), P1/P3 (5p)                          |
-| 90°      | Quarter right | `rotate(90deg)`  | Right-side: P3 (3p), P2/P4 (5p)                         |
-| None     | —             | —                | Bottom-side facing user                                 |
+| 180°     | Full flip     | `rotate(180deg)` | Top-side: P1 (2p,3p,5p,6p)                              |
+| 90°      | Quarter right | `rotate(90deg)`  | Left-side: P2 (3p), P1/P3 (4p), P2/P4 (5p,6p)           |
+| −90°     | Quarter left  | `rotate(-90deg)` | Right-side: P3 (3p), P2/P4 (4p), P3/P5 (5p,6p)          |
+| None     | —             | —                | Bottom-side facing user: P2 (2p), P6 (6p)               |
 
 ---
 

@@ -90,11 +90,11 @@ export function useSwipe(
           logicalDeltaX = -rawDistanceX;
           logicalDeltaY = -rawDistanceY;
           break;
-        case 90: // Player on the right side, looking left
+        case 90: // Player on the left side, looking right
           logicalDeltaX = rawDistanceY;
           logicalDeltaY = -rawDistanceX;
           break;
-        case -90: // Player on the left side, looking right
+        case -90: // Player on the right side, looking left
           logicalDeltaX = -rawDistanceY;
           logicalDeltaY = rawDistanceX;
           break;

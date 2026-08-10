@@ -149,6 +149,7 @@ export function PlayerZoneInteractive({
           delta={DECREMENT_LIFE}
           label="−"
           ariaLabel="-1 life"
+          style={{ textShadow }}
         />
 
         {/* Center Column */}
@@ -172,6 +173,7 @@ export function PlayerZoneInteractive({
               "hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current",
               getGearPositionClasses(isOnBottomSlot, rotation),
             )}
+            style={{ textShadow }}
           >
             <ColorSettings className="w-full h-full" fill="currentColor" />
           </button>
@@ -180,6 +182,7 @@ export function PlayerZoneInteractive({
             delta={INCREMENT_LIFE}
             label="+"
             ariaLabel="+1 life"
+            style={{ textShadow }}
           />
         </div>
       </section>
