@@ -46,7 +46,11 @@ async function swipeOn(
   await page.mouse.up();
 }
 
-async function holdButton(page: Page, button: Locator, ms: number): Promise<void> {
+async function holdButton(
+  page: Page,
+  button: Locator,
+  ms: number,
+): Promise<void> {
   const box = await button.boundingBox();
   if (!box) throw new Error("button not visible");
   const cx = box.x + box.width / 2;
@@ -72,14 +76,19 @@ test.describe("Commander Damage — Opening the Overlay", () => {
     // expect: A dialog with aria-labelledby="commander-damage-title" opens
     const dlg = commanderDlg(page);
     await expect(dlg).toBeVisible();
-    await expect(dlg).toHaveAttribute("aria-labelledby", "commander-damage-title");
+    await expect(dlg).toHaveAttribute(
+      "aria-labelledby",
+      "commander-damage-title",
+    );
 
     // expect: The dialog is contained within P1's half of the viewport
     const dlgBox = await dlg.boundingBox();
     const p1Box = await zone(page, 1).boundingBox();
     if (!dlgBox || !p1Box) throw new Error("cannot measure bounding boxes");
     expect(dlgBox.y).toBeGreaterThanOrEqual(0);
-    expect(dlgBox.y + dlgBox.height).toBeLessThanOrEqual(p1Box.y + p1Box.height + 1);
+    expect(dlgBox.y + dlgBox.height).toBeLessThanOrEqual(
+      p1Box.y + p1Box.height + 1,
+    );
 
     // 3. Press Escape to close P1 dialog
     await page.keyboard.press("Escape");
@@ -92,7 +101,9 @@ test.describe("Commander Damage — Opening the Overlay", () => {
     await expect(commanderDlg(page)).toBeVisible();
   });
 
-  test("1.2. Swipe left while overlay is open closes it (toggle)", async ({ page }) => {
+  test("1.2. Swipe left while overlay is open closes it (toggle)", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -115,7 +126,9 @@ test.describe("Commander Damage — Opening the Overlay", () => {
     await expect(dlg).not.toBeVisible();
   });
 
-  test("1.3. Short vertical jab (<10px) does not trigger the overlay", async ({ page }) => {
+  test("1.3. Short vertical jab (<10px) does not trigger the overlay", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -142,7 +155,9 @@ test.describe("Commander Damage — Opening the Overlay", () => {
     await expect(lifeTotal(p1)).toHaveText("41");
   });
 
-  test("1.4. Slow horizontal drag (>300ms) does not trigger the overlay", async ({ page }) => {
+  test("1.4. Slow horizontal drag (>300ms) does not trigger the overlay", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -165,7 +180,9 @@ test.describe("Commander Damage — Opening the Overlay", () => {
     await expect(lifeTotal(p1)).toHaveText("40");
   });
 
-  test("1.5. Escape key dismisses Commander Damage dialog", async ({ page }) => {
+  test("1.5. Escape key dismisses Commander Damage dialog", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -190,7 +207,9 @@ test.describe("Commander Damage — Opening the Overlay", () => {
  * ─────────────────────────────────────────────── */
 
 test.describe("Commander Damage — Layout & Content", () => {
-  test("2.1. Heading renders with correct text and aria reference", async ({ page }) => {
+  test("2.1. Heading renders with correct text and aria reference", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -208,10 +227,15 @@ test.describe("Commander Damage — Layout & Content", () => {
 
     // 4. Assert the dialog's aria-labelledby attribute
     // expect: aria-labelledby="commander-damage-title" is set on the `<dialog>`
-    await expect(dlg).toHaveAttribute("aria-labelledby", "commander-damage-title");
+    await expect(dlg).toHaveAttribute(
+      "aria-labelledby",
+      "commander-damage-title",
+    );
   });
 
-  test("2.2. Opponent color pill renders with Planeswalker symbol", async ({ page }) => {
+  test("2.2. Opponent color pill renders with Planeswalker symbol", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -222,7 +246,9 @@ test.describe("Commander Damage — Layout & Content", () => {
     // 3. Locate the opponent pill: a rounded pill with opponent's color
     const pill = dlg.locator("span.rounded-full").first();
     // expect: The pill contains an inline SVG with aria-label `Planeswalker symbol`
-    await expect(pill.locator('span[role="img"][aria-label="Planeswalker symbol"]')).toBeVisible();
+    await expect(
+      pill.locator('span[role="img"][aria-label="Planeswalker symbol"]'),
+    ).toBeVisible();
     // expect: The pill background-color equals red mana rgb(228, 153, 119)
     await expect(pill).toHaveCSS("background-color", "rgb(228, 153, 119)");
 
@@ -397,7 +423,9 @@ test.describe("Commander Damage — Damage Adjustment", () => {
  * ─────────────────────────────────────────────── */
 
 test.describe("Commander Damage — Life Reduction", () => {
-  test("4.1. Adding commander damage reduces life total by the same amount", async ({ page }) => {
+  test("4.1. Adding commander damage reduces life total by the same amount", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
     // expect: P1 life reads `40`
@@ -463,7 +491,9 @@ test.describe("Commander Damage — Life Reduction", () => {
     await expect(damageCounter(commanderDlg(page))).toHaveText("7");
   });
 
-  test("4.3. Commander damage does not reduce opponent's life", async ({ page }) => {
+  test("4.3. Commander damage does not reduce opponent's life", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -481,7 +511,9 @@ test.describe("Commander Damage — Life Reduction", () => {
     await expect(lifeTotal(zone(page, 2))).toHaveText("40");
   });
 
-  test("4.4. Hold [+] also reduces life by the accelerated amount", async ({ page }) => {
+  test("4.4. Hold [+] also reduces life by the accelerated amount", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -544,8 +576,6 @@ test.describe("Commander Damage — Lethal State", () => {
     const counter = damageCounter(dlg);
     // expect: Damage counter text color is NOT danger red
     await expect(counter).not.toHaveCSS("color", "rgb(213, 0, 0)");
-    // expect: "Lethal — Game Over" badge is NOT visible
-    await expect(dlg.getByText("Lethal — Game Over")).toHaveCount(0);
 
     // 3. Tap [+] once more (damage=21)
     await btn.click();
@@ -553,18 +583,11 @@ test.describe("Commander Damage — Lethal State", () => {
     await expect(counter).toHaveText("21");
     // expect: Damage counter computed color equals danger red
     await expect(counter).toHaveCSS("color", "rgb(213, 0, 0)");
-
-    // expect: A paragraph with text "Lethal — Game Over" appears
-    const badge = dlg.getByText("Lethal — Game Over");
-    await expect(badge).toBeVisible();
-    // expect: The paragraph color equals danger red
-    await expect(badge).toHaveCSS("color", "rgb(213, 0, 0)");
-    // expect: The paragraph has font-weight 700 (bold) and uppercase
-    await expect(badge).toHaveCSS("font-weight", "700");
-    await expect(badge).toHaveCSS("text-transform", "uppercase");
   });
 
-  test("5.2. Player life total also turns red when commander damage ≥ 21", async ({ page }) => {
+  test("5.2. Player life total also turns red when commander damage ≥ 21", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -581,10 +604,15 @@ test.describe("Commander Damage — Lethal State", () => {
     // expect: P1 life total text color equals danger red
     await expect(lifeTotal(zone(page, 1))).toHaveCSS("color", "rgb(213, 0, 0)");
     // expect: P2 life total is NOT red (still normal color)
-    await expect(lifeTotal(zone(page, 2))).not.toHaveCSS("color", "rgb(213, 0, 0)");
+    await expect(lifeTotal(zone(page, 2))).not.toHaveCSS(
+      "color",
+      "rgb(213, 0, 0)",
+    );
   });
 
-  test("5.3. Recovery from lethal state when damage drops below 21 is not possible via UI", async ({ page }) => {
+  test("5.3. Recovery from lethal state when damage drops below 21 is not possible via UI", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -594,9 +622,6 @@ test.describe("Commander Damage — Lethal State", () => {
     for (let i = 0; i < 21; i++) {
       await plusButton(dlg).click();
     }
-    // expect: Lethal badge visible, damage is danger red
-    await expect(dlg.getByText("Lethal — Game Over")).toBeVisible();
-    await expect(damageCounter(dlg)).toHaveCSS("color", "rgb(213, 0, 0)");
 
     // 3. Note: The overlay has no [-] button to reduce commander damage (by design)
     // expect: There is no way within the overlay to reduce commander damage
@@ -616,7 +641,9 @@ test.describe("Commander Damage — Lethal State", () => {
     await expect(lifeTotal(zone(page, 1))).toHaveCSS("color", "rgb(213, 0, 0)");
   });
 
-  test("5.4. Commander damage persists across open/close cycles", async ({ page }) => {
+  test("5.4. Commander damage persists across open/close cycles", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -637,17 +664,12 @@ test.describe("Commander Damage — Lethal State", () => {
     for (let i = 0; i < 16; i++) {
       await plusButton(commanderDlg(page)).click();
     }
-    // expect: Lethal badge appears, damage is danger red
-    await expect(commanderDlg(page).getByText("Lethal — Game Over")).toBeVisible();
-    await expect(damageCounter(commanderDlg(page))).toHaveCSS("color", "rgb(213, 0, 0)");
 
     // 5. Close and reopen
     await page.keyboard.press("Escape");
     await swipeOn(zone(page, 1), "right");
     // expect: Damage still reads `21`
     await expect(damageCounter(commanderDlg(page))).toHaveText("21");
-    // expect: Lethal badge still visible
-    await expect(commanderDlg(page).getByText("Lethal — Game Over")).toBeVisible();
     // expect: Life total still red
     await expect(lifeTotal(zone(page, 1))).toHaveCSS("color", "rgb(213, 0, 0)");
   });
@@ -658,7 +680,9 @@ test.describe("Commander Damage — Lethal State", () => {
  * ─────────────────────────────────────────────── */
 
 test.describe("Commander Damage — Closing the Overlay", () => {
-  test("6.1. Swipe on overlay content closes the dialog (both directions)", async ({ page }) => {
+  test("6.1. Swipe on overlay content closes the dialog (both directions)", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -682,7 +706,9 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await expect(dlg).not.toBeVisible();
 
     // 5. Cleanup: verify Counters was NOT opened by the swipe
-    await expect(page.getByRole("dialog", { name: "Counters" })).not.toBeVisible();
+    await expect(
+      page.getByRole("dialog", { name: "Counters" }),
+    ).not.toBeVisible();
   });
 
   test("6.2. Escape key closes the dialog", async ({ page }) => {
@@ -709,7 +735,9 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await expect(dlg).not.toBeVisible();
   });
 
-  test("6.3. Tap background closes the dialog; tap [+] does not", async ({ page }) => {
+  test("6.3. Tap background closes the dialog; tap [+] does not", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -737,7 +765,9 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await expect(dlg).toBeVisible();
   });
 
-  test("6.4. Commander Damage overlay is scoped to its player zone", async ({ page }) => {
+  test("6.4. Commander Damage overlay is scoped to its player zone", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -748,7 +778,9 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     const dlgBox = await dlg.boundingBox();
     const viewport = page.viewportSize();
     if (!dlgBox || !viewport) throw new Error("cannot measure bounds");
-    expect(dlgBox.y + dlgBox.height).toBeLessThanOrEqual(viewport.height / 2 + 1);
+    expect(dlgBox.y + dlgBox.height).toBeLessThanOrEqual(
+      viewport.height / 2 + 1,
+    );
 
     // 3. Close via Escape
     await page.keyboard.press("Escape");
@@ -767,7 +799,9 @@ test.describe("Commander Damage — Closing the Overlay", () => {
     await expect(pill).toHaveCSS("background-color", "rgb(228, 153, 119)");
   });
 
-  test("6.5. Overlay does not interfere with other zone interactivity", async ({ page }) => {
+  test("6.5. Overlay does not interfere with other zone interactivity", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -813,14 +847,19 @@ test.describe("Commander Damage — Accessibility & Edge Cases", () => {
     // expect: `<dialog>` has aria-modal="true"
     await expect(dlg).toHaveAttribute("aria-modal", "true");
     // expect: `<dialog>` has aria-labelledby="commander-damage-title"
-    await expect(dlg).toHaveAttribute("aria-labelledby", "commander-damage-title");
+    await expect(dlg).toHaveAttribute(
+      "aria-labelledby",
+      "commander-damage-title",
+    );
     // expect: `<h2 id="commander-damage-title">` exists with text `Commander Damage`
     const heading = dlg.locator("h2#commander-damage-title");
     await expect(heading).toBeVisible();
     await expect(heading).toHaveText("Commander Damage");
   });
 
-  test("7.2. [+] button maintains 44×44px minimum touch target", async ({ page }) => {
+  test("7.2. [+] button maintains 44×44px minimum touch target", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -881,7 +920,9 @@ test.describe("Commander Damage — Accessibility & Edge Cases", () => {
     //    The SpellbookMenu's toggle input sits between P1 and P2 in DOM order.
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
-    await expect(dlg.evaluate((el) => el.contains(document.activeElement))).resolves.toBe(false);
+    await expect(
+      dlg.evaluate((el) => el.contains(document.activeElement)),
+    ).resolves.toBe(false);
 
     // 5. Close the dialog programmatically (swipe on the zone reopens it due
     //    to both the dialog's and zone's swipe handlers firing; Escape is only
@@ -894,6 +935,8 @@ test.describe("Commander Damage — Accessibility & Edge Cases", () => {
     });
     await expect(dlg).not.toBeVisible();
     // expect: P1 zone buttons are still accessible
-    await expect(zone(page, 1).getByRole("button", { name: "-1 life" })).toBeVisible();
+    await expect(
+      zone(page, 1).getByRole("button", { name: "-1 life" }),
+    ).toBeVisible();
   });
 });

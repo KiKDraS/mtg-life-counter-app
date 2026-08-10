@@ -57,12 +57,12 @@ export function CommanderDamageContent() {
    * 2. Pure Declarative UI
    */
   return (
-    <div className="flex w-full flex-1 flex-col items-center justify-center gap-6">
+    <>
       <h2 id="commander-damage-title" className="sr-only">
         Commander Damage
       </h2>
 
-      <div className="grid w-full max-w-md grid-cols-2 gap-6 px-4">
+      <div className="grid w-full max-w-md zone-max-h-150 grid-cols-2 gap-4">
         {damageColumns.map((col) => (
           <CommanderDamageColumn
             key={col.pid}
@@ -74,6 +74,6 @@ export function CommanderDamageContent() {
           />
         ))}
       </div>
-    </div>
+    </>
   );
 }

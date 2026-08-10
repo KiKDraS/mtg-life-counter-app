@@ -263,7 +263,8 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 - **Swipe (player-relative):** From each player's own perspective, swipe left =
   Commander damage overlay; swipe right = Counters overlay. Physical screen
   direction flips on rotated slots (§4.3: P1 top slot = 180° → invert the swipe
-  direction you physically make). Threshold: ≥10px before 300ms. Vertical ignored.
+  direction you physically make). Threshold: ≥10px before 300ms. Vertical
+  ignored.
 - **Overlay open:** Either X-direction swipe closes overlay → return to life.
 
 ### 4.3 Zone Rotation
@@ -468,18 +469,18 @@ Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
 
 ### 7.1 Life Adjustment
 
-| Gesture               | Result                       |
-| --------------------- | ---------------------------- |
-| Tap [+] / [-]         | +1 / -1 life                 |
-| Hold [+] / [-]        | ±10 after 1s                 |
+| Gesture        | Result       |
+| -------------- | ------------ |
+| Tap [+] / [-]  | +1 / -1 life |
+| Hold [+] / [-] | ±10 after 1s |
 
 ### 7.2 Swipe
 
-| Gesture | Result |
-| ----------------------- | ------------------------------------------------- |
-| Swipe left on zone (player-relative) | Commander damage overlay. Physical direction flips on rotated slots (§4.3) |
-| Swipe right on zone (player-relative) | Counters overlay. Physical direction flips on rotated slots (§4.3) |
-| X-axis swipe on overlay | Closes overlay, returns to life. Either direction |
+| Gesture                               | Result                                                                     |
+| ------------------------------------- | -------------------------------------------------------------------------- |
+| Swipe left on zone (player-relative)  | Commander damage overlay. Physical direction flips on rotated slots (§4.3) |
+| Swipe right on zone (player-relative) | Counters overlay. Physical direction flips on rotated slots (§4.3)         |
+| X-axis swipe on overlay               | Closes overlay, returns to life. Either direction                          |
 
 ### 7.3 Commander Damage
 
@@ -506,7 +507,7 @@ columns for playerId 0 (own commander), 1, 2, 3 (opponents).
 - **Life reduction:** Each commander damage point also −1 life.
   `adjustCommanderDamage(+3)` → life -3.
 - **Lethal:** Any commander ≥21 → current player loses. Value + life total →
-  `#D50000`. "Lethal — Game Over" badge below counter.
+  `#D50000`.
 - **Zone label:** When commander ≥21 & life >0 → small "Commander Damage Lethal"
   in danger red under life total.
 

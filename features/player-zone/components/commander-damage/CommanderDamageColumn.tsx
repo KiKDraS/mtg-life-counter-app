@@ -10,6 +10,8 @@ import {
   adjustCommanderDamage,
 } from "@/features/player-zone/state/player-state-context";
 import type { PlayerId } from "@/features/player-zone/types/player";
+import { cn } from "@/shared/lib/cn";
+import { COMMANDER_BTN_SIZE } from "../../constants/commander";
 
 interface CommanderDamageColumnProps {
   readonly commanderPlayerId: PlayerId;
@@ -47,47 +49,45 @@ export function CommanderDamageColumn({
   );
 
   return (
-    <div>
-      <div className="flex items-center gap-3">
-        {/* Pill — commander owner's mana color + PlaneswalkerSymbol */}
-        <span
-          className="flex size-14 shrink-0 items-center justify-center rounded-full"
-          style={{ background: pillBg }}
-        >
-          <PlaneswalkerSymbol className="size-7" fill={pillFg} />
-        </span>
+    <div className="flex items-center gap-2">
+      {/* Pill — commander owner's mana color + PlaneswalkerSymbol */}
+      <span
+        className={cn(
+          COMMANDER_BTN_SIZE,
+          "flex items-center justify-items-center rounded-full",
+          "inline-block",
+        )}
+        style={{ background: pillBg }}
+      >
+        <PlaneswalkerSymbol className={COMMANDER_BTN_SIZE} fill={pillFg} />
+      </span>
 
-        {/* Damage total */}
-        <span
-          className="text-display font-black tabular-nums leading-tight"
-          style={{ color: isLethal ? UI.danger : UI.textLight }}
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          {damage}
-        </span>
+      {/* Damage total */}
+      <span
+        className={cn(
+          "text-heading @[250px]/zone:text-display font-black tabular-nums",
+          "inline-block text-center leading-tight",
+        )}
+        style={{ color: isLethal ? UI.danger : UI.textLight }}
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {damage}
+      </span>
 
-        {/* [+] button */}
-        <button
-          type="button"
-          aria-label="+1 commander damage"
-          className="flex size-14 shrink-0 items-center justify-center text-4xl font-bold leading-none focus-visible:outline-0 select-none touch-manipulation"
-          style={{ color: UI.textLight }}
-          {...adjustment(INCREMENT_LIFE)}
-        >
-          +
-        </button>
-      </div>
-
-      {/* Lethal badge — sits below the row */}
-      {isLethal && (
-        <p
-          className="text-body font-bold uppercase tracking-wider"
-          style={{ color: UI.danger }}
-        >
-          Lethal — Game Over
-        </p>
-      )}
+      {/* [+] button */}
+      <button
+        type="button"
+        aria-label="+1 commander damage"
+        className={cn(
+          "text-heading @[250px]/zone:text-display font-black tabular-nums focus-visible:outline-0 select-none touch-manipulation",
+          "inline-block text-center leading-tight",
+        )}
+        style={{ color: UI.textLight }}
+        {...adjustment(INCREMENT_LIFE)}
+      >
+        +
+      </button>
     </div>
   );
 }

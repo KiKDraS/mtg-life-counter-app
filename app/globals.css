@@ -28,7 +28,7 @@
   --font-mono: var(--font-archivo);
   --text-life: clamp(3.5rem, 15vw, 6rem);
   --text-display: clamp(2.5rem, 6vw, 5rem);
-  --text-heading: clamp(1.5rem, 3vw, 2.5rem);
+  --text-heading: clamp(1.8rem, 3vw, 2.8rem);
   --text-body: 1rem;
   --text-body-sm: 0.875rem;
   --text-caption: 0.75rem;
@@ -47,4 +47,10 @@ dialog {
 
 dialog::backdrop {
   background: rgba(0, 0, 0, 0.35);
+}
+
+@container zone (height <=150px) {
+  .zone-max-h-150 {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }

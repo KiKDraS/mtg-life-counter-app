@@ -25,11 +25,11 @@ type LayoutConfig = {
 const ROW_LAYOUT_MAP: Record<number, LayoutConfig> = {
   1: {
     getContainerClass: () => "flex h-full",
-    getChildClass: () => "h-full w-full [container-type:size]",
+    getChildClass: () => "h-full w-full @container/zone [container-type:size]",
   },
   2: {
     getContainerClass: () => "flex h-full",
-    getChildClass: () => "h-full w-full [container-type:size]",
+    getChildClass: () => "h-full w-full @container/zone [container-type:size]",
   },
   3: {
     getContainerClass: (isBottom) =>
@@ -41,7 +41,7 @@ const ROW_LAYOUT_MAP: Record<number, LayoutConfig> = {
       const isBigSlot = isBottom ? index === 2 : index === 0;
 
       return cn(
-        "relative h-full w-full [container-type:size]",
+        "relative h-full w-full @container/zone [container-type:size]",
         isBigSlot && "col-span-2",
       );
     },
