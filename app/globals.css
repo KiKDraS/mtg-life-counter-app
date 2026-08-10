@@ -53,4 +53,12 @@ dialog::backdrop {
   .zone-max-h-150 {
     grid-template-columns: repeat(3, 1fr);
   }
+
+  .zone-max-h-150-top {
+    top: calc(var(--spacing) * 2);
+    right: calc(var(--spacing) * 2);
+    padding: calc(var(--spacing) * .45);
+    bottom: auto;
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+  }
 }
