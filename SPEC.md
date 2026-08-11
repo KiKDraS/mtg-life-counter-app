@@ -236,13 +236,13 @@ Edge cases:
 
 WYSIWYG multi-select. Dispatch on every toggle. Zone preview = live state.
 
-| Gesture              | Behavior                                                        |
-| -------------------- | --------------------------------------------------------------- |
+| Gesture              | Behavior                                                                                                                                  |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | Tap unselected color | Current = default `["r"]` (§3) or single colorless `["c"]`? Replace → `[color]`. Otherwise add → `[...cur, color]`. Dispatch immediately. |
-| Tap selected color   | Single-color (length 1)? No-op. Multi-color? Remove → filter out. Dispatch immediately. |
-| Tap Colorless        | Dispatch `setColor(["c"])`. Close immediately.                  |
-| Tap ✓ (CheckCircle)  | Close. No dispatch — colors already applied.                    |
-| Escape / backdrop    | Close. No dispatch — colors already applied.                    |
+| Tap selected color   | Single-color (length 1)? No-op. Multi-color? Remove → filter out. Dispatch immediately.                                                   |
+| Tap Colorless        | Dispatch `setColor(["c"])`. Close immediately.                                                                                            |
+| Tap ✓ (CheckCircle)  | Close. No dispatch — colors already applied.                                                                                              |
+| Escape / backdrop    | Close. No dispatch — colors already applied.                                                                                              |
 
 **Zone preview:** Real-time. Background reads `PlayerState.color` directly.
 
@@ -269,12 +269,12 @@ gradient.
 
 ### 9.2 Environment Config (server-only)
 
-| Var                          | Role                    | Required | Unset behavior                 |
-| ---------------------------- | ----------------------- | -------- | ------------------------------ |
-| `OPENROUTER_API_KEY`         | OpenRouter SDK auth     | yes      | route 503 `misconfigured`      |
-| `OPENROUTER_MODEL`           | primary judge model     | yes      | route 503 `misconfigured`      |
-| `OPENROUTER_FALLBACK_MODEL`  | fallback judge model    | no       | no fallback — primary only     |
-| `OPENROUTER_EMBEDDING_MODEL` | semantic retrieval      | no       | lexical retrieval only (§9.4)  |
+| Var                           | Role                 | Required | Unset behavior                |
+| ----------------------------- | -------------------- | -------- | ----------------------------- |
+| `OPEN_ROUTER_API_KEY`         | OpenRouter SDK auth  | yes      | route 503 `misconfigured`     |
+| `OPEN_ROUTER_MODEL`           | primary judge model  | yes      | route 503 `misconfigured`     |
+| `OPEN_ROUTER_FALLBACK_MODEL`  | fallback judge model | no       | no fallback — primary only    |
+| `OPEN_ROUTER_EMBEDDING_MODEL` | semantic retrieval   | no       | lexical retrieval only (§9.4) |
 
 - Validated at route module load. Model format `vendor/model` — else 503
   `misconfigured`.
@@ -290,10 +290,10 @@ artifacts (§9.11).
 
 #### 9.3.1 Scryfall (cards + rulings)
 
-| Operation | Endpoint                                   | Cache                    |
-| --------- | ------------------------------------------ | ------------------------ |
-| Card      | `GET /cards/named?fuzzy={query}`           | LRU 500, TTL 24h         |
-| Rulings   | `GET /cards/{id}/rulings`                  | TTL 7d                   |
+| Operation | Endpoint                         | Cache            |
+| --------- | -------------------------------- | ---------------- |
+| Card      | `GET /cards/named?fuzzy={query}` | LRU 500, TTL 24h |
+| Rulings   | `GET /cards/{id}/rulings`        | TTL 7d           |
 
 - Canonical card schema = **raw Scryfall card JSON**. Never reshaped.
 - Card name extraction: quoted names in question, else fuzzy match on question
@@ -328,15 +328,15 @@ Pure TS only — no Node APIs, no `fs`, no `fetch`. Browser-portable unchanged
 
 ### 9.5 API Route `/api/judge`
 
-| Property    | Value                                             |
-| ----------- | ------------------------------------------------- |
-| Method      | `POST`                                            |
-| Body        | `{question: string, gameContext?: GameContext}`   |
-| Validation  | `question` string, trimmed, 1–500 chars. Else 400 `bad_request` |
-| Response    | SSE — `text/event-stream`, `Cache-Control: no-cache` |
-| Rate limit  | 10 req/min/IP, in-memory sliding window. Exceed → 429 `rate_limited` |
-| Timeouts    | first token 30s; total 120s → `timeout`           |
-| Abort       | `AbortController` tied to `request.signal`. Client disconnect → cancel OpenRouter stream immediately |
+| Property   | Value                                                                                                |
+| ---------- | ---------------------------------------------------------------------------------------------------- |
+| Method     | `POST`                                                                                               |
+| Body       | `{question: string, gameContext?: GameContext}`                                                      |
+| Validation | `question` string, trimmed, 1–500 chars. Else 400 `bad_request`                                      |
+| Response   | SSE — `text/event-stream`, `Cache-Control: no-cache`                                                 |
+| Rate limit | 10 req/min/IP, in-memory sliding window. Exceed → 429 `rate_limited`                                 |
+| Timeouts   | first token 30s; total 120s → `timeout`                                                              |
+| Abort      | `AbortController` tied to `request.signal`. Client disconnect → cancel OpenRouter stream immediately |
 
 SSE events:
 
@@ -346,8 +346,8 @@ SSE events:
 { "type": "error", "code": "rate_limited", "message": "The AI Judge is busy. Please wait a moment." }
 ```
 
-Error codes: `rate_limited`, `model_unavailable`, `misconfigured`,
-`timeout`, `bad_request`.
+Error codes: `rate_limited`, `model_unavailable`, `misconfigured`, `timeout`,
+`bad_request`.
 
 ### 9.6 Multi-Model Routing
 
@@ -374,7 +374,8 @@ Player question: {question}
 - Structured output `{answer, citations[]}`. Few-shot 2–3 Q&A pairs in system
   prompt. Reasoning hidden — final answer only.
 - Citation types:
-  - rule: `{type:"rule", ruleId:"CR 702.12a", section:"702.12. Reanimate", excerpt}`
+  - rule:
+    `{type:"rule", ruleId:"CR 702.12a", section:"702.12. Reanimate", excerpt}`
   - card: `{type:"card", name, source:"scryfall", date, excerpt}`
 - Card rulings injected into context as card citations.
 
@@ -387,7 +388,7 @@ Player question: {question}
 ### 9.9 History
 
 - In-memory per session. Max 24k tokens → FIFO prune oldest, keep system prompt
-  + last N turns.
+  - last N turns.
 - Cleared on modal close. Never written to disk / IndexedDB / localStorage.
 
 ### 9.10 UI Contract
@@ -401,10 +402,10 @@ Player question: {question}
 - Token events render incremental. Typing indicator while streaming.
 - Error event → error bubble with message, input re-enabled.
 - **Offline fallback (until local engine §9.11):**
-  - Detect: `navigator.onLine === false` OR `/api/judge` fetch network failure
-    → `offline` UI state.
-  - State: input disabled, chips disabled, alert row visible (DESIGN.md
-    §6.4.0 copy). History read-only.
+  - Detect: `navigator.onLine === false` OR `/api/judge` fetch network failure →
+    `offline` UI state.
+  - State: input disabled, chips disabled, alert row visible (DESIGN.md §6.4.0
+    copy). History read-only.
   - Check: modal open + `online`/`offline` window events. No polling.
   - `online` event → state cleared, input + chips re-enable. No reload.
   - Removed when local engine lands (§9.11).
@@ -415,8 +416,8 @@ Seams only. No interfaces, no DI, no provider layer.
 
 - **Delivery = PWA stack.** App is PWA (manifest + `sw.js` cache-first shell,
   versioned `mtg-life-vN`). Offline artifacts ship through existing channels:
-  - **Service worker** caches artifacts (runtime cache add). SW version bump
-    → stale artifact cache purged by existing activate cleanup.
+  - **Service worker** caches artifacts (runtime cache add). SW version bump →
+    stale artifact cache purged by existing activate cleanup.
   - **IndexedDB** = long-term artifact store — same pattern as §4 persistence.
     No new storage tech.
 - **Data:** versioned artifacts only. Cache key = version + hash. Nothing
@@ -427,7 +428,9 @@ Seams only. No interfaces, no DI, no provider layer.
 - **Shared types:** `features/ai-judge/lib/types.ts` — request, response, SSE
   events, citations, gameContext. Route + client import same module.
 - **Client call site:** `features/ai-judge/lib/client.ts` — all UI calls route
-  through it. Now: POST `/api/judge` + SSE parse. Later: offline → `navigator.onLine` / fetch failure → swap internals to local engine, UI untouched.
+  through it. Now: POST `/api/judge` + SSE parse. Later: offline →
+  `navigator.onLine` / fetch failure → swap internals to local engine, UI
+  untouched.
 - **Model config:** plain object built at boot. Now from env (§9.2), later from
   settings. Same schema. Offline = local engine, no OpenRouter — server models
   unreachable by definition.
@@ -450,9 +453,9 @@ features/ai-judge/lib/rag/        # pure TS: parse, retrieve, score
 
 ## 10. Roadmap
 
-| Feature                                    | Phase |
-| ------------------------------------------ | ----- |
-| Semantic retrieval (`OPENROUTER_EMBEDDING_MODEL`) | 2     |
-| AI Judge voice input                       | 2     |
-| Card art BGs from Scryfall                 | 2     |
-| Offline AI rules engine — consumes §9 artifacts + §9.4 pure retrieval | 3 |
+| Feature                                                               | Phase |
+| --------------------------------------------------------------------- | ----- |
+| Semantic retrieval (`OPENROUTER_EMBEDDING_MODEL`)                     | 2     |
+| AI Judge voice input                                                  | 2     |
+| Card art BGs from Scryfall                                            | 2     |
+| Offline AI rules engine — consumes §9 artifacts + §9.4 pure retrieval | 3     |

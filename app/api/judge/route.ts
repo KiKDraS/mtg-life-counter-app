@@ -2,9 +2,9 @@
  * POST /api/judge — AI Judge SSE route (SPEC §9.5, §9.6).
  *
  * Env validation at module load (§9.2) → 503 `misconfigured` on every request
- * when OPENROUTER_API_KEY or OPENROUTER_MODEL is missing/malformed.
+ * when OPEN_ROUTER_API_KEY or OPEN_ROUTER_MODEL is missing/malformed.
  * Rate limit 10 req/min/IP sliding window → 429 `rate_limited`.
- * Multi-model: primary OPENROUTER_MODEL, fallback OPENROUTER_FALLBACK_MODEL
+ * Multi-model: primary OPEN_ROUTER_MODEL, fallback OPEN_ROUTER_FALLBACK_MODEL
  * on 5xx/timeout/provider error only (never 4xx) (§9.6).
  * AbortController tied to request.signal — client disconnect cancels the
  * OpenRouter stream immediately (§9.5).
@@ -17,10 +17,17 @@ import {
   RequestTimeoutError,
 } from "@openrouter/sdk/models/errors";
 
-import type { JudgeEvent, JudgeRequest, Usage } from "@/features/ai-judge/lib/types";
+import type {
+  JudgeEvent,
+  JudgeRequest,
+  Usage,
+} from "@/features/ai-judge/lib/types";
 import type { ChatStreamChunk } from "@openrouter/sdk/models";
 import { parseCitations } from "@/features/ai-judge/lib/citations";
-import { SYSTEM_PROMPT, buildUserPrompt } from "@/features/ai-judge/lib/prompts";
+import {
+  SYSTEM_PROMPT,
+  buildUserPrompt,
+} from "@/features/ai-judge/lib/prompts";
 import { buildMessages } from "@/features/ai-judge/lib/history";
 import type { JudgeHistory } from "@/features/ai-judge/lib/history";
 import {
@@ -28,7 +35,10 @@ import {
   getStaleRulesArtifact,
   putRulesArtifact,
 } from "@/features/ai-judge/lib/cache";
-import { RULES_URL, parseRulesHtml } from "@/features/ai-judge/lib/rag/rules-source";
+import {
+  RULES_URL,
+  parseRulesHtml,
+} from "@/features/ai-judge/lib/rag/rules-source";
 import { retrieveRules } from "@/features/ai-judge/lib/rag/retrieval";
 import type { RetrievedRule } from "@/features/ai-judge/lib/rag/retrieval";
 import { extractCardName } from "@/features/ai-judge/lib/rag/cards-source";
@@ -40,19 +50,18 @@ import { getRulings, resolveCard } from "@/features/ai-judge/lib/scryfall";
 /* ------------------------------------------------------------------ */
 
 const env = {
-  apiKey: process.env.OPENROUTER_API_KEY ?? "",
-  model: (process.env.OPENROUTER_MODEL ?? "").trim(),
-  fallbackModel: (process.env.OPENROUTER_FALLBACK_MODEL ?? "").trim(),
+  apiKey: process.env.OPEN_ROUTER_API_KEY ?? "",
+  model: (process.env.OPEN_ROUTER_MODEL ?? "").trim(),
+  fallbackModel: (process.env.OPEN_ROUTER_FALLBACK_MODEL ?? "").trim(),
 };
 
 /** `vendor/model` format per SPEC §9.2. */
 const MODEL_FORMAT_RE = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._:\/-]*$/i;
 
-const ENV_OK =
-  env.apiKey.length > 0 && MODEL_FORMAT_RE.test(env.model);
+const ENV_OK = env.apiKey.length > 0 && MODEL_FORMAT_RE.test(env.model);
 
 // Never constructed/used when ENV_OK is false → no fetch without a key.
-const openrouter = new OpenRouter({ apiKey: env.apiKey });
+const openRouter = new OpenRouter({ apiKey: env.apiKey });
 
 /* ------------------------------------------------------------------ */
 /* SSE helpers                                                         */
@@ -72,14 +81,19 @@ const encodeEvent = (event: JudgeEvent): string =>
 
 type ErrorCode = Extract<JudgeEvent, { type: "error" }>["code"];
 
-const errorResponse = (status: number, code: ErrorCode, message: string): Response =>
+const errorResponse = (
+  status: number,
+  code: ErrorCode,
+  message: string,
+): Response =>
   new Response(encodeEvent({ type: "error", code, message }), {
     status,
     headers: SSE_HEADERS,
   });
 
 const ERROR_MESSAGES: Record<ErrorCode, string> = {
-  bad_request: "Invalid question. Please ask a question between 1 and 500 characters.",
+  bad_request:
+    "Invalid question. Please ask a question between 1 and 500 characters.",
   rate_limited: "The AI Judge is busy. Please wait a moment.",
   misconfigured: "The AI Judge is not configured. Please try again later.",
   model_unavailable: "The AI Judge is temporarily offline. Try again shortly.",
@@ -228,13 +242,19 @@ async function buildContext(question: string): Promise<JudgeContext> {
       rules = retrieveRules(question, stale);
       rulesSourceOk = true;
     } else {
-      console.error("Rules fetch failed, degraded mode:", err instanceof Error ? err.message : err);
+      console.error(
+        "Rules fetch failed, degraded mode:",
+        err instanceof Error ? err.message : err,
+      );
     }
   }
   if (rulesSourceOk) sourcesUsed.push("mtg.wtf");
   else if (sourcesUsed.length === 0) sourcesUsed.push("scryfall");
 
-  return { contextText: buildUserPrompt(question, rules, rulings), sourcesUsed };
+  return {
+    contextText: buildUserPrompt(question, rules, rulings),
+    sourcesUsed,
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -253,7 +273,8 @@ interface StreamOutcome {
   readonly model: string;
 }
 
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Runtime guard for the SDK's stream-vs-result union (SPEC §9.5). */
 const isAsyncIterable = <T>(value: unknown): value is AsyncIterable<T> =>
@@ -288,7 +309,7 @@ async function streamFromModel(
   }, TOTAL_TIMEOUT_MS);
 
   try {
-    const result = await openrouter.chat.send(
+    const result = await openRouter.chat.send(
       {
         chatRequest: {
           model,
@@ -328,7 +349,8 @@ async function streamFromModel(
     let current = first;
     while (!current.done) {
       const chunk = current.value;
-      if (chunk.error) throw new Error(chunk.error.message || "provider stream error");
+      if (chunk.error)
+        throw new Error(chunk.error.message || "provider stream error");
       servedModel = chunk.model || servedModel;
       const token = chunk.choices[0]?.delta?.content;
       if (token) {
@@ -360,8 +382,10 @@ type FailureKind = "timeout" | "retryable" | "permanent";
 /** Classify a model failure for fallback routing (SPEC §9.6). */
 const failureKind = (err: unknown): FailureKind => {
   if (err instanceof StreamTimeoutError) return "timeout";
-  if (err instanceof OpenRouterError) return err.statusCode >= 500 ? "retryable" : "permanent";
-  if (err instanceof RequestTimeoutError || err instanceof ConnectionError) return "retryable";
+  if (err instanceof OpenRouterError)
+    return err.statusCode >= 500 ? "retryable" : "permanent";
+  if (err instanceof RequestTimeoutError || err instanceof ConnectionError)
+    return "retryable";
   return "retryable";
 };
 
@@ -386,7 +410,8 @@ export async function POST(request: Request): Promise<Response> {
     return errorResponse(400, "bad_request", ERROR_MESSAGES.bad_request);
   }
 
-  const question = typeof body.question === "string" ? body.question.trim() : "";
+  const question =
+    typeof body.question === "string" ? body.question.trim() : "";
   if (question.length < 1 || question.length > 500) {
     return errorResponse(400, "bad_request", ERROR_MESSAGES.bad_request);
   }
@@ -411,24 +436,46 @@ export async function POST(request: Request): Promise<Response> {
         };
 
         try {
-          outcome = await streamFromModel(env.model, messages, request.signal, onToken);
+          outcome = await streamFromModel(
+            env.model,
+            messages,
+            request.signal,
+            onToken,
+          );
         } catch (err) {
           if (err instanceof ClientDisconnectedError) return;
           lastKind = failureKind(err);
-          console.error("AI Judge primary model failed:", err instanceof Error ? err.message : err);
+          console.error(
+            "AI Judge primary model failed:",
+            err instanceof Error ? err.message : err,
+          );
 
           if (streamedAnyToken) {
             // Partial answer already sent — a fallback retry cannot be spliced in cleanly.
-            enqueue({ type: "error", code: "model_unavailable", message: ERROR_MESSAGES.model_unavailable });
+            enqueue({
+              type: "error",
+              code: "model_unavailable",
+              message: ERROR_MESSAGES.model_unavailable,
+            });
             return;
           }
           if (lastKind !== "permanent" && env.fallbackModel) {
             try {
-              outcome = await streamFromModel(env.fallbackModel, messages, request.signal, onToken);
+              outcome = await streamFromModel(
+                env.fallbackModel,
+                messages,
+                request.signal,
+                onToken,
+              );
             } catch (fallbackErr) {
               if (fallbackErr instanceof ClientDisconnectedError) return;
               lastKind = failureKind(fallbackErr);
-              console.error("AI Judge fallback model failed:", fallbackErr instanceof Error ? fallbackErr.message : fallbackErr);
+              console.error(
+                "AI Judge fallback model failed:",
+                fallbackErr instanceof Error
+                  ? fallbackErr.message
+                  : fallbackErr,
+              );
             }
           }
         }
@@ -460,7 +507,11 @@ export async function POST(request: Request): Promise<Response> {
         });
       } catch (err) {
         console.error("AI Judge route error:", err);
-        enqueue({ type: "error", code: "model_unavailable", message: ERROR_MESSAGES.model_unavailable });
+        enqueue({
+          type: "error",
+          code: "model_unavailable",
+          message: ERROR_MESSAGES.model_unavailable,
+        });
       }
     },
   });
