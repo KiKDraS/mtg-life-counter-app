@@ -13,11 +13,13 @@ import { CallJudgeAction } from "./menu-actions/CallJudgeAction";
 import { SelectPlayersAction } from "./menu-actions/SelectPlayersAction";
 import { InitialLifeModal } from "./modals/initial-life/InitialLifeModal";
 import { PlayerSelectorModal } from "./modals/player-selector/PlayerSelectorModal";
+import { JudgeModal } from "@/features/ai-judge/components/JudgeModal";
 
 const BTN_SIZE = "size-7 md:size-10 transition-all cursor-pointer";
 
 const INITIAL_LIFE_MODAL_ID = "initial-life-modal";
 const PLAYER_SELECTOR_MODAL_ID = "player-selector-modal";
+const AI_JUDGE_MODAL_ID = "ai-judge-modal";
 
 /**
  * @description
@@ -128,6 +130,7 @@ export function SpellbookMenu() {
       {/* Global modals — rendered in DOM, hidden until triggered via DOM ID */}
       <InitialLifeModal id={INITIAL_LIFE_MODAL_ID} />
       <PlayerSelectorModal id={PLAYER_SELECTOR_MODAL_ID} />
+      <JudgeModal id={AI_JUDGE_MODAL_ID} />
     </div>
   );
 }
