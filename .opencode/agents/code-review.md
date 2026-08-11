@@ -37,9 +37,6 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 - Component grouping: Flat `components/` with 7+ files that split naturally
   into groups (e.g. `menu-actions/`, `dialogs/`)? Flag — demand sub-directory.
 - Keep markers: Flag any change to `// keep:` lines.
-- Named predicates: Flag inline `if (value === "string")` / `if (value <= 0)`.
-  Require `const isMeaningful = ...`.
-- Early returns: Flag nested if/else when guard clause flattens.
 - Explicit interfaces: Exported fn, component props, API boundaries must have
   `interface` — not inline inference, not `type` for objects.
 - JSDoc on exports: Flag exported fn/hook/util missing `@description`, `@param`,
@@ -97,8 +94,7 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 
 ### 5. Performance
 
-- No data waterfalls: Flag sequential `await` that could `Promise.all()`. Flag
-  fetch-parent-pass-to-child — prefer fetch-in-child + Suspense.
+- Flag fetch-parent-pass-to-child — prefer fetch-in-child + Suspense.
 - Suspense boundaries: Heavy/async components must have `<Suspense>` with
   meaningful fallback.
 - Images: Every `<img>` must be `next/image` with width, height, alt. Flag

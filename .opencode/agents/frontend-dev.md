@@ -68,7 +68,6 @@ Deliver across 4 layers:
 - **Fonts:** `next/font` — `localFont` or Google (self-hosted). CSS variable per
   DESIGN.md §3.
 - **Performance (per `react-best-practices`):**
-  - `Promise.all()` to eliminate waterfalls.
   - `<Suspense>` for heavy/async sections.
   - `next/dynamic`(ssr:false) for non-critical.
   - Effects attaching browser listeners: Latest Callback Pattern (mutable refs
@@ -95,9 +94,6 @@ Deliver across 4 layers:
   catch-all `constants.ts`.
 - **Feature constants/types:** Used in 2+ files within feature → promote to
   `<name>/types/` or `<name>/constants/`. Single-file stays inline.
-- **Named predicate variables:** `const isLethal = life <= 0` then
-  `if (isLethal)`. Never inline `if (life <= 0)`.
-- **Early return over if/else:** `if (!valid) return;` then happy path flat.
 - **No barrel imports.** Import directly from source file. Only exception:
   explicit public library API.
 - **Read-only component props:** `readonly` per prop or `Readonly<Props>` at
