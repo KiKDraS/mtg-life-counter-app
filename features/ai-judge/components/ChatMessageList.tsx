@@ -45,7 +45,7 @@ export function ChatMessageList({
       className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4 scrollbar-none"
     >
       {messages.map((message, index) => (
-        <Fragment key={index}>
+        <Fragment key={`message-${index}`}>
           <div
             className={
               message.role === "user"
