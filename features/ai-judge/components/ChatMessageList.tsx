@@ -42,7 +42,7 @@ export function ChatMessageList({
   return (
     <div
       ref={scrollRef}
-      className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4"
+      className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4 scrollbar-none"
     >
       {messages.map((message, index) => (
         <Fragment key={index}>
