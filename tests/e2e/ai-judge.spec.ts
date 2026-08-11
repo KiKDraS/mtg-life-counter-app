@@ -93,6 +93,33 @@ const FIXTURE_LONG: MockFixture = {
   ],
 };
 
+/* DESIGN §6.4.2 — done event carries citations; token content = answer text only. */
+const FIXTURE_CITATIONS: MockFixture = {
+  kind: "body",
+  body: [
+    'data: {"type":"token","content":"Yes. Reanimate returns the creature."}\n\n',
+    'data: {"type":"done","citations":[{"type":"rule","ruleId":"702.12a","section":"702.12a","excerpt":"702.12a A player who has priority may activate the activated ability of a card in their graveyard."},{"type":"rule","ruleId":"603.6a","section":"603.6a","excerpt":"603.6a Enters-the-battlefield abilities trigger when a permanent enters the battlefield."},{"type":"card","name":"Reanimate","source":"scryfall","date":"2021-11-19","excerpt":"Put target creature card from a graveyard onto the battlefield under your control."}],"usage":{"inputTokens":1200,"outputTokens":300,"cost":0.0015},"model":"anthropic/claude-sonnet-4","sourcesUsed":["mtg.wtf","scryfall"]}\n\n',
+  ].join(""),
+};
+
+const FIXTURE_NO_CITATIONS: MockFixture = {
+  kind: "body",
+  body: [
+    'data: {"type":"token","content":"No citations here."}\n\n',
+    'data: {"type":"done","citations":[],"usage":{"inputTokens":10,"outputTokens":20,"cost":0.0001},"model":"test/model","sourcesUsed":["mtg.wtf"]}\n\n',
+  ].join(""),
+};
+
+/* SPEC §9.5 — new server behavior: tokens streamed = extracted answer text only,
+   never raw JSON; citations delivered once in done. */
+const FIXTURE_CLEAN_ANSWER: MockFixture = {
+  kind: "body",
+  body: [
+    'data: {"type":"token","content":"Yes. Reanimate returns the creature."}\n\n',
+    'data: {"type":"done","citations":[{"type":"rule","ruleId":"702.12a","section":"702.12a","excerpt":"702.12a rule text excerpt."},{"type":"card","name":"Reanimate","source":"scryfall","date":"2021-11-19","excerpt":"Put target creature card from a graveyard onto the battlefield."}],"usage":{"inputTokens":1200,"outputTokens":300,"cost":0.0015},"model":"anthropic/claude-sonnet-4","sourcesUsed":["mtg.wtf"]}\n\n',
+  ].join(""),
+};
+
 /* ── Helpers ── */
 
 interface GameContextBody {
@@ -252,6 +279,8 @@ const systemBubbles = (page: Page): Locator => scroll(page).locator(".bg-mana-b"
 const userBubbles = (page: Page): Locator => scroll(page).locator(".bg-mana-c");
 const allBubbles = (page: Page): Locator =>
   scroll(page).locator(".bg-mana-b, .bg-mana-c");
+/* DESIGN §6.4.2 — footnote pills: native <details> under the system bubble. */
+const citationPills = (page: Page): Locator => scroll(page).locator("details");
 const status = (page: Page): Locator => modal(page).locator("[role='status']");
 const closeButton = (page: Page): Locator =>
   page.getByRole("button", { name: "Close AI Judge" });
@@ -867,5 +896,105 @@ test.describe("AI Judge", () => {
     // expect: re-open works: belt → "AI Judge" → modal visible again
     await reopenJudgeModal(page);
     await expect(modal(page)).toBeVisible();
+  });
+
+  test("TC-AJ-15: Citations — 3 footnote pills (2 rule + 1 card), native details expand/collapse", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FIXTURE_CITATIONS (done carries 2 rule + 1 card citations)
+    const errors = errorCollectors(page);
+    await mockJudge(page, FIXTURE_CITATIONS);
+    await openJudgeModal(page);
+
+    // 2. Send "Does Reanimate work here?" + Enter; wait for answer done
+    await sendQuestion(page, "Does Reanimate work here?");
+    await expect(systemBubbles(page)).toHaveText("Yes. Reanimate returns the creature.");
+
+    // expect: exactly 3 <details> pills under the system bubble, one per citation
+    await expect(citationPills(page)).toHaveCount(3);
+    // expect: summary labels exact — rule → "CR <ruleId>", card → "Card: <name>" (DESIGN §6.4.2)
+    await expect(citationPills(page).locator("summary")).toHaveText([
+      "CR 702.12a",
+      "CR 603.6a",
+      "Card: Reanimate",
+    ]);
+
+    // 3. Closed state: excerpt body hidden (native details, no open attr)
+    const firstPill = citationPills(page).nth(0);
+    const firstExcerpt = firstPill.locator("p");
+    // expect: no "open" attribute initially → excerpt not visible
+    await expect(firstPill).not.toHaveAttribute("open", "");
+    await expect(firstExcerpt).toBeHidden();
+
+    // 4. Click summary → details open, excerpt visible with exact text
+    await firstPill.locator("summary").click();
+    // expect: details has open attribute → excerpt visible (native toggle)
+    await expect(firstPill).toHaveAttribute("open", "");
+    await expect(firstExcerpt).toBeVisible();
+    await expect(firstExcerpt).toHaveText(
+      "702.12a A player who has priority may activate the activated ability of a card in their graveyard.",
+    );
+
+    // 5. Click summary again → details closes, excerpt hidden again
+    await firstPill.locator("summary").click();
+    // expect: open attribute gone → excerpt hidden
+    await expect(firstPill).not.toHaveAttribute("open", "");
+    await expect(firstExcerpt).toBeHidden();
+
+    // expect: other pills unaffected (still closed)
+    await expect(citationPills(page).nth(1)).not.toHaveAttribute("open", "");
+    await expect(citationPills(page).nth(2)).not.toHaveAttribute("open", "");
+    // expect: no console/page errors
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  test("TC-AJ-16: No citations — no footnote pills under system bubble", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FIXTURE_NO_CITATIONS (done with empty citations array)
+    const errors = errorCollectors(page);
+    await mockJudge(page, FIXTURE_NO_CITATIONS);
+    await openJudgeModal(page);
+
+    // 2. Send "Any citations?" + Enter; wait for answer done
+    await sendQuestion(page, "Any citations?");
+    await expect(systemBubbles(page)).toHaveText("No citations here.");
+
+    // expect: answer bubble present, exactly 0 citation pills (empty array → no pills)
+    await expect(systemBubbles(page)).toHaveCount(1);
+    await expect(citationPills(page)).toHaveCount(0);
+    // expect: no console/page errors
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  test("TC-AJ-17: Raw JSON never visible — bubble shows extracted answer text only", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FIXTURE_CLEAN_ANSWER (tokens = answer text only,
+    //    mimicking NEW server extraction; citations arrive once in done, §9.5)
+    const errors = errorCollectors(page);
+    await mockJudge(page, FIXTURE_CLEAN_ANSWER);
+    await openJudgeModal(page);
+
+    // 2. Send "Reanimate timing?" + Enter; wait for answer done
+    await sendQuestion(page, "Reanimate timing?");
+    const bubble = systemBubbles(page).last();
+    await expect(bubble).toHaveText("Yes. Reanimate returns the creature.");
+
+    // 3. Assert the system bubble DOM is clean of raw JSON — exact answer text,
+    //    no braces, no JSON keys (raw model output never reaches the client)
+    // expect: bubble text equals the extracted answer exactly
+    await expect(bubble).toHaveText("Yes. Reanimate returns the creature.");
+    // expect: no "{" or "}" anywhere in the bubble markup
+    const bubbleHtml = await bubble.innerHTML();
+    expect(bubbleHtml).not.toContain("{");
+    expect(bubbleHtml).not.toContain("}");
+    // expect: no raw JSON keys (citations/ruleId/excerpt/section/source/usage)
+    expect(bubbleHtml).not.toMatch(/(citations|ruleId|excerpt|section|source|usage)/);
+    // expect: no console/page errors
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
   });
 });
