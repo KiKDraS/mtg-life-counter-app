@@ -451,10 +451,8 @@ test.describe("AI Judge", () => {
     await expect.poll(() => judgeStatuses(page)).toEqual([503]);
 
     // 3. Wait for error handling
-    // expect: error bubble with exact text
-    await expect(systemBubbles(page)).toHaveText(
-      "The AI Judge is not configured. Please try again later.",
-    );
+    // expect: error bubble with exact text (SPEC §9.10)
+    await expect(systemBubbles(page)).toHaveText("AI Judge unavailable");
     // expect: chips group NOT visible (SPEC §9.10: misconfigured → chipsHidden)
     await expect(chips(page)).toHaveCount(0);
     // expect: input enabled

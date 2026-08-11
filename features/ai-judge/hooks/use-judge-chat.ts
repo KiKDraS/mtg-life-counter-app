@@ -12,6 +12,8 @@ import { idbGet, STORE_STATE, type GameStateRecord } from "@/features/persistenc
 
 /* SPEC §9.9 — 24k token cap, rough 4 chars/token, FIFO prune. */
 const HISTORY_CHAR_CAP = 24_000 * 4;
+/* SPEC §9.10 — 503 misconfigured renders this exact copy, not the server message. */
+const MISCONFIGURED_COPY = "AI Judge unavailable";
 
 /** One chat bubble in the in-memory conversation history (SPEC §9.9). */
 export interface ChatMessage {
@@ -199,7 +201,12 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
           abortRef.current = null;
         },
         onError: (event) => {
-          setErrorBubble(event);
+          /* SPEC §9.10 — misconfigured → exact copy, chips hidden. */
+          setErrorBubble(
+            event.code === "misconfigured"
+              ? { ...event, message: MISCONFIGURED_COPY }
+              : event,
+          );
           setStreamText("");
           setIsStreaming(false);
           abortRef.current = null;

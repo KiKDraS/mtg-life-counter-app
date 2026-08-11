@@ -144,7 +144,7 @@ Streaming/abort tests: attach `page.on("pageerror")` + `page.on("console")` erro
   2. Type "Test question" and press Enter
     - expect: request captured with status 503 response
   3. Wait for error handling
-    - expect: error bubble with exact text "The AI Judge is not configured. Please try again later." visible
+    - expect: error bubble with exact text "AI Judge unavailable" visible (SPEC §9.10)
     - expect: chips group NOT visible (SPEC §9.10: misconfigured → chips hidden, chipsHidden)
     - expect: input enabled (not disabled)
     - expect: typing indicator gone
