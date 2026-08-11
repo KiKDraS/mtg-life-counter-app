@@ -64,13 +64,23 @@ Two stores — separate initial values from live state.
 | Written on | Every life, counter, commander damage change |                  |
 | Read on    | App start → restore live values              |                  |
 
-### 4.3 Load Priority
+### 4.3 Store 3: `ai-judge-chat` — AI Judge History
+
+| Field      | Type                                             | Notes                    |
+| ---------- | ------------------------------------------------ | ------------------------ |
+| Key        | `chat-v<version>` (game version)                 | One entry per game       |
+| Schema     | `{version, sessionId, updatedAt, messages[]}`    | §9.9                     |
+| Written on | Every chat message change                        |                          |
+| Read on    | App start / modal open → restore chat            |                          |
+| Prune      | Keep 5 latest versions after save                | Reset creates new entry  |
+
+### 4.4 Load Priority
 
 1. Read `game-init` → if found, bootstrap settings.
 2. Read `game-state` → if found, restore live values.
 3. Neither found → use §3 defaults.
 
-### 4.4 SSR Sync
+### 4.5 SSR Sync
 
 - SSR renders §3 defaults exclusively.
 - Client hydrator reads both stores post-mount via effect.
@@ -410,9 +420,16 @@ Player question: {question}
 
 ### 9.9 History
 
-- In-memory per session. Max 24k tokens → FIFO prune oldest, keep system prompt
-  - last N turns.
-- Cleared on modal close. Never written to disk / IndexedDB / localStorage.
+- Persisted per game version in IndexedDB store `ai-judge-chat` (§4). Key
+  `chat-v<version>`. Entry `{version, sessionId, updatedAt, messages[]}`.
+- Survives modal close AND page reload. New game version (⟳ / ⚙️ / 👥 →
+  `version` bump) → fresh chat; old entries pruned — keep 5 latest versions
+  (prune after save).
+- `sessionId = aijudge-<version>` — deterministic, same server history across
+  reloads.
+- IndexedDB blocked/private mode → memory-only fallback, app stays usable.
+- In-memory token budget: 24k tokens → FIFO prune oldest, keep system prompt +
+  last N turns.
 
 ### 9.10 UI Contract
 

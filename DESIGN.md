@@ -413,6 +413,8 @@ Streaming response.
 - **Input:** Docked bottom. Placeholder "Ask about a card or rule…" (50% white
   opacity). Enter/⏎ sends. Auto-scroll to newest message.
 - **Keyboard:** Escape closes. Focus on input on open.
+- **History persistence:** chat survives modal close AND page reload (IndexedDB,
+  SPEC §9.9). New game (⟳ / ⚙️ / 👥 reset) → fresh chat. Old games pruned.
 
 #### 6.4.0 Offline Fallback (until local engine lands)
 
