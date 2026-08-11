@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { DialogShell } from "@/shared/components/DialogShell";
 import { useJudgeChat } from "@/features/ai-judge/hooks/use-judge-chat";
 import { ChatMessageList } from "@/features/ai-judge/components/ChatMessageList";
@@ -32,6 +32,24 @@ export function JudgeModal({ id }: JudgeModalProps) {
 
   const closeDialog = useCallback(() => {
     (document.getElementById(id) as HTMLDialogElement | null)?.close();
+  }, [id]);
+
+  /* DESIGN §6.4 — Escape closes regardless of focus. Capture phase on
+     document: streaming disables the input → browser blurs it → focus lands
+     on <body>, so DialogShell's onKeyDown (bubbled from a focused child)
+     never fires. Document capture catches the keydown anywhere; the
+     dialog.open guard keeps it inert while closed. close() fires the dialog
+     close event → useJudgeChat aborts mid-flight stream + resets (SPEC §9.9). */
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      const dialog = document.getElementById(id) as HTMLDialogElement | null;
+      if (!dialog?.open) return;
+      event.preventDefault();
+      dialog.close();
+    };
+    document.addEventListener("keydown", handleEscape, true);
+    return () => document.removeEventListener("keydown", handleEscape, true);
   }, [id]);
 
   return (
