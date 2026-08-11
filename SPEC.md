@@ -450,16 +450,16 @@ Player question: {question}
   ONLY feature that degrades offline** — until local engine (§9.11). Any other
   feature degrading offline = contract violation.
 - DESIGN.md §6.4 chat window, §6.4.0 offline fallback.
-- 503 `misconfigured` → UI disabled state: "AI Judge unavailable", chips hidden.
+- 503 `misconfigured` → UI disabled state: "AI Judge unavailable".
 - Token events render incremental. Typing indicator while streaming.
 - Error event → error bubble with message, input re-enabled.
 - **Offline fallback (until local engine §9.11):**
   - Detect: `navigator.onLine === false` OR `/api/judge` fetch network failure →
     `offline` UI state.
-  - State: input disabled, chips disabled, alert row visible (DESIGN.md §6.4.0
-    copy). History read-only.
+  - State: input disabled, alert row visible (DESIGN.md §6.4.0 copy). History
+    read-only.
   - Check: modal open + `online`/`offline` window events. No polling.
-  - `online` event → state cleared, input + chips re-enable. No reload.
+  - `online` event → state cleared, input re-enables. No reload.
   - Removed when local engine lands (§9.11).
 
 ### 9.11 Offline Transition (Phase 3 — forward contract, NOT implemented now)
