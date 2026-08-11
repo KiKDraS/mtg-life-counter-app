@@ -14,6 +14,8 @@ interface PlayerSlot {
 interface PlayerRowProps {
   readonly slots: PlayerSlot[];
   readonly version: number;
+  /** false→true flip on HYDRATE → remount so lazy init reads restored state. */
+  readonly isHydrated: boolean;
   readonly isBottomSlot?: boolean;
 }
 
@@ -56,6 +58,7 @@ const ROW_LAYOUT_MAP: Record<number, LayoutConfig> = {
 export function PlayerRow({
   slots,
   version,
+  isHydrated,
   isBottomSlot = false,
 }: PlayerRowProps) {
   const layout = ROW_LAYOUT_MAP[slots.length] ?? ROW_LAYOUT_MAP[1];
@@ -64,7 +67,9 @@ export function PlayerRow({
     <div className={layout.getContainerClass(isBottomSlot)}>
       {slots.map(({ playerId, rotation }, index) => (
         <div
-          key={`${playerId}-${version}`}
+          /* version: user-initiated reset → fresh defaults. isHydrated:
+             HYDRATE landing → remount reads hydratedPlayerStates (restore). */
+          key={`${playerId}-${version}-${isHydrated}`}
           className={layout.getChildClass(index, isBottomSlot)}
           data-id={`player-${playerId}`}
         >

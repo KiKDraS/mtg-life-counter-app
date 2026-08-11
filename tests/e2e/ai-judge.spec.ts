@@ -1079,15 +1079,9 @@ test.describe("AI Judge", () => {
     expect(errors.consoleErrors).toEqual([]);
   });
 
-  /* BLOCKED (2026-08-11): chat does NOT survive reload — app bug, not test.
-     GameProvider HYDRATE bumps version (reducer.ts HYDRATE → version+1) whenever
-     game-init/game-state exist (they are written on every first load), so after
-     reload the app looks up chat-v1 while the chat was persisted under chat-v0
-     (SPEC §9.9 requires reload survival). Verified via probe: chat-v0 intact in
-     IndexedDB after reload, sessionId sent post-reload = "aijudge-1".
-     Fix: version must be stable across reload (e.g. HYDRATE keeps version,
-     PlayerProvider remount keyed on isHydrated too). Un-fixme when landed. */
-  test.fixme("TC-AJ-22: Reload — chat restored from IndexedDB; sessionId stable", async ({
+  /* Fixed (2026-08-11): HYDRATE no longer bumps version — stable across
+     reload, chat-v0 restored (SPEC §9.9). PlayerRow key = version-isHydrated. */
+  test("TC-AJ-22: Reload — chat restored from IndexedDB; sessionId stable", async ({
     page,
   }) => {
     // 1. Mock the judge route → FULL (addInitScript re-applies on every reload)

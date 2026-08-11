@@ -23,8 +23,11 @@ import {
  * `children` unchanged.
  *
  * Holds player count, initial life, and a version counter. Bumping version
- * causes each PlayerProvider (keyed on `version`) to remount with fresh
- * defaults — effectively "restart all lives".
+ * (RESTART, SET_PLAYER_COUNT, SET_INITIAL_LIFE) changes the PlayerProvider
+ * key → remount with fresh defaults — effectively "restart all lives".
+ * HYDRATE does NOT bump version (§9.9 chat key); PlayerRow keys on
+ * `version-isHydrated` so hydration still remounts providers with restored
+ * state.
  *
  * @see SPEC.md §5 — GameState
  */

@@ -98,6 +98,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return { ...state, isHydrated: true };
       }
 
+      // §9.9 — version must NOT change here: it is the user-initiated reset
+      // counter (RESTART, SET_PLAYER_COUNT, SET_INITIAL_LIFE) and the AI Judge
+      // chat key. HYDRATE restores state in place; PlayerRow keys on
+      // `version-isHydrated` so providers remount when hydration lands.
       return {
         ...state,
         isHydrated: true,
@@ -105,8 +109,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         initialLife: action.init?.initialLife ?? state.initialLife,
         playerColors: action.init?.playerColors ?? state.playerColors,
         hydratedPlayerStates: action.playerStates,
-        // Remount providers whenever anything is restored (init OR live state)
-        version: state.version + 1,
       };
     }
 

@@ -40,7 +40,8 @@ interface PlayerInit {
 
 /**
  * §3/§4.3 — useReducer lazy initializer. Runs once per mount (PlayerProvider
- * keyed on game version → remount rebuilds the same state), never per render.
+ * keyed on `version-isHydrated` → remount on user reset OR hydration landing
+ * rebuilds the same state), never per render.
  * Allocates the commanderDamage array only on mount.
  */
 function buildInitialState(init: PlayerInit): PlayerState {
