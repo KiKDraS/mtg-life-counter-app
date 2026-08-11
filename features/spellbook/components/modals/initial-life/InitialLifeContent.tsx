@@ -4,9 +4,11 @@ import { useCallback, useState } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
   useGameStateContext,
+} from "@/features/game-shell/state/hooks";
+import {
   setInitialLife,
   restartGame,
-} from "@/features/game-shell/state/game-state-context";
+} from "@/features/game-shell/state/actions";
 import { NumpadView } from "./NumpadView";
 
 interface InitialLifeContentProps {

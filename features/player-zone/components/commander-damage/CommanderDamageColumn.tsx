@@ -7,8 +7,8 @@ import { UI } from "@/shared/lib/constants/colors";
 import PlaneswalkerSymbol from "@/shared/components/icons/PlaneswalkerSymbol";
 import {
   usePlayerStateContext,
-  adjustCommanderDamage,
-} from "@/features/player-zone/state/player-state-context";
+} from "@/features/player-zone/state/hooks";
+import { adjustCommanderDamage } from "@/features/player-zone/state/actions";
 import type { PlayerId } from "@/features/player-zone/types/player";
 import { cn } from "@/shared/lib/cn";
 import { COMMANDER_BTN_SIZE } from "../../constants/commander";

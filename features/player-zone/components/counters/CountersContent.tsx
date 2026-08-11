@@ -5,8 +5,8 @@ import { UI } from "@/shared/lib/constants/colors";
 import { CounterRow } from "./CounterRow";
 import {
   usePlayerStateContext,
-  adjustCounter,
-} from "@/features/player-zone/state/player-state-context";
+} from "@/features/player-zone/state/hooks";
+import { adjustCounter } from "@/features/player-zone/state/actions";
 import { cn } from "@/shared/lib/cn";
 import { TEXT_CLASSES } from "../../constants/counter";
 interface CountersContentProps {

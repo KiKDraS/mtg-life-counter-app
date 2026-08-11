@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { GameInner } from "./GameInner";
-import { GameProvider } from "@/features/game-shell/state/game-state-context";
+import { GameProvider } from "@/features/game-shell/state/GameProvider";
 
 /**
  * @description

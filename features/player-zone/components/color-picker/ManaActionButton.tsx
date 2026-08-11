@@ -6,12 +6,12 @@ import type { ManaColor } from "@/shared/lib/constants/colors";
 import { cn } from "@/shared/lib/cn";
 import {
   usePlayerStateContext,
-  setColor,
-} from "@/features/player-zone/state/player-state-context";
+} from "@/features/player-zone/state/hooks";
+import { setColor } from "@/features/player-zone/state/actions";
 import {
   useGameStateContext,
-  setGamePlayerColor,
-} from "@/features/game-shell/state/game-state-context";
+} from "@/features/game-shell/state/hooks";
+import { setGamePlayerColor } from "@/features/game-shell/state/actions";
 import { DEFAULT_PLAYER_COLOR } from "@/features/player-zone/constants/player";
 import { MANA_BTN_SIZE } from "../../constants/color";
 

@@ -8,8 +8,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { PlayerState } from "@/features/player-zone/state/player-state-context";
-import { useOptionalGameStateContext } from "@/features/game-shell/state/game-state-context";
+import type { PlayerState } from "@/features/player-zone/state/types";
+import { useOptionalGameStateContext } from "@/features/game-shell/state/hooks";
 import { idbPut, STORE_STATE } from "./idb";
 
 interface PlayerStatesRegistryValue {

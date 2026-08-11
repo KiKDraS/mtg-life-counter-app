@@ -2,7 +2,7 @@
 
 import { PropsWithChildren, useMemo } from "react";
 import { PlayerRow } from "./PlayerRow";
-import { useGameStateContext } from "@/features/game-shell/state/game-state-context";
+import { useGameStateContext } from "@/features/game-shell/state/hooks";
 import { PlayerStatesRegistry } from "@/features/persistence/player-states-registry";
 import { PlayerId } from "@/features/player-zone/types/player";
 import { getPlayerRotation } from "@/features/player-zone/hooks/use-player-config";

@@ -1,6 +1,6 @@
 import type { ManaColor } from "@/shared/lib/constants/colors";
 import type { PlayerId } from "@/features/player-zone/types/player";
-import type { PlayerState } from "@/features/player-zone/state/player-state-context";
+import type { PlayerState } from "@/features/player-zone/state/types";
 
 const DB_NAME = "mtg-life-counter";
 const DB_VERSION = 1;

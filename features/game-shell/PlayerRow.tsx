@@ -1,4 +1,4 @@
-import { PlayerProvider } from "@/features/player-zone/state/player-state-context";
+import { PlayerProvider } from "@/features/player-zone/state/PlayerProvider";
 import {
   PlayerId,
   PlayerZoneRotation,

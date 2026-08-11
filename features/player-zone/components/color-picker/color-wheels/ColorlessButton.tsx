@@ -5,12 +5,12 @@ import type { ManaColor } from "@/shared/lib/constants/colors";
 import { MANA_LABELS } from "@/shared/lib/constants/labels";
 import {
   usePlayerStateContext,
-  setColor,
-} from "@/features/player-zone/state/player-state-context";
+} from "@/features/player-zone/state/hooks";
+import { setColor } from "@/features/player-zone/state/actions";
 import {
   useGameStateContext,
-  setGamePlayerColor,
-} from "@/features/game-shell/state/game-state-context";
+} from "@/features/game-shell/state/hooks";
+import { setGamePlayerColor } from "@/features/game-shell/state/actions";
 
 interface ColorlessButtonProps {
   readonly dialogId: string;
