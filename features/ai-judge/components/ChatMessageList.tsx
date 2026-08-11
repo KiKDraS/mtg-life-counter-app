@@ -1,10 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import type {
   ChatMessage,
   JudgeErrorEvent,
 } from "@/features/ai-judge/hooks/use-judge-chat";
+import type { Citation } from "@/features/ai-judge/lib/types";
+
+/** DESIGN §6.4.2 — pill label: rule → "CR 702.12a", card → "Card: Reanimate". */
+const citationLabel = (citation: Citation): string =>
+  citation.type === "rule"
+    ? `CR ${citation.ruleId}`
+    : `Card: ${citation.name}`;
 
 interface ChatMessageListProps {
   readonly messages: ChatMessage[];
@@ -44,16 +51,36 @@ export function ChatMessageList({
       className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4"
     >
       {messages.map((message, index) => (
-        <div
-          key={index}
-          className={
-            message.role === "user"
-              ? "max-w-[75%] self-end rounded-lg rounded-tr-none bg-mana-c px-3 py-2 text-sm whitespace-pre-wrap text-ui-textDark"
-              : "max-w-[75%] self-start rounded-lg rounded-tl-none bg-mana-b px-3 py-2 text-sm whitespace-pre-wrap text-ui-textLight"
-          }
-        >
-          {message.content}
-        </div>
+        <Fragment key={index}>
+          <div
+            className={
+              message.role === "user"
+                ? "max-w-[75%] self-end rounded-lg rounded-tr-none bg-mana-c px-3 py-2 text-sm whitespace-pre-wrap text-ui-textDark"
+                : "max-w-[75%] self-start rounded-lg rounded-tl-none bg-mana-b px-3 py-2 text-sm whitespace-pre-wrap text-ui-textLight"
+            }
+          >
+            {message.content}
+          </div>
+
+          {/* DESIGN §6.4.2 — footnote pills under the system bubble. */}
+          {message.role === "system" && message.citations?.length ? (
+            <div className="flex max-w-[75%] flex-wrap gap-1 self-start">
+              {message.citations.map((citation, citationIndex) => (
+                <details
+                  key={citationIndex}
+                  className="inline-block border border-white/25 bg-ui-overlay px-2 py-0.5 text-caption text-ui-textLight"
+                >
+                  <summary className="cursor-pointer list-none select-none">
+                    {citationLabel(citation)}
+                  </summary>
+                  <p className="max-w-[60ch] pt-1 text-body-sm text-ui-textLight/80">
+                    {citation.excerpt}
+                  </p>
+                </details>
+              ))}
+            </div>
+          ) : null}
+        </Fragment>
       ))}
 
       {/* Streaming system bubble — typing dots until first token. */}

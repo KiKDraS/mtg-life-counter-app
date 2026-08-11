@@ -7,7 +7,11 @@ import {
   SUGGESTION_KIND,
   type SuggestionKind,
 } from "@/features/ai-judge/constants/suggestions";
-import type { GameContext, JudgeEvent } from "@/features/ai-judge/lib/types";
+import type {
+  Citation,
+  GameContext,
+  JudgeEvent,
+} from "@/features/ai-judge/lib/types";
 import { idbGet, STORE_STATE, type GameStateRecord } from "@/features/persistence/idb";
 
 /* SPEC §9.9 — 24k token cap, rough 4 chars/token, FIFO prune. */
@@ -17,8 +21,10 @@ const MISCONFIGURED_COPY = "AI Judge unavailable";
 
 /** One chat bubble in the in-memory conversation history (SPEC §9.9). */
 export interface ChatMessage {
-  readonly role: "user" | "assistant";
+  readonly role: "user" | "system";
   readonly content: string;
+  /** DESIGN §6.4.2 — footnote pills under the answer, from the `done` event. */
+  readonly citations?: Citation[];
 }
 
 /** SPEC §9.5 — error SSE event shape surfaced as the error bubble. */
@@ -194,8 +200,12 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
           streamTextRef.current += content;
           setStreamText(streamTextRef.current);
         },
-        onDone: () => {
-          pushMessage({ role: "assistant", content: streamTextRef.current });
+        onDone: (event) => {
+          pushMessage({
+            role: "system",
+            content: streamTextRef.current,
+            citations: event.citations,
+          });
           setStreamText("");
           setIsStreaming(false);
           abortRef.current = null;
