@@ -392,6 +392,10 @@ Player question: {question}
 
 ### 9.10 UI Contract
 
+- **PWA offline stance (binding):** App = PWA. Life tracking, counters,
+  commander damage, persistence (§4) all work fully offline. **AI Judge is the
+  ONLY feature that degrades offline** — until local engine (§9.11). Any other
+  feature degrading offline = contract violation.
 - DESIGN.md §6.4 chat window, §6.4.1 suggestion chips, §6.4.0 offline fallback.
 - 503 `misconfigured` → UI disabled state: "AI Judge unavailable", chips hidden.
 - Token events render incremental. Typing indicator while streaming.
