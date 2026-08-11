@@ -123,6 +123,26 @@ const FIXTURE_FORMATTED_MD: MockFixture = {
   ],
 };
 
+/* DESIGN §6.4.3 — list tolerance: single block, no blank line before list,
+   text before and after the "- " run. */
+const FIXTURE_TOLERANT_LIST: MockFixture = {
+  kind: "body",
+  body: [
+    'data: {"type":"token","content":"Start text\\n- Item one\\n- Item two\\nEnd text"}\n\n',
+    DONE_EVENT,
+  ].join(""),
+};
+
+/* DESIGN §6.4.3 — paragraphize fallback: long single block (>300 chars),
+   sentence boundaries, rule id "CR 405.1a" mid-first-sentence. */
+const FIXTURE_LONG_PLAIN: MockFixture = {
+  kind: "body",
+  body: [
+    'data: {"type":"token","content":"CR 405.1a describes a spell being countered. It matters for stack resolution and for cards that care about countered spells. When a spell is countered, it goes to its owner\'s graveyard. Nothing else happens to it unless another effect says otherwise. This rule is one of the most frequently cited in judge calls. Players often confuse it with timing rules and with replacement effects. The answer here should remain fully readable on one screen."}\n\n',
+    DONE_EVENT,
+  ].join(""),
+};
+
 /* SPEC §9.5 — new server behavior: tokens streamed = extracted answer text only,
    never raw JSON; citations delivered once in done. */
 const FIXTURE_CLEAN_ANSWER: MockFixture = {
@@ -1048,6 +1068,68 @@ test.describe("AI Judge", () => {
 
     // expect: no literal "**" anywhere in the rendered bubble text
     await expect(bubble).not.toContainText("**");
+    // expect: no console/page errors
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  test("TC-AJ-19: List tolerance — list inside a single block without blank line", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FIXTURE_TOLERANT_LIST (one block:
+    //    "Start text\n- Item one\n- Item two\nEnd text"; DESIGN §6.4.3)
+    const errors = errorCollectors(page);
+    await mockJudge(page, FIXTURE_TOLERANT_LIST);
+    await openJudgeModal(page);
+
+    // 2. Send a question + Enter; wait for answer done
+    await sendQuestion(page, "Tolerant list?");
+    const bubble = systemBubbles(page).last();
+    await expect(bubble).toHaveText("Start textItem oneItem twoEnd text");
+
+    // expect: exactly one <ul> with exactly 2 <li> in order
+    const ul = bubble.locator("ul");
+    await expect(ul).toHaveCount(1);
+    await expect(ul.locator("li")).toHaveCount(2);
+    await expect(ul.locator("li")).toHaveText(["Item one", "Item two"]);
+
+    // expect: <p> before the list and <p> after it, with exact texts
+    await expect(bubble.locator("p")).toHaveCount(2);
+    await expect(bubble.locator("p")).toHaveText(["Start text", "End text"]);
+
+    // expect: no console/page errors
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  test("TC-AJ-20: Paragraphize fallback — long single block splits on sentences, rule id intact", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FIXTURE_LONG_PLAIN (~450 chars, no markdown,
+    //    no blank lines, "CR 405.1a" inside the first sentence; DESIGN §6.4.3)
+    const errors = errorCollectors(page);
+    await mockJudge(page, FIXTURE_LONG_PLAIN);
+    await openJudgeModal(page);
+
+    // 2. Send a question + Enter; wait for answer done
+    await sendQuestion(page, "Paragraphize?");
+    const bubble = systemBubbles(page).last();
+    await expect(bubble).toContainText("CR 405.1a");
+
+    // expect: at least 2 <p> blocks (sentence-boundary split)
+    const paragraphs = bubble.locator("p");
+    expect(await paragraphs.count()).toBeGreaterThanOrEqual(2);
+
+    // expect: "CR 405.1a" not split across paragraphs — no <p> ends with
+    //     "CR 405." and none starts with "1a"
+    for (const text of await paragraphs.allTextContents()) {
+      expect(text.endsWith("CR 405.")).toBe(false);
+      expect(text.startsWith("1a")).toBe(false);
+    }
+
+    // expect: full text preserved across paragraphs
+    await expect(bubble).toContainText("stack resolution");
+    await expect(bubble).toContainText("readable on one screen.");
     // expect: no console/page errors
     expect(errors.pageErrors).toEqual([]);
     expect(errors.consoleErrors).toEqual([]);

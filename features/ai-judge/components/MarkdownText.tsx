@@ -16,48 +16,84 @@ function renderInline(text: string): ReactNode[] {
   );
 }
 
-/** List flavor when every non-empty line matches; null → paragraph. */
-function listKind(
-  lines: readonly string[],
-): "ul" | "ol" | null {
-  if (lines.every((line) => line.startsWith("- "))) return "ul";
-  if (lines.every((line) => /^\d+\.\s/.test(line))) return "ol";
+/** "ul" | "ol" when the line starts with a list marker; null otherwise. */
+function lineListKind(line: string): "ul" | "ol" | null {
+  if (line.startsWith("- ") || line.startsWith("• ")) return "ul";
+  if (/^\d+\.\s/.test(line)) return "ol";
   return null;
 }
 
-/** Strips the list prefix ("- " or "1. ") from one line. */
+/** Strips the list prefix ("- ", "• " or "1. ") from one line. */
 const stripListPrefix = (line: string, kind: "ul" | "ol"): string =>
   kind === "ul" ? line.slice(2) : line.replace(/^\d+\.\s/, "");
 
+type Segment =
+  | { readonly kind: "text"; readonly text: string }
+  | { readonly kind: "ul" | "ol"; readonly items: readonly string[] };
+
 /**
- * One `\n\n` block → <ul>/<ol> when all lines are same-kind list items,
- * else a <p> with single newlines collapsed to spaces.
+ * Splits one block into alternating text runs and list runs. A list run is any
+ * run of consecutive same-kind list lines (`- ` / `• ` / `1. `) — no blank
+ * line required, so free-tier "wall of text" answers still get lists.
+ * Single newlines inside a text run collapse to spaces.
+ *
+ * "Intro\n- a\n- b\nOutro" → text("Intro"), ul(["a", "b"]), text("Outro").
  */
-function renderBlock(block: string, key: number): ReactNode | null {
+function splitBlock(block: string): Segment[] {
   const lines = block
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
-  if (lines.length === 0) return null;
-
-  const kind = listKind(lines);
-  if (kind) {
-    const List = kind;
-    return (
-      <List key={key} className="my-1 list-inside space-y-0.5 first:mt-0 last:mb-0">
-        {lines.map((line, index) => (
-          <li key={index}>{renderInline(stripListPrefix(line, kind))}</li>
-        ))}
-      </List>
-    );
+  const segments: Segment[] = [];
+  let index = 0;
+  while (index < lines.length) {
+    const kind = lineListKind(lines[index]);
+    if (kind) {
+      const items: string[] = [];
+      while (index < lines.length && lineListKind(lines[index]) === kind) {
+        items.push(stripListPrefix(lines[index], kind));
+        index++;
+      }
+      segments.push({ kind, items });
+    } else {
+      const text: string[] = [];
+      while (index < lines.length && !lineListKind(lines[index])) {
+        text.push(lines[index]);
+        index++;
+      }
+      segments.push({ kind: "text", text: text.join(" ") });
+    }
   }
-
-  return (
-    <p key={key} className="my-1 first:mt-0 last:mb-0">
-      {renderInline(lines.join(" "))}
-    </p>
-  );
+  return segments;
 }
+
+/**
+ * Splits a long single-block answer into sentence-boundary paragraphs,
+ * ~2 sentences per <p> (≤240 chars). The negative lookahead after the
+ * sentence-ending punctuation refuses to split when the next token starts
+ * with a digit, so rule ids like "CR 405.1a" stay intact.
+ */
+function paragraphize(text: string): string[] {
+  const sentences = text.split(
+    /(?<=[.!?])\s+(?![0-9])(?=[A-Z¿¡«])/,
+  );
+  const paragraphs: string[] = [];
+  let current = "";
+  for (const sentence of sentences) {
+    if (current && current.length + sentence.length + 1 > 240) {
+      paragraphs.push(current);
+      current = sentence;
+    } else {
+      current = current ? `${current} ${sentence}` : sentence;
+    }
+  }
+  if (current) paragraphs.push(current);
+  return paragraphs;
+}
+
+/** Plain-text length with markdown markers stripped (for the fallback). */
+const plainLength = (content: string): number =>
+  content.replace(/\*\*/g, "").length;
 
 interface MarkdownTextProps {
   /** Model answer text with the DESIGN §6.4 markdown subset. */
@@ -66,21 +102,60 @@ interface MarkdownTextProps {
 
 /**
  * @description
- * Minimal markdown-subset renderer for AI Judge answers (DESIGN §6.4).
- * Block level: splits on `\n\n` — all-`- ` blocks → <ul>, all-`1. ` blocks
- * → <ol>, everything else → <p> (single newlines collapse to spaces).
+ * Minimal markdown-subset renderer for AI Judge answers (DESIGN §6.4.3).
+ * Block level: splits on `\n\n`; within each block, runs of consecutive
+ * `- `/`• ` lines → <ul> and `1. ` runs → <ol> (no blank line required),
+ * everything else → <p> (single newlines collapse to spaces). When the whole
+ * answer is one long text block (no lists, no blank-line separation,
+ * >300 chars) it falls back to sentence-boundary paragraphs (~2 sentences,
+ * ≤240 chars, rule-id guard keeps "CR 405.1a" unsplit).
  * Inline: `**text**` → <strong>. Escapes via React text nodes — no
  * dangerouslySetInnerHTML.
  *
  * @param content The raw answer string from the model.
  * @returns Paragraph/list React nodes with bold spans.
  *
- * @see DESIGN.md §6.4
+ * @see DESIGN.md §6.4.3
  */
 export function MarkdownText({ content }: Readonly<MarkdownTextProps>) {
-  const blocks = content
-    .split(/\n{2,}/)
-    .map(renderBlock)
-    .filter((node): node is ReactNode => node !== null);
-  return <Fragment>{blocks}</Fragment>;
+  const hasBlankSeparator = /\n{2,}/.test(content);
+  const nodes: ReactNode[] = [];
+  let hasList = false;
+
+  content.split(/\n{2,}/).forEach((block) => {
+    splitBlock(block).forEach((segment) => {
+      const key = nodes.length;
+      if (segment.kind === "text") {
+        nodes.push(
+          <p key={key} className="my-1 first:mt-0 last:mb-0">
+            {renderInline(segment.text)}
+          </p>,
+        );
+      } else {
+        hasList = true;
+        const List = segment.kind;
+        nodes.push(
+          <List key={key} className="my-1 list-inside space-y-0.5 first:mt-0 last:mb-0">
+            {segment.items.map((item, index) => (
+              <li key={index}>{renderInline(item)}</li>
+            ))}
+          </List>,
+        );
+      }
+    });
+  });
+
+  if (!hasBlankSeparator && !hasList && plainLength(content) > 300) {
+    return (
+      <Fragment>
+        {paragraphize(content.replace(/\s+/g, " ")).map((paragraph, index) => (
+          <p key={index} className="my-1 first:mt-0 last:mb-0">
+            {renderInline(paragraph)}
+          </p>
+        ))}
+      </Fragment>
+    );
+  }
+
+  return <Fragment>{nodes}</Fragment>;
 }

@@ -416,6 +416,14 @@ Markdown subset, rendered client-side (no dependency):
 - Paragraphs: blank-line separated → `<p>` blocks.
 - **Bold:** `**term**` → `<strong>`. Unmatched `**` (mid-stream) → literal.
 - Bullets: consecutive `- ` lines → one `<ul>`. Numbered `1. ` → `<ol>`.
+- List tolerance: lists recognized WITHOUT preceding blank line — any run of
+  consecutive `- ` / `• ` / `1. ` lines inside a block → one list; surrounding
+  text lines → their own `<p>` (e.g. `Intro\n- a\n- b\nOutro` → `<p>` +
+  `<ul>` + `<p>`).
+- Paragraphize fallback: one long text block (>300 chars, no lists, no
+  blank-line separation) → sentence-boundary split into `<p>` (~2 sentences,
+  ≤240 chars each). Sentence split refuses after `.<digit>`, so rule ids
+  like `CR 405.1a` stay unsplit.
 - No headings/tables/code blocks/links. Escape via React text nodes — no
   `dangerouslySetInnerHTML`.
 - Streaming: partial markdown renders as-is (unclosed `**` passes through).
