@@ -7,6 +7,7 @@
  * signal. Usage + cost extracted from the stream and logged per request.
  */
 
+import { AnswerExtractor } from "./answer-extract";
 import { openRouter, zdrEnabled } from "./config";
 import {
   ConnectionError,
@@ -97,12 +98,42 @@ export const classifyFailure = (err: unknown): FailureKind => {
   return "retryable";
 };
 
-/** Concatenate one chunk's token delta (emitting via `onToken`); new content. */
-const applyToken = (chunk: ChatStreamChunk, content: string, onToken: (token: string) => void): string => {
+/**
+ * @description Apply one chunk's token delta (SPEC §9.5): accumulate raw JSON
+ * into `content` (downstream citation parse) while emitting only the extracted
+ * `answer` characters via `onToken`. No `answer` value after the fallback
+ * thresholds → raw mode: emit the model output as-is (degraded path).
+ * @param chunk The stream chunk.
+ * @param content Raw JSON text accumulated so far.
+ * @param extractor Incremental answer extractor (per-pump instance).
+ * @param rawMode True once fallback raw streaming is active.
+ * @param onToken Callback per emitted char group.
+ * @returns The new raw content.
+ */
+const applyToken = (
+  chunk: ChatStreamChunk,
+  content: string,
+  extractor: AnswerExtractor,
+  rawMode: boolean,
+  onToken: (token: string) => void,
+): { readonly content: string; readonly rawMode: boolean } => {
   const token = chunk.choices[0]?.delta?.content;
-  if (!token) return content;
-  onToken(token);
-  return content + token;
+  if (!token) return { content, rawMode };
+  const next = content + token;
+  if (rawMode) {
+    onToken(token);
+    return { content: next, rawMode };
+  }
+  const extracted = extractor.push(token);
+  if (extracted) {
+    onToken(extracted);
+    return { content: next, rawMode };
+  }
+  if (extractor.shouldFallback()) {
+    onToken(extractor.flushRaw());
+    return { content: next, rawMode: true };
+  }
+  return { content: next, rawMode };
 };
 
 /** Chunk usage → our Usage shape, or the current usage when absent. */
@@ -116,15 +147,17 @@ const applyUsage = (chunk: ChatStreamChunk, usage: Usage): Usage => {
 };
 
 /**
- * @description Pump the SDK chunk iterator (SPEC §9.5): concat token deltas
- * (emitting each via `onToken`), track served model + usage. Throws on
- * provider error chunks; abort surfaces as an iterator rejection.
+ * @description Pump the SDK chunk iterator (SPEC §9.5): concat raw token
+ * deltas (full JSON kept for citation parse), emit only the extracted `answer`
+ * characters via `onToken` (fallback: raw text when no `answer` key appears —
+ * degraded mode), track served model + usage. Throws on provider error
+ * chunks; abort surfaces as an iterator rejection.
  * @param iterator The chunk iterator (first chunk consumed by the first-token
  * race in {@link streamWithFallback}).
  * @param first The first `next()` result from the race.
  * @param model Initial served model id (primary; chunk.model wins when set).
- * @param onToken Callback per token delta (called in arrival order).
- * @returns The completed outcome (content, usage, served model).
+ * @param onToken Callback per emitted answer-text group (arrival order).
+ * @returns The completed outcome (full raw content, usage, served model).
  * @throws Error on provider stream error chunk or stream abort.
  */
 async function pumpTokens(
@@ -134,6 +167,8 @@ async function pumpTokens(
   onToken: (token: string) => void,
 ): Promise<StreamOutcome> {
   let content = "";
+  let rawMode = false;
+  const extractor = new AnswerExtractor();
   let usage: Usage = { inputTokens: 0, outputTokens: 0, cost: 0 };
   let servedModel = model;
   let current = first;
@@ -141,7 +176,7 @@ async function pumpTokens(
     const chunk = current.value;
     if (chunk.error) throw new Error(chunk.error.message || "provider stream error");
     servedModel = chunk.model || servedModel;
-    content = applyToken(chunk, content, onToken);
+    ({ content, rawMode } = applyToken(chunk, content, extractor, rawMode, onToken));
     usage = applyUsage(chunk, usage);
     current = await iterator.next();
   }
@@ -180,7 +215,8 @@ const logFailure = (failure: FailureKind, err: unknown): void => {
  * @param models Model ids in preference order (primary first).
  * @param messages System + history + context user messages.
  * @param clientSignal Request abort signal — abort cancels the stream.
- * @param onToken Callback per token delta (called in arrival order).
+ * @param onToken Callback per emitted answer-text group (arrival order;
+ * raw JSON fallback text if the model skips the JSON schema).
  * @returns The routed result: done outcome, client_disconnected,
  * mid_stream_failure, or failed with the classified failure kind.
  */
