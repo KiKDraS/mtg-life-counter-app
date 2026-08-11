@@ -2,17 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { judgeChat, isOffline, type JudgeChatCallbacks } from "@/features/ai-judge/lib/client";
-import {
-  SUGGESTION_CHIPS,
-  SUGGESTION_KIND,
-  type SuggestionKind,
-} from "@/features/ai-judge/constants/suggestions";
-import type {
-  Citation,
-  GameContext,
-  JudgeEvent,
-} from "@/features/ai-judge/lib/types";
-import { idbGet, STORE_STATE, type GameStateRecord } from "@/features/persistence/idb";
+import type { Citation, JudgeEvent } from "@/features/ai-judge/lib/types";
 
 /* SPEC §9.9 — 24k token cap, rough 4 chars/token, FIFO prune. */
 const HISTORY_CHAR_CAP = 24_000 * 4;
@@ -40,43 +30,13 @@ export interface JudgeChatResult {
   readonly errorBubble: JudgeErrorEvent | null;
   readonly draft: string;
   readonly setDraft: (draft: string) => void;
-  /** Sends a question through the same path as chips. Trimmed; empty no-ops. */
-  readonly sendQuestion: (text: string, gameContext?: GameContext) => Promise<void>;
-  /** Sends the DESIGN §6.4.1 chip prompt for `kind`. */
-  readonly sendSuggestion: (kind: SuggestionKind) => void;
+  /** Sends a trimmed question through the same path as submit. Empty no-ops. */
+  readonly sendQuestion: (text: string) => Promise<void>;
   /** Sends the current draft. */
   readonly submit: () => void;
   /** Clears history + aborts mid-flight stream on dialog close (SPEC §9.9). */
   readonly reset: () => void;
   readonly inputDisabled: boolean;
-  readonly chipsDisabled: boolean;
-  /** SPEC §9.10 — misconfigured → chips hidden entirely. */
-  readonly chipsHidden: boolean;
-}
-
-/**
- * SPEC §9.8 — reads the live board snapshot from IndexedDB (single-writer
- * registry, SPEC §4.2) and maps it to the shared GameContext shape.
- * Best-effort: returns undefined when the store is empty or unavailable —
- * the chip then sends the prompt without context.
- */
-async function buildGameContext(): Promise<GameContext | undefined> {
-  try {
-    const record = await idbGet<GameStateRecord>(STORE_STATE, "state");
-    if (!record?.playerStates?.length) return undefined;
-    return {
-      format: "commander",
-      players: record.playerStates.map((player) => ({
-        playerId: player.playerId,
-        life: player.life,
-        color: player.color,
-        counters: player.counters,
-        commanderDamage: player.commanderDamage,
-      })),
-    };
-  } catch {
-    return undefined;
-  }
 }
 
 /**
@@ -86,7 +46,7 @@ async function buildGameContext(): Promise<GameContext | undefined> {
  * Owns: SSE streaming (send/token/done/error/abort via {@link judgeChat}),
  * in-memory conversation history with FIFO prune (SPEC §9.9), offline
  * detection (SPEC §9.10: navigator.onLine + window online/offline events +
- * fetch TypeError → offline), and input/chip disabled logic. History clears
+ * fetch TypeError → offline), and input disabled logic. History clears
  * and a fresh `sessionId` (SPEC §9.9) is minted on every dialog close —
  * each open starts with empty server history.
  *
@@ -98,8 +58,8 @@ async function buildGameContext(): Promise<GameContext | undefined> {
  * const chat = useJudgeChat("ai-judge-modal");
  * // render chat.messages via ChatMessageList, chat.draft input, etc.
  *
- * @see DESIGN.md §6.4, §6.4.0, §6.4.1
- * @see SPEC.md §9.8, §9.9, §9.10
+ * @see DESIGN.md §6.4, §6.4.0
+ * @see SPEC.md §9.9, §9.10
  */
 export function useJudgeChat(modalId: string): JudgeChatResult {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -176,12 +136,11 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
    *   Network `TypeError` (fetch failed) flips the offline state (SPEC §9.10).
    *
    * @param text — question text; whitespace-trimmed.
-   * @param gameContext — optional SPEC §9.8 snapshot (JudgePlay chip only).
    * @returns Promise resolving when the stream ends. Resolves immediately
    *   (no send) when guarded by disabled/empty checks.
    */
   const sendQuestion = useCallback(
-    async (text: string, gameContext?: GameContext) => {
+    async (text: string) => {
       const question = text.trim();
       if (!question || isStreaming || isOfflineState) return;
 
@@ -211,7 +170,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
           abortRef.current = null;
         },
         onError: (event) => {
-          /* SPEC §9.10 — misconfigured → exact copy, chips hidden. */
+          /* SPEC §9.10 — misconfigured → exact copy. */
           setErrorBubble(
             event.code === "misconfigured"
               ? { ...event, message: MISCONFIGURED_COPY }
@@ -225,7 +184,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
 
       try {
         await judgeChat(
-          { sessionId: sessionIdRef.current, question, gameContext },
+          { sessionId: sessionIdRef.current, question },
           callbacks,
           controller.signal,
         );
@@ -250,32 +209,6 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
     [isStreaming, isOfflineState, pushMessage],
   );
 
-  /**
-   * @description Sends the DESIGN §6.4.1 chip prompt for `kind` through the
-   *   same path as typed input. JudgePlay serializes live board state
-   *   (SPEC §9.8) at send time.
-   *
-   * @param kind — SUGGESTION_KIND member.
-   * @returns void; the underlying send is fire-and-forget.
-   */
-  const sendSuggestion = useCallback(
-    (kind: SuggestionKind) => {
-      const chip = SUGGESTION_CHIPS.find((c) => c.kind === kind);
-      if (!chip) return;
-      if (kind === SUGGESTION_KIND.JudgePlay) {
-        void buildGameContext().then((context) => {
-          const prompt = context
-            ? `${chip.prompt}: ${JSON.stringify(context)}`
-            : chip.prompt;
-          void sendQuestion(prompt, context);
-        });
-      } else {
-        void sendQuestion(chip.prompt);
-      }
-    },
-    [sendQuestion],
-  );
-
   /** @description Sends the current draft through the submit path. */
   const submit = useCallback(() => {
     void sendQuestion(draft);
@@ -298,10 +231,8 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
     sessionIdRef.current = crypto.randomUUID();
   }, []);
 
-  /* SPEC §9.10 — misconfigured → "AI Judge unavailable", chips hidden. */
-  const chipsHidden = errorBubble?.code === "misconfigured";
+  /* SPEC §9.10 — streaming or offline blocks sending. */
   const inputDisabled = isStreaming || isOfflineState;
-  const chipsDisabled = inputDisabled || chipsHidden;
 
   return {
     messages,
@@ -312,11 +243,8 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
     draft,
     setDraft,
     sendQuestion,
-    sendSuggestion,
     submit,
     reset,
     inputDisabled,
-    chipsDisabled,
-    chipsHidden,
   };
 }

@@ -95,8 +95,9 @@ async function readSseStream(
  * as thrown errors — the UI treats them as the offline state (SPEC §9.10).
  *
  * @param request — `{sessionId, question, gameContext?}`. sessionId scopes
- *   server history to this modal open (SPEC §9.9). gameContext only sent by
- *   the "Judge this play" chip (SPEC §9.8).
+ *   server history to this modal open (SPEC §9.9). gameContext is an
+ *   optional server capability (SPEC §9.8) — the client currently sends
+ *   questions without it.
  * @param callbacks — onToken per token event, onDone per done event,
  *   onError per error event.
  * @param signal — optional AbortSignal; aborts the fetch. AbortError

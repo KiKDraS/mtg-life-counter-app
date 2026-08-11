@@ -2,7 +2,7 @@
 
 /**
  * @description
- * DESIGN §6.4.0 — full-width offline alert row, above the chips. BG `MANA.b`
+ * DESIGN §6.4.0 — full-width offline alert row, above the input. BG `MANA.b`
  * (`#666565`), text `#FAF8F5`. Rendered only while the chat is in the
  * offline state; history stays visible and read-only.
  *

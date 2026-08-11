@@ -302,8 +302,6 @@ const modal = (page: Page): Locator => page.locator("#ai-judge-modal");
 const input = (page: Page): Locator =>
   page.getByRole("textbox", { name: "Ask about a card or rule" });
 const typing = (page: Page): Locator => page.getByLabel("AI Judge is typing");
-const chips = (page: Page): Locator =>
-  modal(page).getByRole("group", { name: "Suggestions" });
 const scroll = (page: Page): Locator =>
   modal(page).locator("div[class*='overflow-y-auto']");
 /* Bubbles live inside the chat list; the offline alert also carries bg-mana-b,
@@ -317,24 +315,13 @@ const citationPills = (page: Page): Locator => scroll(page).locator("details");
 const status = (page: Page): Locator => modal(page).locator("[role='status']");
 const closeButton = (page: Page): Locator =>
   page.getByRole("button", { name: "Close AI Judge" });
-const chipJudgePlay = (page: Page): Locator =>
-  page.getByRole("button", { name: "Judge this play: <current game state>", exact: true });
-const chipCardLegality = (page: Page): Locator =>
-  page.getByRole("button", { name: "Is <card> legal in Commander?", exact: true });
-const chipCombatMath = (page: Page): Locator =>
-  page.getByRole("button", { name: "Explain combat damage here.", exact: true });
-const chipButtons = (page: Page): Locator[] => [
-  chipJudgePlay(page),
-  chipCardLegality(page),
-  chipCombatMath(page),
-];
 
 /* ───────────────────────────────────────────────
  * 1. AI Judge
  * ─────────────────────────────────────────────── */
 
 test.describe("AI Judge", () => {
-  test("TC-AJ-01: Modal opens from belt with input + 3 chips", async ({ page }) => {
+  test("TC-AJ-01: Modal opens from belt with input", async ({ page }) => {
     // 1. Run open-modal prelude (goto /, open belt, click "AI Judge")
     await openJudgeModal(page);
 
@@ -350,14 +337,6 @@ test.describe("AI Judge", () => {
       "Ask about a card or rule…",
     );
     await expect(input(page)).toBeFocused();
-
-    // 3. Check suggestion chips
-    await expect(chips(page)).toBeVisible();
-    for (const chip of chipButtons(page)) {
-      await expect(chip).toBeVisible();
-      await expect(chip).toBeEnabled();
-      await expect(chip).toHaveCSS("opacity", "1");
-    }
   });
 
   test("TC-AJ-02: Type + Enter sends correct POST; bubbles render; typing indicator", async ({
@@ -401,11 +380,6 @@ test.describe("AI Judge", () => {
 
     // expect: typing indicator gone
     await expect(typing(page)).toHaveCount(0);
-    // expect: 3 chips still visible and enabled (persist after send)
-    for (const chip of chipButtons(page)) {
-      await expect(chip).toBeVisible();
-      await expect(chip).toBeEnabled();
-    }
     // expect: exactly 1 system bubble with answer text (tokens merged)
     await expect(systemBubbles(page)).toHaveCount(1);
   });
@@ -486,18 +460,12 @@ test.describe("AI Judge", () => {
     await expect(typing(page)).toHaveCount(0);
     // expect: input enabled (SPEC §9.10 error → re-enable)
     await expect(input(page)).toBeEnabled();
-    // expect: chips visible, enabled, opacity "1" (rate_limited does NOT hide chips)
-    await expect(chips(page)).toBeVisible();
-    for (const chip of chipButtons(page)) {
-      await expect(chip).toBeEnabled();
-      await expect(chip).toHaveCSS("opacity", "1");
-    }
     // expect: no system answer bubble (tokens none) — only the error bubble
     await expect(systemBubbles(page)).toHaveCount(1);
     await expect(systemBubbles(page)).not.toContainText("gain life");
   });
 
-  test("TC-AJ-05: 503 misconfigured (no OpenRouter key) → error bubble + chips hidden", async ({
+  test("TC-AJ-05: 503 misconfigured (no OpenRouter key) → error bubble + input state", async ({
     page,
   }) => {
     // 1. Mock the judge route → ERR_503 fixture (status 503, SSE error body)
@@ -515,8 +483,6 @@ test.describe("AI Judge", () => {
     // 3. Wait for error handling
     // expect: error bubble with exact text (SPEC §9.10)
     await expect(systemBubbles(page)).toHaveText("AI Judge unavailable");
-    // expect: chips group NOT visible (SPEC §9.10: misconfigured → chipsHidden)
-    await expect(chips(page)).toHaveCount(0);
     // expect: input enabled
     await expect(input(page)).toBeEnabled();
     // expect: typing indicator gone
@@ -526,7 +492,7 @@ test.describe("AI Judge", () => {
     expect(errors.pageErrors).toEqual([]);
   });
 
-  test("TC-AJ-06: Input + chips disabled during streaming", async ({ page }) => {
+  test("TC-AJ-06: Input disabled during streaming", async ({ page }) => {
     // 1. Mock the judge route → STREAM_NEVER_ENDS (1 token, stream held open)
     const errors = errorCollectors(page);
     await mockJudge(page, FIXTURE_NEVER_ENDS);
@@ -542,13 +508,6 @@ test.describe("AI Judge", () => {
     // 3. Assert disabled states while streaming
     // expect: input has disabled attribute
     await expect(input(page)).toBeDisabled();
-    // expect: all 3 chips have disabled attribute + opacity "0.25"
-    for (const chip of chipButtons(page)) {
-      await expect(chip).toBeDisabled();
-      await expect(chip).toHaveCSS("opacity", "0.25");
-    }
-    // expect: chip group still visible
-    await expect(chips(page)).toBeVisible();
     // expect: typing another question into input is impossible (disabled)
     await expect(input(page)).toBeDisabled();
 
@@ -561,71 +520,7 @@ test.describe("AI Judge", () => {
     expect(errors.pageErrors).toEqual([]);
   });
 
-  test("TC-AJ-07: Chips — Card legality sends exact prompt; Judge this play sends gameContext", async ({
-    page,
-  }) => {
-    // 1. Mock the judge route → FULL fixture
-    await mockJudge(page, FIXTURE_FULL);
-    // Seed board state: open belt → "Players" → "2 players" → modal closes
-    await page.goto("/");
-    await page.getByLabel("Open Spellbook Menu").click();
-    await expect(page.locator("#spellbook-toggle")).toBeChecked();
-    await page.getByRole("button", { name: "Players", exact: true }).click();
-    await page.getByRole("button", { name: "2 players" }).click();
-    await expect(page.locator("dialog#player-selector-modal")).not.toBeVisible();
-    // close belt
-    await page.getByLabel("Open Spellbook Menu").click();
-    await expect(page.locator("#spellbook-toggle")).not.toBeChecked();
-    // change player 1 life (+1) to force persistence write to IndexedDB; wait ~300ms
-    await page
-      .getByRole("region", { name: /^Player 1:/ })
-      .getByRole("button", { name: "+1 life" })
-      .click();
-    await expect(
-      page.getByRole("region", { name: /^Player 1:/ }).locator('[aria-live="polite"]'),
-    ).toHaveText("41");
-    await page.waitForTimeout(300);
-
-    // 2. Open judge modal (belt → "AI Judge")
-    await reopenJudgeModal(page);
-    await expect(modal(page)).toBeVisible();
-
-    // 3. Click chip "Card legality"
-    await chipCardLegality(page).click();
-    const bodies = await waitForBodies(page, 1);
-    // expect: question exact, literal placeholder
-    expect(bodies[0].question).toBe("Is <card> legal in Commander?");
-    // expect: gameContext undefined (CardLegality sends prompt only)
-    expect(bodies[0].gameContext).toBeUndefined();
-    // expect: user bubble with that exact question text
-    await expect(userBubbles(page)).toHaveText("Is <card> legal in Commander?");
-
-    // 4. Wait for FULL response done
-    await expect(systemBubbles(page)).toHaveText("When you gain life");
-
-    // 5. Click chip "Judge this play"
-    await chipJudgePlay(page).click();
-    const bodiesAfterJudge = await waitForBodies(page, 2);
-    const judgeBody = bodiesAfterJudge[1];
-    // expect: question starts with "Judge this play: "
-    expect(judgeBody.question).toContain("Judge this play: ");
-    // expect: gameContext present, format === "commander"
-    const ctx = judgeBody.gameContext;
-    expect(ctx).toBeDefined();
-    expect(ctx?.format).toBe("commander");
-    // expect: players length 2, each player has number life, color/counters/commanderDamage arrays
-    expect(ctx?.players).toHaveLength(2);
-    for (const player of ctx?.players ?? []) {
-      expect(typeof player.life).toBe("number");
-      expect(Array.isArray(player.color)).toBe(true);
-      expect(Array.isArray(player.counters)).toBe(true);
-      expect(Array.isArray(player.commanderDamage)).toBe(true);
-    }
-    // expect: user bubble with the judge-play prompt visible
-    await expect(userBubbles(page).last()).toContainText("Judge this play: ");
-  });
-
-  test("TC-AJ-08: Offline — exact alert copy, input+chips disabled; online re-enables without reload", async ({
+  test("TC-AJ-08: Offline — exact alert copy, input disabled; online re-enables without reload", async ({
     page,
   }) => {
     // 1. Mock FULL first (addInitScript must precede navigation to take effect),
@@ -655,11 +550,6 @@ test.describe("AI Judge", () => {
     await expect(status(page)).toHaveCSS("color", SYSTEM_TEXT);
     // expect: input disabled
     await expect(input(page)).toBeDisabled();
-    // expect: all 3 chips disabled + opacity "0.25"
-    for (const chip of chipButtons(page)) {
-      await expect(chip).toBeDisabled();
-      await expect(chip).toHaveCSS("opacity", "0.25");
-    }
     // expect: no new page loads
     expect(loads).toBe(0);
 
@@ -670,11 +560,6 @@ test.describe("AI Judge", () => {
     await expect(status(page)).toHaveCount(0);
     // expect: input enabled
     await expect(input(page)).toBeEnabled();
-    // expect: chips enabled, opacity "1"
-    for (const chip of chipButtons(page)) {
-      await expect(chip).toBeEnabled();
-      await expect(chip).toHaveCSS("opacity", "1");
-    }
     // expect: no reload happened: URL unchanged, load counter === 0
     expect(page.url()).toBe("http://localhost:3000/");
     expect(loads).toBe(0);
@@ -710,12 +595,8 @@ test.describe("AI Judge", () => {
 
     // expect: offline status alert visible (exact copy)
     await expect(status(page)).toHaveText(OFFLINE_COPY);
-    // expect: input disabled, chips disabled + opacity 0.25
+    // expect: input disabled
     await expect(input(page)).toBeDisabled();
-    for (const chip of chipButtons(page)) {
-      await expect(chip).toBeDisabled();
-      await expect(chip).toHaveCSS("opacity", "0.25");
-    }
     // expect: user + system bubbles still visible (count 2, history preserved §6.4.0)
     await expect(userBubbles(page)).toHaveCount(1);
     await expect(systemBubbles(page)).toHaveCount(1);
@@ -831,34 +712,6 @@ test.describe("AI Judge", () => {
     await expect(systemBubbles(page)).toHaveCount(1);
   });
 
-  test("TC-AJ-12: Chips a11y — group + full-prompt aria-labels", async ({ page }) => {
-    // 1. Open modal (prelude)
-    await openJudgeModal(page);
-
-    // expect: group role="group" with aria-label "Suggestions" present in #ai-judge-modal
-    await expect(chips(page)).toBeVisible();
-    await expect(chips(page)).toHaveAttribute("role", "group");
-    await expect(chips(page)).toHaveAttribute("aria-label", "Suggestions");
-
-    // 2. Inspect each chip button — aria-labels are full prompts, not short text
-    await expect(chipJudgePlay(page)).toHaveAttribute(
-      "aria-label",
-      "Judge this play: <current game state>",
-    );
-    await expect(chipCardLegality(page)).toHaveAttribute(
-      "aria-label",
-      "Is <card> legal in Commander?",
-    );
-    await expect(chipCombatMath(page)).toHaveAttribute(
-      "aria-label",
-      "Explain combat damage here.",
-    );
-
-    // 3. Inspect input + close
-    await expect(input(page)).toHaveAttribute("aria-label", "Ask about a card or rule");
-    await expect(closeButton(page)).toHaveAttribute("aria-label", "Close AI Judge");
-  });
-
   test("TC-AJ-13: Close mid-stream → abort, no crash, clean re-open", async ({ page }) => {
     // 1. Attach pageerror + console-error collectors. Mock STREAM_NEVER_ENDS.
     const errors = errorCollectors(page);
@@ -885,12 +738,8 @@ test.describe("AI Judge", () => {
     await expect(modal(page)).toBeVisible();
     // expect: 0 bubbles (history reset, partial answer dropped)
     await expect(allBubbles(page)).toHaveCount(0);
-    // expect: input enabled, chips enabled opacity "1"
+    // expect: input enabled
     await expect(input(page)).toBeEnabled();
-    for (const chip of chipButtons(page)) {
-      await expect(chip).toBeEnabled();
-      await expect(chip).toHaveCSS("opacity", "1");
-    }
 
     // 5. Send "After abort" (STREAM_NEVER_ENDS still active), then close via
     //    Escape. The stream disables the input → focus blurs to body, so move

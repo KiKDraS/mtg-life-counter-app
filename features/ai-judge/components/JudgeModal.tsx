@@ -4,7 +4,6 @@ import { useCallback, useEffect } from "react";
 import { DialogShell } from "@/shared/components/DialogShell";
 import { useJudgeChat } from "@/features/ai-judge/hooks/use-judge-chat";
 import { ChatMessageList } from "@/features/ai-judge/components/ChatMessageList";
-import { SuggestionChips } from "@/features/ai-judge/components/SuggestionChips";
 import { OfflineAlert } from "@/features/ai-judge/components/OfflineAlert";
 
 const AI_JUDGE_TITLE_ID = "ai-judge-title";
@@ -83,13 +82,8 @@ export function JudgeModal({ id }: JudgeModalProps) {
           errorBubble={chat.errorBubble}
         />
 
-        {/* Offline alert row — above chips (§6.4.0). */}
+        {/* Offline alert row (§6.4.0). */}
         {chat.isOffline && <OfflineAlert />}
-
-        {/* Suggestion chips (§6.4.1). */}
-        {!chat.chipsHidden && (
-          <SuggestionChips disabled={chat.chipsDisabled} onSelect={chat.sendSuggestion} />
-        )}
 
         {/* Docked input (§6.4). */}
         <form
