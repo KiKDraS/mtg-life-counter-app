@@ -180,11 +180,11 @@ Deliver across 4 layers:
   ```
 - **Extract bloated JSX.** 2+ view branches → separate file. ~100 line ceiling.
 - **One concern per file.** Layout XOR logic XOR IO. Hooks/utils past 20 lines.
-- **State modules: one concern per file.** `features/<name>/state/` must split
-  into `types.ts`, `constants.ts`, `actions.ts`, `reducer.ts`, `context.ts`,
-  `<Name>Provider.tsx`, `hooks.ts`. Never mix `createContext` + `useReducer` in
-  one file (ESLint `state/no-state-spaghetti` rejects). No `*-context.tsx`
-  megafiles. Import directly from the concern file — no barrels.
+- **State modules: one concern per file.** `features/<name>/state/` split into
+  `types.ts` / `constants.ts` / `actions.ts` / `reducer.ts` / `context.ts` /
+  `<Name>Provider.tsx` / `hooks.ts`. `createContext` + `useReducer` same file →
+  ESLint `state/no-state-spaghetti` REJECT. No `*-context.tsx` megafiles.
+  Import direct from concern file — no barrels.
 
 ### 8. API & data layer
 
