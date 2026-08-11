@@ -126,12 +126,13 @@ const FIXTURE_LONG_PLAIN: MockFixture = {
   ].join(""),
 };
 
-/* DESIGN §6.4.2 — inline rule refs ("(CR 405.1)", "(rule 405.2)") extracted
-   from the paragraph → " - <i>CR 405.1</i>, <i>CR 405.2</i>" suffix. */
+/* DESIGN §6.4.2 — inline rule refs ("(CR 405.1)", "(rule 405.2)", bare
+   "(117.1d)") extracted from the paragraph →
+   " - <i>CR 405.1</i>, <i>CR 405.2</i>, <i>CR 117.1d</i>" suffix. */
 const FIXTURE_RULE_REFS: MockFixture = {
   kind: "body",
   body: [
-    'data: {"type":"token","content":"The stack is a zone (CR 405.1) and holds spells (rule 405.2)."}\n\n',
+    'data: {"type":"token","content":"The stack is a zone (CR 405.1) and holds spells (rule 405.2) and survives (117.1d)."}\n\n',
     DONE_EVENT,
   ].join(""),
 };
@@ -936,7 +937,7 @@ test.describe("AI Judge", () => {
     page,
   }) => {
     // 1. Mock the judge route → FIXTURE_RULE_REFS (inline "(CR 405.1)" +
-    //    "(rule 405.2)" in the paragraph text; DESIGN §6.4.2)
+    //    "(rule 405.2)" + bare "(117.1d)" in the paragraph text; DESIGN §6.4.2)
     const errors = errorCollectors(page);
     await mockJudge(page, FIXTURE_RULE_REFS);
     await openJudgeModal(page);
@@ -945,16 +946,18 @@ test.describe("AI Judge", () => {
     await sendQuestion(page, "Stack and spells?");
     const bubble = systemBubbles(page).last();
     // expect: refs stripped from the sentence, appended as " - " suffix with
-    //     two comma-joined <i> nodes ("CR 405.1", "CR 405.2")
+    //     three comma-joined <i> nodes ("CR 405.1", "CR 405.2", "CR 117.1d")
     await expect(bubble).toHaveText(
-      "The stack is a zone and holds spells. - CR 405.1, CR 405.2",
+      "The stack is a zone and holds spells and survives. - CR 405.1, CR 405.2, CR 117.1d",
     );
-    // expect: no "(CR 405.1)" / "(rule 405.2)" remnants in the bubble text
+    // expect: no "(CR 405.1)" / "(rule 405.2)" / "(117.1d)" remnants in the
+    //     bubble text
     await expect(bubble).not.toContainText("(CR 405.1)");
     await expect(bubble).not.toContainText("(rule 405.2)");
-    // expect: exactly 2 <i> refs with exact normalized texts
-    await expect(bubble.locator("i")).toHaveCount(2);
-    await expect(bubble.locator("i")).toHaveText(["CR 405.1", "CR 405.2"]);
+    await expect(bubble).not.toContainText("(117.1d)");
+    // expect: exactly 3 <i> refs with exact normalized texts
+    await expect(bubble.locator("i")).toHaveCount(3);
+    await expect(bubble.locator("i")).toHaveText(["CR 405.1", "CR 405.2", "CR 117.1d"]);
 
     // 3. Style: refs italic, #FAF8F5 at 75% opacity — rgba(...) or the
     //    color-mix "color(srgb ...)" form Tailwind emits

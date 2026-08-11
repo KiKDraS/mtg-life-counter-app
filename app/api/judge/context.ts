@@ -9,7 +9,7 @@
 
 import { buildUserPrompt } from "@/features/ai-judge/lib/prompts";
 import { getRulings, resolveCard } from "@/features/ai-judge/lib/scryfall";
-import { extractCardName } from "@/features/ai-judge/lib/rag/cards-source";
+import { extractCardNames } from "@/features/ai-judge/lib/rag/cards-source";
 import type { CardRuling } from "@/features/ai-judge/lib/rag/cards-source";
 import { retrieveRules } from "@/features/ai-judge/lib/rag/retrieval";
 import type { RetrievedRule } from "@/features/ai-judge/lib/rag/retrieval";
@@ -30,45 +30,52 @@ export interface JudgeContext {
   readonly sourcesUsed: string[];
 }
 
-/** Card-path result: oracle text + type line + mapped rulings + "scryfall"
- * source only when resolved. Present (name/typeLine/oracleText) whenever the
- * card resolves — even with zero rulings (§9.3.1). */
-export interface CardRulingsResult {
+/** One resolved card's context (SPEC §9.3.1). Present whenever the card
+ * resolves — even with zero rulings. */
+export interface CardContext {
   readonly name: string;
   readonly typeLine: string | null;
   readonly oracleText: string | null;
   readonly rulings: CardRuling[];
+}
+
+/** Card-path result: all resolved card contexts + "scryfall" source only
+ * when at least one card resolves (§9.3.1). */
+export interface CardRulingsResult {
+  readonly cards: CardContext[];
   readonly sourcesUsed: string[];
 }
 
 /**
- * @description Card rulings path (SPEC §9.3.1). Null-safe at every step:
- * card name missing, card unresolvable/ambiguous, or rulings unavailable →
- * empty result, no error (§9.3.1). Card context (name/type/oracle text)
- * present whenever the card resolves — rulings stay optional.
+ * @description Card rulings path (SPEC §9.3.1). Null-safe at every step per
+ * card: name missing, unresolvable/ambiguous, or rulings unavailable → that
+ * card skipped, no error (§9.3.1). All extracted names resolved sequentially
+ * through the rate queue (resolveCard). Card context (name/type/oracle text)
+ * present whenever a card resolves — rulings stay optional.
  * @param question The player's trimmed question.
- * @returns Card context + mapped rulings plus `["scryfall"]` when a card
+ * @returns Card contexts + mapped rulings plus `["scryfall"]` when a card
  * resolved, else empty arrays.
  */
 export async function resolveCardRulings(question: string): Promise<CardRulingsResult> {
-  const cardName = extractCardName(question);
-  if (!cardName) return { name: "", typeLine: null, oracleText: null, rulings: [], sourcesUsed: [] };
-  const card = await resolveCard(cardName);
-  if (!card) return { name: "", typeLine: null, oracleText: null, rulings: [], sourcesUsed: [] };
+  const cards: CardContext[] = [];
+  for (const name of extractCardNames(question)) {
+    const card = await resolveCard(name);
+    if (!card) continue;
 
-  const rulings = (await getRulings(card)) ?? [];
-  return {
-    name: card.name,
-    typeLine: card.type_line,
-    oracleText: card.oracle_text,
-    rulings: rulings.map((ruling) => ({
+    const rulings = (await getRulings(card)) ?? [];
+    cards.push({
       name: card.name,
-      source: ruling.source,
-      published_at: ruling.published_at,
-      comment: ruling.comment,
-    })),
-    sourcesUsed: ["scryfall"],
-  };
+      typeLine: card.type_line,
+      oracleText: card.oracle_text,
+      rulings: rulings.map((ruling) => ({
+        name: card.name,
+        source: ruling.source,
+        published_at: ruling.published_at,
+        comment: ruling.comment,
+      })),
+    });
+  }
+  return { cards, sourcesUsed: cards.length > 0 ? ["scryfall"] : [] };
 }
 
 /** Fetch + parse + cache the rules artifact; throws on failure (§9.3.2). */
@@ -106,9 +113,9 @@ export async function loadRules(
 }
 
 /**
- * @description Build the user-message context (SPEC §9.7): card rulings +
- * top-k rules. Best-effort and null-safe:
- * - Card missing/ambiguous/error → rulings skipped, no error (§9.3.1).
+ * @description Build the user-message context (SPEC §9.7): all resolved card
+ * contexts + top-k rules. Best-effort and null-safe:
+ * - Cards missing/ambiguous/error → skipped, no error (§9.3.1).
  * - Rules fetch fail → stale artifact, else degraded mode, answer on card
  *   rulings only (§9.3.2).
  * @param question The player's trimmed question.
@@ -121,6 +128,7 @@ export async function buildContext(question: string): Promise<JudgeContext> {
     loadRules(question),
   ]);
 
+  const rulings = card.cards.flatMap((cardContext) => cardContext.rulings);
   const sourcesUsed = [...card.sourcesUsed];
   if (rules) sourcesUsed.push("mtg.wtf");
 
@@ -128,8 +136,8 @@ export async function buildContext(question: string): Promise<JudgeContext> {
     contextText: buildUserPrompt(
       question,
       rules?.rules ?? [],
-      card.sourcesUsed.length > 0 ? card : null,
-      card.rulings,
+      card.cards,
+      rulings,
     ),
     sourcesUsed,
   };

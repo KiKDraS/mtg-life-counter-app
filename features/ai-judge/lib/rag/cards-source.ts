@@ -48,7 +48,7 @@ const LEADING_SKIP = new Set([
 
 /** Title-case word: capitalized, ≥2 chars, letters/apostrophe/hyphen only. */
 const TITLE_CASE_RE = /^[A-Z][a-z'-]{1,}$/;
-const QUOTED_RE = /"([^"]{2,40})"/;
+const QUOTED_RE = /"([^"]{2,40})"/g;
 const LEADING_PUNCT_RE = /^[¿¡"'([{]+/;
 const TRAILING_PUNCT_RE = /[.,!?;:)\]}'"]+$/;
 
@@ -72,39 +72,80 @@ const joinRun = (run: string[]): string => {
   return out.join(" ");
 };
 
-/** Keep the longer candidate — first run wins ties. */
-const longerRun = (best: string | null, run: string[]): string | null =>
-  best === null || run.length > best.split(" ").length ? joinRun(run) : best;
+/** Drop trailing connector tokens from a run — never below 2 tokens. */
+const trimTrailingConnectors = (run: string[]): string[] => {
+  const out = run.slice();
+  while (out.length > 2 && CONNECTORS.has(normalize(stripPunct(out[out.length - 1])))) {
+    out.pop();
+  }
+  return out;
+};
+
+/** Dedupe by normalized name, preserving first-occurrence order. */
+const dedupeNames = (names: string[]): string[] => {
+  const unique: string[] = [];
+  const seen = new Set<string>();
+  for (const name of names) {
+    const key = normalize(name);
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      unique.push(name);
+    }
+  }
+  return unique;
+};
 
 /**
- * @description Best-effort card name from a question (SPEC §9.3.1). Quoted
- * name wins; else the longest run of 2+ tokens starting at a title-case word,
- * with allowed lowercase connectors ("and", "the", "to"…) inside the run.
- * Leading interrogatives/fillers ("How", "Does", "me", "about", "¿Qué"…)
- * stripped before the run. Run ends at a lowercase non-connector ("work",
- * "legal"…) or sentence punctuation. O(n) single pass.
- * @param question The player's question.
- * @returns Card name candidate, or null when none found (card path skipped).
+ * @description One title-case run starting at `words[start]`, advanced to its
+ * end. Extends through connectors and digit-led tokens; a connector after a
+ * comma splits the run (comma ends one card phrase, connector starts the
+ * next); interrogative/filler words terminate it.
+ * @param words Question tokens.
+ * @param start Index of the run's first token.
+ * @returns The raw run tokens plus the next unconsumed index.
  */
-export function extractCardName(question: string): string | null {
-  const quoted = question.match(QUOTED_RE);
-  if (quoted) return quoted[1].trim();
+function collectRun(words: string[], start: number): { run: string[]; next: number } {
+  const run: string[] = [];
+  let seenComma = false;
+  let i = start;
+  while (i < words.length) {
+    const raw = words[i];
+    const token = stripPunct(raw);
+    if (run.length > 0 && LEADING_SKIP.has(normalize(token))) break;
+    if (!isRunToken(token)) break;
+    if (CONNECTORS.has(normalize(token)) && seenComma) break;
+    run.push(raw);
+    if (raw.endsWith(",")) seenComma = true;
+    i++;
+  }
+  return { run, next: i };
+}
+
+/**
+ * @description All best-effort card names in a question (SPEC §9.3.1). Quoted
+ * names first, then every title-case run (see {@link collectRun}). Trailing
+ * connectors trimmed. Runs shorter than 2 tokens dropped (quoted: 1). Deduped
+ * by normalized name. O(n) single pass, O(n) dedupe.
+ * @param question The player's question.
+ * @returns All card-name candidates — empty when none found.
+ */
+export function extractCardNames(question: string): string[] {
+  const names: string[] = [];
+  for (const match of question.matchAll(QUOTED_RE)) {
+    names.push(match[1].trim());
+  }
 
   const words = question.split(/\s+/);
-  let best: string | null = null;
-
-  for (let i = 0; i < words.length; i++) {
+  let i = 0;
+  while (i < words.length) {
     const clean = stripPunct(words[i]);
-    if (LEADING_SKIP.has(normalize(clean))) continue;
-    if (!isTitleCase(clean)) continue;
-
-    const run: string[] = [];
-    for (let j = i; j < words.length; j++) {
-      if (!isRunToken(stripPunct(words[j]))) break;
-      run.push(words[j]);
+    if (LEADING_SKIP.has(normalize(clean)) || !isTitleCase(clean)) {
+      i++;
+      continue;
     }
-    if (run.length >= 2) best = longerRun(best, run);
-    i += run.length - 1;
+    const { run, next } = collectRun(words, i);
+    if (run.length >= 2) names.push(joinRun(trimTrailingConnectors(run)));
+    i = next;
   }
-  return best;
+  return dedupeNames(names);
 }

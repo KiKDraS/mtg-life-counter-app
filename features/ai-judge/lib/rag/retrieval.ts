@@ -62,6 +62,55 @@ const mentionScore = (ruleId: string, mentioned: Set<string>): number => {
 };
 
 /**
+ * Topic term (EN + ES, normalized) → CR section numbers (§9.4). A question
+ * naming a topic gets its section's rules a flat boost — stack questions must
+ * surface 405/608/707 even when token overlap is thin ("copies" vs "copy").
+ * ES keys mirror es-dict terms; accent-free lowercase via normalize().
+ */
+const TOPIC_SECTIONS: Readonly<Record<string, readonly string[]>> = {
+  stack: ["405"], pila: ["405"],
+  resolve: ["608"], resolver: ["608"],
+  counter: ["608"], contador: ["608"],
+  copy: ["707"],
+  priority: ["116", "117"], prioridad: ["116", "117"],
+  cast: ["601"], lanzar: ["601"],
+  play: ["601"], jugar: ["601"],
+  activate: ["602"],
+  trigger: ["603"],
+  damage: ["120"], dano: ["120"],
+  combat: ["506", "510"], "fase de combate": ["506", "510"],
+  phase: ["500"], turn: ["500"], turno: ["500"],
+  lethal: ["704"], letal: ["704"],
+  commander: ["903"], comandante: ["903"],
+  exile: ["406"], exilio: ["406"],
+  graveyard: ["404"], cementerio: ["404"],
+  hand: ["402"], mano: ["402"],
+  draw: ["121"], robar: ["121"],
+  token: ["111"],
+};
+
+/** Topic-match boost: rule under a matched section gets +TOPIC_BOOST. */
+export const TOPIC_BOOST = 2;
+
+/**
+ * @description CR section numbers whose topic appears in the question.
+ * Whole-word match on the normalized question — same pattern as es-dict
+ * translateTerms. O(T) regexes over a bounded term table.
+ * @param question The player's question.
+ * @returns Matched section numbers, deduped.
+ */
+function topicSections(question: string): Set<string> {
+  const normalized = normalize(question);
+  const sections = new Set<string>();
+  for (const [term, sectionNumbers] of Object.entries(TOPIC_SECTIONS)) {
+    if (new RegExp(`(?<![a-z0-9])${term}(?![a-z0-9])`).test(normalized)) {
+      for (const sectionNumber of sectionNumbers) sections.add(sectionNumber);
+    }
+  }
+  return sections;
+}
+
+/**
  * Token-overlap + translated-term + exact-phrase score between the rule text
  * and the question. Multi-word translated terms ("combat phase") score as
  * exact-phrase containment ({@link PHRASE_BOOST}); single-word translated
@@ -147,11 +196,13 @@ export function retrieveRules(question: string, artifact: RulesArtifact): Retrie
   const translatedTokens = new Set<string>();
   const phrases: string[] = [];
   splitTranslated(question, translatedTokens, phrases);
+  const topics = topicSections(question);
   const scored: RetrievedRule[] = [];
 
   for (const [ruleId, text] of artifact.rules) {
     let score = mentionScore(ruleId, mentioned);
     score += overlapScore(text, questionTokens, translatedTokens, phrases);
+    if (topics.has(ruleId.split(".")[0])) score += TOPIC_BOOST;
     if (score > 0) scored.push({ ruleId, text, score });
   }
 

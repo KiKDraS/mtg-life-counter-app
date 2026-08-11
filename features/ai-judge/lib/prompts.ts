@@ -52,7 +52,7 @@ Rules you must follow:
 - Answer ONLY Magic: The Gathering rules questions. For any non-MTG question, answer: {"answer": "I only answer Magic: The Gathering rules questions.", "citations": []}
 - No strategy advice, no deck building, no card valuations. Rules clarifications only.
 - Respond in the same language as the player's question: Spanish question → Spanish answer; English → English; any other language → English.
-- Base every answer on the Comprehensive Rules and Oracle card text provided in the user message. If the provided context does not cover the question, say so plainly — do not guess.
+- You are an experienced MTG judge. Resolve scenarios step-by-step using the provided Oracle card texts and Comprehensive Rules excerpts, then your knowledge of the Comprehensive Rules. NEVER refuse when the involved card texts are in the context. If a named card's Oracle text is missing from context, state that you lack its text and reason from the rules you have.
 - Relevant rules excerpts may be partial or truncated. Answer using the excerpts AND your knowledge of the Comprehensive Rules. Never refuse to answer because an excerpt is incomplete.
 - Reason step by step, then give the final answer. Show only the final answer.
 - Format answers with markdown subset only: paragraphs separated by blank lines, **bold** for key terms, '- ' bullet lists, '1. ' numbered lists. No headings, no tables, no code blocks.
@@ -75,7 +75,8 @@ A: {"answer": "Yes. You may cast an instant any time you have priority, which in
  * @description SPEC §9.7 — RAG context + question in a single USER message.
  * @param question The player's trimmed question.
  * @param rules Top-k retrieved rules to inject as a rules block.
- * @param card Resolved card (name + type line + oracle text, verbatim) or null.
+ * @param cards Resolved cards (name + type line + oracle text, verbatim) or
+ * empty. One Card block per card.
  * @param rulings Best-effort card rulings to inject as a rulings block.
  * @returns The assembled user message: optional card/rules/rulings blocks, then
  * the question. Empty blocks omitted.
@@ -83,21 +84,23 @@ A: {"answer": "Yes. You may cast an instant any time you have priority, which in
 export function buildUserPrompt(
   question: string,
   rules: RetrievedRule[],
-  card: PromptCard | null,
+  cards: readonly PromptCard[],
   rulings: CardRuling[],
 ): string {
   const parts: string[] = [];
 
-  if (card) {
-    const cardBlock = [
-      "Card:",
-      `Name: ${card.name}`,
-      card.typeLine ? `Type: ${card.typeLine}` : null,
-      card.oracleText ? `Oracle text: ${card.oracleText}` : null,
-    ]
-      .filter((line): line is string => line !== null)
-      .join("\n");
-    parts.push(cardBlock);
+  if (cards.length > 0) {
+    const cardBlocks = cards.map((card) =>
+      [
+        "Card:",
+        `Name: ${card.name}`,
+        card.typeLine ? `Type: ${card.typeLine}` : null,
+        card.oracleText ? `Oracle text: ${card.oracleText}` : null,
+      ]
+        .filter((line): line is string => line !== null)
+        .join("\n"),
+    );
+    parts.push(cardBlocks.join("\n\n"));
   }
 
   if (rules.length > 0) {

@@ -17,20 +17,22 @@ function renderInline(text: string): ReactNode[] {
 }
 
 /**
- * Rule reference regex — space form only (`CR 405.1`, `rule 405.2a`,
- * `regla 405.1`), any case. Bare numbers like "(405.1)" or glossary
- * entries like "100.2c" without a prefix are left alone.
+ * Rule reference regex — space form (`CR 405.1`, `rule 405.2a`, `regla 405.1`)
+ * OR bare number (`405.1`, `(117.1d)`), any case. The bare form matches 3
+ * digits + dot + digits + optional letter — distinctive enough that "40 life",
+ * "3 damage" or "1000.5" can't match. Inside "CR 405.1" the prefixed branch
+ * wins and consumes the prefix, so the bare form never double-fires.
  * ponytail: no space-less "CR405.1" form; add when model emits it.
  */
-const RULE_REF_RE = /\b(?:CR|rule|regla)\s+(\d{3}\.\d+[a-z]?)\b/gi;
+const RULE_REF_RE = /\b(?:(?:CR|rule|regla)\s+)?(\d{3}\.\d+[a-z]?)\b/gi;
 
 /**
  * @description
  * Extracts all rule references from a text segment: strips each occurrence
- * (including adjacent parentheses, e.g. "(CR 405.1)") and normalizes the
- * prefix to `CR <num>`. Incomplete mid-stream refs ("CR 405.") match
- * nothing and pass through literal — the paragraph re-renders when the ref
- * completes.
+ * (including adjacent parentheses, e.g. "(CR 405.1)" or "(117.1d)") and
+ * normalizes the prefix to `CR <num>`. Incomplete mid-stream refs ("CR 405.")
+ * match nothing and pass through literal — the paragraph re-renders when the
+ * ref completes.
  *
  * @param text The raw segment text.
  * @returns The cleaned text plus normalized `CR <num>` refs in order.
@@ -178,9 +180,9 @@ interface MarkdownTextProps {
  * answer is one long text block (no lists, no blank-line separation,
  * >300 chars) it falls back to sentence-boundary paragraphs (~2 sentences,
  * ≤240 chars, rule-id guard keeps "CR 405.1a" unsplit).
- * Inline: `**text**` → <strong>; rule refs (`CR|rule|regla <num>`) →
- * stripped from the text and appended at paragraph end as a
- * ` - <i>CR <num></i>` suffix (comma-joined, DESIGN §6.4.2). Escapes via
+ *  Inline: `**text**` → <strong>; rule refs (`CR|rule|regla <num>` or bare
+ *  `405.1`) → stripped from the text and appended at paragraph end as a
+ *  ` - <i>CR <num></i>` suffix (comma-joined, DESIGN §6.4.2). Escapes via
  * React text nodes — no dangerouslySetInnerHTML.
  *
  * @param content The raw answer string from the model.
