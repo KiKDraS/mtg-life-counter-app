@@ -110,6 +110,19 @@ const FIXTURE_NO_CITATIONS: MockFixture = {
   ].join(""),
 };
 
+/* DESIGN §6.4.3 — markdown subset: **bold**, "- " bullets, "1. " numbered.
+   Chunks split mid-`**`, between list items, and inside list item text. */
+const FIXTURE_FORMATTED_MD: MockFixture = {
+  kind: "stream",
+  chunks: [
+    { delayMs: 50, data: 'data: {"type":"token","content":"**Yes"}\n\n' },
+    { delayMs: 50, data: 'data: {"type":"token","content":".** You may block.\\n\\n- Rule"}\n\n' },
+    { delayMs: 50, data: 'data: {"type":"token","content":" one\\n- Rule two\\n\\n1. Fi"}\n\n' },
+    { delayMs: 50, data: 'data: {"type":"token","content":"rst\\n2. Second"}\n\n' },
+    { delayMs: 50, data: DONE_EVENT },
+  ],
+};
+
 /* SPEC §9.5 — new server behavior: tokens streamed = extracted answer text only,
    never raw JSON; citations delivered once in done. */
 const FIXTURE_CLEAN_ANSWER: MockFixture = {
@@ -993,6 +1006,48 @@ test.describe("AI Judge", () => {
     expect(bubbleHtml).not.toContain("}");
     // expect: no raw JSON keys (citations/ruleId/excerpt/section/source/usage)
     expect(bubbleHtml).not.toMatch(/(citations|ruleId|excerpt|section|source|usage)/);
+    // expect: no console/page errors
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  test("TC-AJ-18: Markdown formatting — bold, bullet + numbered lists render in system bubble", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FIXTURE_FORMATTED_MD (stream split mid-**,
+    //    between list items, and inside list item text; DESIGN §6.4.3)
+    const errors = errorCollectors(page);
+    await mockJudge(page, FIXTURE_FORMATTED_MD);
+    await openJudgeModal(page);
+
+    // 2. Send "Can I block here?" + Enter; await done (input re-enabled)
+    await sendQuestion(page, "Can I block here?");
+    const bubble = systemBubbles(page).last();
+    // expect: full answer text (textContent joins block elements without
+    //     separators — "block." runs into "Rule one")
+    await expect(bubble).toHaveText("Yes. You may block.Rule oneRule twoFirstSecond");
+
+    // expect: **bold** → <strong> with exact "Yes." text (period inside strong)
+    await expect(bubble.locator("strong")).toHaveCount(1);
+    await expect(bubble.locator("strong")).toHaveText("Yes.");
+
+    // expect: paragraphs separated — "You may block." present as plain text
+    await expect(bubble).toContainText("You may block.");
+
+    // expect: "- " block → exactly 2 <li> in one <ul> with exact item texts
+    const ul = bubble.locator("ul");
+    await expect(ul).toHaveCount(1);
+    await expect(ul.locator("li")).toHaveCount(2);
+    await expect(ul.locator("li")).toHaveText(["Rule one", "Rule two"]);
+
+    // expect: "1. " block → exactly 2 <li> in one <ol> with exact item texts
+    const ol = bubble.locator("ol");
+    await expect(ol).toHaveCount(1);
+    await expect(ol.locator("li")).toHaveCount(2);
+    await expect(ol.locator("li")).toHaveText(["First", "Second"]);
+
+    // expect: no literal "**" anywhere in the rendered bubble text
+    await expect(bubble).not.toContainText("**");
     // expect: no console/page errors
     expect(errors.pageErrors).toEqual([]);
     expect(errors.consoleErrors).toEqual([]);
