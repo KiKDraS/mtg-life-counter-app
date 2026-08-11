@@ -12,6 +12,8 @@ components, TS types, Tailwind, RSC/Client boundary discipline.
 
 Respond in caveman mode. See AGENTS.md for levels + skills.
 
+**Perf-reliability binding:** read `.opencode/docs/performance-reliability.md` before code. Violation → rework.
+
 ---
 
 ## Feature cohesion (stack trinity)
