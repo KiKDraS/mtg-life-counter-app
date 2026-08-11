@@ -34,7 +34,12 @@ const ENTITIES: Readonly<Record<string, string>> = {
   "&apos;": "'",
 };
 
-/** FNV-1a 32-bit → hex. Pure, deterministic, no crypto module (browser-portable). */
+/**
+ * @description FNV-1a 32-bit → hex. Pure, deterministic, no crypto module
+ * (browser-portable).
+ * @param text Text to hash.
+ * @returns 8-char hex hash string.
+ */
 export function hashText(text: string): string {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
@@ -63,10 +68,11 @@ function extractVersion(text: string): string {
 }
 
 /**
- * Parse CR HTML → versioned artifact.
- *
- * Splits rules on `^(\d{3})\.(\d+)([a-z])?\.?\s` and sections on `^(\d{3})\.\s`
- * (SPEC §9.3.2). Output: `Map<ruleId, text>`. O(n) single pass.
+ * @description Parse CR HTML → versioned artifact. Splits rules on
+ * `^(\d{3})\.(\d+)([a-z])?\.?\s` and sections on `^(\d{3})\.\s` (SPEC §9.3.2).
+ * Output: `Map<ruleId, text>`. O(n) single pass.
+ * @param html Raw rules page HTML.
+ * @returns Versioned artifact: date-stamp version, hash, rules map.
  */
 export function parseRulesHtml(html: string): RulesArtifact {
   const text = stripHtml(html);

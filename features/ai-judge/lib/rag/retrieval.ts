@@ -30,12 +30,12 @@ function normalizeTokens(text: string): Set<string> {
 }
 
 /**
- * Score a rule against the question:
- * - +10 when the question names the rule id and the rule falls under it
- *   (exact section boost, SPEC §9.4).
- * - +1 per question token found in the rule text (token overlap).
- *
- * Returns top-k sorted desc. Ties broken by insertion order (stable sort).
+ * @description Score a rule against the question (exact rule-id mention boost,
+ * token overlap) and return the top-k, sorted desc. Ties broken by insertion
+ * order (stable sort).
+ * @param question The player's question.
+ * @param artifact The rules artifact to search.
+ * @returns Top-k ({@link TOP_K}) matching rules, score desc.
  */
 export function retrieveRules(question: string, artifact: RulesArtifact): RetrievedRule[] {
   const mentioned = new Set<string>();

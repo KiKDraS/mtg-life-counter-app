@@ -99,7 +99,10 @@ const ipRequests = new Map<string, number[]>();
 function isRateLimited(ip: string): boolean {
   const cutoff = Date.now() - RATE_WINDOW_MS;
   const times = (ipRequests.get(ip) ?? []).filter((t) => t > cutoff);
-  if (times.length >= RATE_LIMIT) {
+  if (times.length === 0) {
+    // Window fully expired → drop the entry, keep the map bounded.
+    ipRequests.delete(ip);
+  } else if (times.length >= RATE_LIMIT) {
     ipRequests.set(ip, times);
     return true;
   }
@@ -112,22 +115,53 @@ const clientIp = (request: Request): string =>
   request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
 /* ------------------------------------------------------------------ */
-/* Session history — in-memory, per IP (SPEC §9.9)                     */
+/* Session history — keyed by client sessionId (SPEC §9.9)             */
 /* ------------------------------------------------------------------ */
 
 const MAX_SESSIONS = 100;
+const SESSION_IDLE_MS = 30 * 60 * 1000; // 30 min idle expiry
 
-const sessions = new Map<string, JudgeHistory>();
+interface SessionEntry {
+  readonly history: JudgeHistory;
+  lastTouchedAt: number;
+}
 
-function getSession(ip: string): JudgeHistory {
-  let history = sessions.get(ip);
-  if (!history) {
-    history = { system: SYSTEM_PROMPT, turns: [] };
-    sessions.set(ip, history);
-    if (sessions.size > MAX_SESSIONS) {
-      const oldest = sessions.keys().next().value;
-      if (oldest !== undefined) sessions.delete(oldest);
-    }
+const sessions = new Map<string, SessionEntry>();
+
+/** Lazy sweep on access: drop sessions idle > 30 min. O(n), n ≤ MAX_SESSIONS. */
+function sweepSessions(now: number): void {
+  for (const [id, entry] of sessions) {
+    if (now - entry.lastTouchedAt > SESSION_IDLE_MS) sessions.delete(id);
+  }
+}
+
+/**
+ * Session key: the client's sessionId (uuid, one per modal open) when valid —
+ * string, 8–128 chars after trim. Missing/invalid → `ip:timestamp`, a
+ * per-request key that is never reused, so no cross-request history sharing.
+ */
+function sessionKey(bodySessionId: unknown, ip: string): string {
+  if (typeof bodySessionId === "string") {
+    const id = bodySessionId.trim();
+    if (id.length >= 8 && id.length <= 128) return id;
+  }
+  return `${ip}:${Date.now()}`;
+}
+
+/** Get-or-create history for a session key. Idle sweep on access. */
+function getSession(id: string): JudgeHistory {
+  const now = Date.now();
+  sweepSessions(now);
+  const entry = sessions.get(id);
+  if (entry) {
+    entry.lastTouchedAt = now;
+    return entry.history;
+  }
+  const history: JudgeHistory = { system: SYSTEM_PROMPT, turns: [] };
+  sessions.set(id, { history, lastTouchedAt: now });
+  if (sessions.size > MAX_SESSIONS) {
+    const oldest = sessions.keys().next().value;
+    if (oldest !== undefined) sessions.delete(oldest);
   }
   return history;
 }
@@ -277,11 +311,15 @@ async function streamFromModel(
 
     const iterator = stream[Symbol.asyncIterator]();
     type FirstChunk = Awaited<ReturnType<typeof iterator.next>> | null;
+    const firstPromise = iterator.next();
     const first = await Promise.race<FirstChunk>([
-      iterator.next(),
+      firstPromise,
       sleep(FIRST_TOKEN_TIMEOUT_MS).then(() => null),
     ]);
     if (first === null) {
+      // Timeout loser: the pending next() rejects when the stream aborts —
+      // swallow so the SDK rejection can't surface as an unhandled rejection.
+      firstPromise.catch(() => {});
       timedOut = true;
       controller.abort();
       throw new StreamTimeoutError("first token timeout");
@@ -361,7 +399,7 @@ export async function POST(request: Request): Promise<Response> {
 
       try {
         const { contextText, sourcesUsed } = await buildContext(question);
-        const history = getSession(ip);
+        const history = getSession(sessionKey(body.sessionId, ip));
         const messages = buildMessages(history, question, contextText);
 
         let outcome: StreamOutcome | null = null;
@@ -403,6 +441,16 @@ export async function POST(request: Request): Promise<Response> {
 
         const citations = parseCitations(outcome.content);
         history.turns.push({ user: question, assistant: outcome.content });
+        // SPEC §9.6 — usage + cost logged per request. Never logs key/question.
+        console.log(
+          "[ai-judge] usage",
+          JSON.stringify({
+            model: outcome.model,
+            inputTokens: outcome.usage.inputTokens,
+            outputTokens: outcome.usage.outputTokens,
+            cost: outcome.usage.cost,
+          }),
+        );
         enqueue({
           type: "done",
           citations,

@@ -37,23 +37,55 @@ const rulingCache = new Map<string, { rulings: ScryfallRuling[]; fetchedAt: numb
 const isFresh = (fetchedAt: number, ttl: number, now = Date.now()): boolean =>
   now - fetchedAt < ttl;
 
-/** Fresh (<24h) artifact or null → route refetches (SPEC §9.3.2). O(1). */
+/**
+ * @description Fresh (<24h) rules artifact or null → route refetches (SPEC
+ * §9.3.2). O(1).
+ * @returns The cached artifact when fresh, else null.
+ */
 export function getRulesArtifact(): RulesArtifact | null {
   if (currentRules && isFresh(currentRules.fetchedAt, RULES_TTL)) return currentRules.artifact;
   return null;
 }
 
-/** Last known artifact, any age — fetch-fail fallback (24h TTL fallback). O(1). */
+/**
+ * @description Last known rules artifact, any age — fetch-fail fallback.
+ * O(1).
+ * @returns The cached artifact or null when never fetched.
+ */
 export function getStaleRulesArtifact(): RulesArtifact | null {
   return currentRules?.artifact ?? null;
 }
 
-/** Store artifact. Version change replaces the old entry. O(1). */
+/**
+ * Store a freshly fetched+parsed artifact.
+ *
+ * Replaces the cached artifact only when version or hash changed (SPEC §9.3 —
+ * caches keyed by version, never by TTL guesswork). When unchanged, only the
+ * fetchedAt timestamp refreshes so the 24h TTL restarts without replacing the
+ * artifact object.
+ *
+ * @param artifact Artifact parsed from the fetched rules page.
+ * @returns void.
+ */
 export function putRulesArtifact(artifact: RulesArtifact): void {
+  const current = currentRules;
+  if (
+    current &&
+    current.artifact.version === artifact.version &&
+    current.artifact.hash === artifact.hash
+  ) {
+    currentRules = { artifact: current.artifact, fetchedAt: Date.now() };
+    return;
+  }
   currentRules = { artifact, fetchedAt: Date.now() };
 }
 
-/** Card cache hit → touch (move to newest) + return. Miss/stale → null. O(1). */
+/**
+ * @description Card cache hit → touch (move to newest) + return. Miss/stale →
+ * null. O(1).
+ * @param name Card name key.
+ * @returns Cached card + etag, or null on miss/stale.
+ */
 export function getCachedCard(name: string): { card: ScryfallCard; etag: string | null } | null {
   const entry = cardCache.get(name);
   if (!entry) return null;
@@ -66,7 +98,13 @@ export function getCachedCard(name: string): { card: ScryfallCard; etag: string 
   return { card: entry.card, etag: entry.etag };
 }
 
-/** Insert card; evict oldest when over LRU cap. O(1). */
+/**
+ * @description Insert card; evict oldest when over LRU cap. O(1).
+ * @param name Card name key.
+ * @param card Scryfall card to cache.
+ * @param etag ETag for revalidation, or null.
+ * @returns void.
+ */
 export function putCachedCard(name: string, card: ScryfallCard, etag: string | null): void {
   if (cardCache.has(name)) cardCache.delete(name);
   cardCache.set(name, { card, fetchedAt: Date.now(), etag });
@@ -76,7 +114,11 @@ export function putCachedCard(name: string, card: ScryfallCard, etag: string | n
   }
 }
 
-/** Rulings if fresh, else null. O(1). */
+/**
+ * @description Rulings if fresh, else null. O(1).
+ * @param cardId Scryfall card id key.
+ * @returns Cached rulings array, or null on miss/stale.
+ */
 export function getCachedRulings(cardId: string): ScryfallRuling[] | null {
   const entry = rulingCache.get(cardId);
   if (!entry) return null;
@@ -87,7 +129,12 @@ export function getCachedRulings(cardId: string): ScryfallRuling[] | null {
   return entry.rulings;
 }
 
-/** Store rulings. O(1). */
+/**
+ * @description Store rulings. O(1).
+ * @param cardId Scryfall card id key.
+ * @param rulings Rulings to cache.
+ * @returns void.
+ */
 export function putCachedRulings(cardId: string, rulings: ScryfallRuling[]): void {
   rulingCache.set(cardId, { rulings, fetchedAt: Date.now() });
 }

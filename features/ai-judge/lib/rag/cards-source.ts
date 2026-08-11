@@ -37,13 +37,11 @@ const TITLE_CASE_RE = /^[A-Z][a-z'-]{1,}$/;
 const QUOTED_RE = /"([^"]{2,40})"/;
 
 /**
- * Best-effort card name from a question (SPEC §9.3.1).
- *
- * 1. Quoted name — first match wins.
- * 2. Longest run of 2–5 consecutive title-case words. Question starters
- *    ("Is", "Can"…) never start a run. No match → null (card path skipped).
- *
- * O(n) single pass over the words.
+ * @description Best-effort card name from a question (SPEC §9.3.1). Quoted
+ * name wins; else the longest run of 2–5 consecutive title-case words, with
+ * question starters ("Is", "Can"…) never starting a run. O(n) single pass.
+ * @param question The player's question.
+ * @returns Card name candidate, or null when none found (card path skipped).
  */
 export function extractCardName(question: string): string | null {
   const quoted = question.match(QUOTED_RE);

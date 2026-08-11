@@ -79,8 +79,11 @@ const isRuling = (value: unknown): value is ScryfallRuling =>
   typeof (value as ScryfallRuling).source === "string";
 
 /**
- * Fuzzy card lookup. Cache-first (LRU 500 / 24h, ETag revalidation).
- * Returns null on 404/ambiguous/timeout/network error.
+ * @description Fuzzy card lookup (SPEC §9.3.1). Cache-first (LRU 500 / 24h,
+ * ETag revalidation). Never throws.
+ * @param name Card name from the question.
+ * @returns The matched card, or null on 404/ambiguous/timeout/network error.
+ * Reuses a stale cache entry on fetch failure when present.
  */
 export async function resolveCard(name: string): Promise<ScryfallCard | null> {
   const cached = getCachedCard(name);
@@ -101,7 +104,12 @@ export async function resolveCard(name: string): Promise<ScryfallCard | null> {
   return result.data;
 }
 
-/** Rulings for a card id. Cache TTL 7d. Null on any failure. */
+/**
+ * @description Rulings for a card id (SPEC §9.3.1). Cache TTL 7d. Never
+ * throws.
+ * @param cardId Scryfall card id.
+ * @returns Rulings array, or null on any failure / empty response.
+ */
 export async function getRulings(cardId: string): Promise<ScryfallRuling[] | null> {
   const cached = getCachedRulings(cardId);
   if (cached) return cached;

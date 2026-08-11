@@ -22,11 +22,14 @@ export const MAX_HISTORY_TOKENS = 24_000;
 export const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
 
 /**
- * Build the SDK messages array.
- *
- * System prompt first (never pruned). Then the newest turns that fit the
- * budget, oldest first (FIFO). Final message = the current user turn with the
- * RAG context already applied (SPEC §9.7 — context lives in the user message).
+ * @description Build the SDK messages array: system prompt first (never
+ * pruned), then the newest turns that fit the budget, oldest first (FIFO),
+ * final message = the current user turn with the RAG context already applied
+ * (SPEC §9.7 — context lives in the user message).
+ * @param history Session history (system prompt + turns).
+ * @param question The current question.
+ * @param contextText RAG context text appended as the final user message.
+ * @returns Message array: system, kept turns, final context user message.
  */
 export function buildMessages(
   history: JudgeHistory,

@@ -31,7 +31,14 @@ A: {"answer": "No. State-based actions are checked before a player would gain li
 Q: Can I cast instants during my opponent's combat phase?
 A: {"answer": "Yes. You may cast an instant any time you have priority, which includes your opponent's combat phase. Each time a player would get priority during that phase, you get priority in turn before the active player's opponent acts.", "citations": [{"type": "rule", "ruleId": "CR 117.1a", "section": "117.1. Timing", "excerpt": "117.1a A player may cast an instant spell any time they have priority."}]}}`;
 
-/** SPEC §9.7 — RAG context + question in a single USER message. */
+/**
+ * @description SPEC §9.7 — RAG context + question in a single USER message.
+ * @param question The player's trimmed question.
+ * @param rules Top-k retrieved rules to inject as a rules block.
+ * @param rulings Best-effort card rulings to inject as a rulings block.
+ * @returns The assembled user message: optional rules/rulings blocks, then the
+ * question. Empty blocks omitted.
+ */
 export function buildUserPrompt(
   question: string,
   rules: RetrievedRule[],
