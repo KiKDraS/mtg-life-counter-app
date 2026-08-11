@@ -401,18 +401,26 @@ Player question: {question}
 
 Seams only. No interfaces, no DI, no provider layer.
 
+- **Delivery = PWA stack.** App is PWA (manifest + `sw.js` cache-first shell,
+  versioned `mtg-life-vN`). Offline artifacts ship through existing channels:
+  - **Service worker** caches artifacts (runtime cache add). SW version bump
+    → stale artifact cache purged by existing activate cleanup.
+  - **IndexedDB** = long-term artifact store — same pattern as §4 persistence.
+    No new storage tech.
 - **Data:** versioned artifacts only. Cache key = version + hash. Nothing
   assumes fresh fetch.
-- **Cards:** raw Scryfall JSON schema. Offline = bundled `default-cards.json`,
-  same objects, zero migration.
+- **Cards:** raw Scryfall JSON schema. Offline = `default-cards.json` artifact
+  cached via SW → IndexedDB, same objects, zero migration.
 - **Retrieval:** pure TS (§9.4) — runs in browser unchanged.
 - **Shared types:** `features/ai-judge/lib/types.ts` — request, response, SSE
   events, citations, gameContext. Route + client import same module.
 - **Client call site:** `features/ai-judge/lib/client.ts` — all UI calls route
-  through it. Now: POST `/api/judge` + SSE parse. Later: swap internals to
-  local engine, UI untouched.
+  through it. Now: POST `/api/judge` + SSE parse. Later: offline → `navigator.onLine` / fetch failure → swap internals to local engine, UI untouched.
 - **Model config:** plain object built at boot. Now from env (§9.2), later from
-  settings. Same schema.
+  settings. Same schema. Offline = local engine, no OpenRouter — server models
+  unreachable by definition.
+- **Note:** `/api/judge` stays network-only in SW (no precache). Judge goes
+  offline only when local engine exists.
 
 ### 9.12 File Map
 
