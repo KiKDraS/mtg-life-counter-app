@@ -23,6 +23,10 @@ export function playerReducer(
     case ADJUST_COMMANDER_DAMAGE: {
       const nextCommanderDamage = [...state.commanderDamage];
 
+      // commanderDamage array shape is SPEC §5-mandated (no Record/Map reshape).
+      // findIndex = O(n) single pass per dispatch; n = array length ≤ playerCount ≤ 6.
+      // Bounded constant work — within perf-reliability.md O(n) norm. push fallback
+      // keeps array dense per SPEC invariant.
       const idx = nextCommanderDamage.findIndex(
         (cd) => cd.playerId === action.commanderPlayerId,
       );

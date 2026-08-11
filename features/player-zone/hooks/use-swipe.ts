@@ -9,6 +9,62 @@ const SWIPE_THRESHOLD_PX = 10;
 /* §4.2 — Maximum elapsed time (in milliseconds) allowed for a gesture to be considered a swipe rather than a slow drag. */
 const SWIPE_TIMEOUT_MS = 300;
 
+/*
+ * §4.3 — Rotation matrix mapping raw screen deltas to the player's logical
+ * deltas. `x`/`y` hold the coefficients (from raw X, from raw Y) for each
+ * logical axis. 90/-90 swap axes with sign flips; 180 inverts both.
+ */
+interface RotationTransform {
+  readonly x: { readonly fromX: number; readonly fromY: number };
+  readonly y: { readonly fromX: number; readonly fromY: number };
+}
+
+const ROTATION_MAP: Record<PlayerZoneRotation, RotationTransform> = {
+  0: { x: { fromX: 1, fromY: 0 }, y: { fromX: 0, fromY: 1 } },
+  90: { x: { fromX: 0, fromY: 1 }, y: { fromX: -1, fromY: 0 } },
+  180: { x: { fromX: -1, fromY: 0 }, y: { fromX: 0, fromY: -1 } },
+  "-90": { x: { fromX: 0, fromY: -1 }, y: { fromX: 1, fromY: 0 } },
+};
+
+/**
+ * @description
+ * Translates raw screen distances into player-logical distances per §4.3.
+ * Lookup-based (O(1)); replaces the old inline switch on `rotation`.
+ *
+ * @param rotation Player slot screen rotation angle.
+ * @param rawDistanceX Physical horizontal distance on screen (px).
+ * @param rawDistanceY Physical vertical distance on screen (px).
+ * @returns Logical deltas `{ x, y }` from the player's perspective.
+ */
+function rotateDeltas(
+  rotation: PlayerZoneRotation,
+  rawDistanceX: number,
+  rawDistanceY: number,
+): { x: number; y: number } {
+  const { x, y } = ROTATION_MAP[rotation];
+  return {
+    x: x.fromX * rawDistanceX + x.fromY * rawDistanceY,
+    y: y.fromX * rawDistanceX + y.fromY * rawDistanceY,
+  };
+}
+
+/**
+ * @description
+ * §4.2 — True when the gesture is a valid swipe: horizontal-dominant from the
+ * player's perspective, at least SWIPE_THRESHOLD_PX, within SWIPE_TIMEOUT_MS.
+ *
+ * @param logicalDeltaX Player-logical horizontal distance (px).
+ * @param logicalDeltaY Player-logical vertical distance (px).
+ * @param elapsedMs Gesture duration.
+ * @returns Whether the gesture qualifies as a swipe.
+ */
+function isValidSwipe(logicalDeltaX: number, logicalDeltaY: number, elapsedMs: number): boolean {
+  const isHorizontalDominant = Math.abs(logicalDeltaX) > Math.abs(logicalDeltaY);
+  const isHorizontalEnough = Math.abs(logicalDeltaX) >= SWIPE_THRESHOLD_PX;
+  const isFastEnough = elapsedMs <= SWIPE_TIMEOUT_MS;
+  return isHorizontalDominant && isHorizontalEnough && isFastEnough;
+}
+
 interface UseSwipeOptions {
   readonly onSwipeLeft: () => void;
   readonly onSwipeRight: () => void;
@@ -77,44 +133,12 @@ export function useSwipe(
       const rawDistanceY = e.clientY - gesture.startY;
       const elapsedMs = performance.now() - gesture.startTime;
 
-      // Translate physical vectors to the player's logical point of view
-      let logicalDeltaX = 0;
-      let logicalDeltaY = 0;
+      // Translate physical vectors to the player's logical point of view (§4.3)
+      const { x: logicalDeltaX, y: logicalDeltaY } = rotateDeltas(rotation, rawDistanceX, rawDistanceY);
 
-      switch (rotation) {
-        case 0: // Normal
-          logicalDeltaX = rawDistanceX;
-          logicalDeltaY = rawDistanceY;
-          break;
-        case 180: // Upside down
-          logicalDeltaX = -rawDistanceX;
-          logicalDeltaY = -rawDistanceY;
-          break;
-        case 90: // Player on the left side, looking right
-          logicalDeltaX = rawDistanceY;
-          logicalDeltaY = -rawDistanceX;
-          break;
-        case -90: // Player on the right side, looking left
-          logicalDeltaX = -rawDistanceY;
-          logicalDeltaY = rawDistanceX;
-          break;
-      }
-
-      /*
-       * Gesture Validation:
-       * Abort if the movement was mostly vertical from the player's perspective,
-       * preventing false positives while they scroll their life up/down.
-       */
-      if (Math.abs(logicalDeltaX) <= Math.abs(logicalDeltaY)) return;
+      if (!isValidSwipe(logicalDeltaX, logicalDeltaY, elapsedMs)) return;
 
       const isSwipeLeft = logicalDeltaX < 0;
-      const horizontalDistance = Math.abs(logicalDeltaX);
-
-      const isHorizontalEnough = horizontalDistance >= SWIPE_THRESHOLD_PX;
-      const isFastEnough = elapsedMs <= SWIPE_TIMEOUT_MS;
-
-      if (!isHorizontalEnough || !isFastEnough) return;
-
       if (isSwipeLeft) {
         stateRef.current.callbacks.onSwipeLeft();
       } else {

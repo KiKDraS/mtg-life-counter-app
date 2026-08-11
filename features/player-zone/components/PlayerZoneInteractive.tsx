@@ -6,9 +6,6 @@ import {
   INCREMENT_LIFE,
   DECREMENT_LIFE,
 } from "@/features/player-zone/constants/life";
-import {
-  PlayerState,
-} from "@/features/player-zone/state/types";
 import { usePlayerStateContext } from "@/features/player-zone/state/hooks";
 import { POISON_LETHAL } from "@/features/player-zone/constants/counter";
 import { COMMANDER_LETHAL_DAMAGE } from "@/features/player-zone/constants/commander";
@@ -17,8 +14,8 @@ import { zoneStylesFor } from "@/features/player-zone/utils/zone-styles";
 import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 import { LifeAdjustmentButton } from "./LifeAdjustemntButton";
 import { LifeTotalDisplay } from "./LifeTotalDisplay";
-import { Counter } from "@/features/player-zone/types/counter";
 import { CommanderDamage } from "@/features/player-zone/types/CommanderDamage";
+import type { PlayerState } from "@/features/player-zone/state/types";
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -54,9 +51,10 @@ const getGearPositionClasses = (isOnBottomSlot: boolean, rotation: number) => {
 };
 
 const checkLethality = (state: PlayerState) => {
-  const isPoisonLethal =
-    (state.counters.find((c: Counter) => c.type === "poison")?.value ?? 0) >=
-    POISON_LETHAL;
+  const isLifeLethal = state.life <= 0;
+  const poisonValue =
+    state.counters.find((c) => c.type === "poison")?.value ?? 0;
+  const isPoisonLethal = poisonValue >= POISON_LETHAL;
   const isCommanderLethal = state.commanderDamage.some(
     (cd: CommanderDamage) => cd.value >= COMMANDER_LETHAL_DAMAGE,
   );
@@ -64,7 +62,7 @@ const checkLethality = (state: PlayerState) => {
   return {
     isPoisonLethal,
     isCommanderLethal,
-    isLethal: state.life <= 0 || isCommanderLethal || isPoisonLethal,
+    isLethal: isLifeLethal || isPoisonLethal || isCommanderLethal,
   };
 };
 
@@ -128,6 +126,7 @@ export function PlayerZoneInteractive({
     ================= 
   */
   const { background, textColor, textShadow } = zoneStylesFor(state.color);
+
   const { isPoisonLethal, isCommanderLethal, isLethal } = checkLethality(state);
 
   return (

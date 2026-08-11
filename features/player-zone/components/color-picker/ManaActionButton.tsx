@@ -50,7 +50,7 @@ export function ManaActionButton({
 
   const handleClick = () => {
     const current = state.color;
-    const isPresent = current.includes(color);
+    const isPresent = state.color.includes(color);
     const isColorless = current.length === 1 && current[0] === "c";
 
     let nextColors: ManaColor[];

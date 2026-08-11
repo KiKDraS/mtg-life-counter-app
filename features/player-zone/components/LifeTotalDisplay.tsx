@@ -21,6 +21,7 @@ export function LifeTotalDisplay({
 }: Readonly<LifeTotalDisplayProps>) {
   const badgeClass =
     "text-caption font-bold uppercase tracking-wider leading-tight";
+  const isAlive = life > 0;
 
   return (
     <div className="flex h-full flex-col items-center justify-center">
@@ -33,13 +34,13 @@ export function LifeTotalDisplay({
         {life}
       </p>
 
-      {life > 0 && isCommanderLethal && (
+      {isAlive && isCommanderLethal && (
         <span className={badgeClass} style={{ color: UI.danger }}>
           Commander Damage Lethal
         </span>
       )}
 
-      {life > 0 && isPoisonLethal && (
+      {isAlive && isPoisonLethal && (
         <span className={badgeClass} style={{ color: UI.danger }}>
           Poison Lethal
         </span>

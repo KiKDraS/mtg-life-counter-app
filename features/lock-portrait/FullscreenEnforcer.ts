@@ -36,22 +36,23 @@ export function FullscreenEnforcer() {
       }
     };
 
-    const enforceImmersiveMode = async () => {
-      if (isLockedRef.current && document.fullscreenElement) return;
-
+    const enterFullscreen = async (): Promise<boolean> => {
       // Screen fully painted by the Browser. Entering fullscreen mode
       try {
         if (fullScreenModeOff) {
           await document.documentElement.requestFullscreen();
         }
+        return true;
       } catch (error) {
         console.warn(
           "Fullscreen mode failed. The browser might be blocking it.",
           error,
         );
-        return;
+        return false;
       }
+    };
 
+    const lockOrientation = async (): Promise<boolean> => {
       // Block portrait orientation on fullscreen mode
       try {
         if ("orientation" in screen && "lock" in screen.orientation) {
@@ -61,13 +62,25 @@ export function FullscreenEnforcer() {
           };
           await so.lock("portrait");
         }
-
-        isLockedRef.current = true;
+        return true;
       } catch (error) {
         console.warn(
           "Orientation lock failed. The browser might be blocking it.",
           error,
         );
+        return false;
+      }
+    };
+
+    const enforceImmersiveMode = async () => {
+      if (isLockedRef.current && document.fullscreenElement) return;
+
+      // Sequential: requestFullscreen must complete before orientation.lock
+      const fullscreenEntered = await enterFullscreen();
+      if (!fullscreenEntered) return;
+
+      if (await lockOrientation()) {
+        isLockedRef.current = true;
       }
     };
 
