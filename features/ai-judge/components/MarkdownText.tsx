@@ -64,7 +64,7 @@ function extractRuleRefs(text: string): { readonly text: string; readonly refs: 
  * @description
  * Renders a text segment: bold processing on the ref-stripped text, then
  * rule refs appended as a ` - <i>CR <num></i>` suffix, comma-joined for
- * multiple refs (DESIGN §6.4.2). Italic, `#FAF8F5` 75% opacity — less
+ * multiple refs (DESIGN §6.4.1). Italic, `#FAF8F5` 75% opacity — less
  * solid than body text, still high contrast on MANA.b.
  *
  * @param text The raw segment text.
@@ -173,7 +173,7 @@ interface MarkdownTextProps {
 
 /**
  * @description
- * Minimal markdown-subset renderer for AI Judge answers (DESIGN §6.4.2).
+ * Minimal markdown-subset renderer for AI Judge answers (DESIGN §6.4.1).
  * Block level: splits on `\n\n`; within each block, runs of consecutive
  * `- `/`• ` lines → <ul> and `1. ` runs → <ol> (no blank line required),
  * everything else → <p> (single newlines collapse to spaces). When the whole
@@ -182,13 +182,13 @@ interface MarkdownTextProps {
  * ≤240 chars, rule-id guard keeps "CR 405.1a" unsplit).
  *  Inline: `**text**` → <strong>; rule refs (`CR|rule|regla <num>` or bare
  *  `405.1`) → stripped from the text and appended at paragraph end as a
- *  ` - <i>CR <num></i>` suffix (comma-joined, DESIGN §6.4.2). Escapes via
+ *  ` - <i>CR <num></i>` suffix (comma-joined, DESIGN §6.4.1). Escapes via
  * React text nodes — no dangerouslySetInnerHTML.
  *
  * @param content The raw answer string from the model.
  * @returns Paragraph/list React nodes with bold spans and italic refs.
  *
- * @see DESIGN.md §6.4.2
+ * @see DESIGN.md §6.4.1
  */
 export function MarkdownText({ content }: Readonly<MarkdownTextProps>) {
   const hasBlankSeparator = /\n{2,}/.test(content);
