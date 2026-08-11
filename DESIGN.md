@@ -387,8 +387,7 @@ Streaming response. Suggestion chips above input.
 
 ```
 ┌──────────────────────────────────────────┐
-│  ⚖️  AI Judge                    [✕]     │  ← heading row, --text-body
-│                                          │
+│                                  [✕]     │  ← heading row, --text-body
 │  ┌──────────────────┐                    │  System bubble — MANA.b BG
 │  │ Rules question…  │                    │  text #FAF8F5, left-aligned
 │  └──────────────────┘                    │
@@ -405,9 +404,9 @@ Streaming response. Suggestion chips above input.
 ```
 
 - **Bubbles:** max-width ~75% of modal. No border-radius on aligned side.
-  System: BG `MANA.b` (`#666565`), text `#FAF8F5` (5.1:1). User: BG `MANA.c`
-  (`#CAC5C0`), text `#1A1A1A` (~10:1). High contrast both.
-- **Header:** "AI Judge" `--text-heading`. ✕ close button — Escape too.
+  System: BG `MANA.b` (`#666565`), text `#FAF8F5`. User: BG `MANA.c`
+  (`#CAC5C0`), text `#1A1A1A`. High contrast both.
+- **Header:** "AI Judge" `--text-heading sr-only`. ✕ close button — Escape too.
 - **Streaming:** Response renders incrementally in system bubble. Typing
   indicator (3 dots) while waiting. Input disabled while streaming.
 - **Input:** Docked bottom. Placeholder "Ask about a card or rule…" (50% white
@@ -415,20 +414,6 @@ Streaming response. Suggestion chips above input.
 - **Suggestion chips (§6.4.1):** row above input. Tap → send as prompt. One-tap
   ask, no typing. Mobile-first.
 - **Keyboard:** Escape closes. Focus on input on open.
-
-#### 6.4.1 Suggestion Chips
-
-Row above input. Horizontal scroll on overflow. Tap → chip text sent as prompt,
-input stays cleared.
-
-| Chip              | Prompt                          |
-| ----------------- | ------------------------------- |
-| Judge this play   | "Judge this play: <current game state>" |
-| Card legality     | "Is <card> legal in Commander?" |
-| Combat math       | "Explain combat damage here."   |
-
-Chip: pill, `#1A1A1A` border, text `#FAF8F5`, 50% opacity → full on tap.
-≥44px tall.
 
 ### 6.5 Color Picker (per player)
 
