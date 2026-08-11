@@ -415,6 +415,39 @@ Streaming response. Suggestion chips above input.
   ask, no typing. Mobile-first.
 - **Keyboard:** Escape closes. Focus on input on open.
 
+#### 6.4.1 Suggestion Chips
+
+One-tap prompts above input. No typing needed. Row above input, input stays
+cleared after send.
+
+```
+│  [ Judge this play ]  [ Card legality ]  [ Combat math ]   │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │  Ask about a card or rule…                     ⏎   │    │
+│  └────────────────────────────────────────────────────┘    │
+```
+
+| Chip              | Prompt                                     |
+| ----------------- | ------------------------------------------ |
+| Judge this play   | "Judge this play: <current game state>"    |
+| Card legality     | "Is <card> legal in Commander?"            |
+| Combat math       | "Explain combat damage here."              |
+
+- **Style:** Pill. BG `#1A1A1A`, 1px border `#FAF8F5` 40% opacity. Text
+  `#FAF8F5` `--text-body-sm`. Height ≥44px, horizontal padding 16px, gap 8px.
+  Border radius full.
+- **States:**
+  - Default: border 40% opacity.
+  - Hover / active tap: border 100% opacity. Press: scale 0.97.
+  - Focus: visible 2px `#FAF8F5` focus ring.
+  - Streaming: disabled — 25% opacity, no pointer events.
+- **Row:** horizontal scroll on overflow, scroll-snap proximity, hidden
+  scrollbar. Mobile: ~3 chips visible, rest scroll.
+- **Behavior:** Tap → prompt sent through same submit path as typed input.
+  Chips persist. No request → chips enabled.
+- **A11y:** Row `role="group"` `aria-label="Suggestions"`. Chips = `<button>`.
+  Label = full prompt, not short chip text.
+
 ### 6.5 Color Picker (per player)
 
 Triggered by gear icon on zone. Width = fit-content
