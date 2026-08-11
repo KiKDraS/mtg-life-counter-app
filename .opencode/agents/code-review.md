@@ -163,6 +163,11 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 
 - OpenRouter SDK: Use `@openrouter/sdk` — no raw `fetch`. ZDR enabled
   (`zdr: true`). Proper provider routing.
+- Skill compliance: `openrouter-typescript-sdk` is the reference. Verify
+  sdk-package patterns — `chat.send` + chunk streaming, statusCode error
+  mapping (400/401/402/429/503), concurrent text+usage consumption. Reject
+  `@openrouter/agent` (callModel) usage — not a dependency. Reject patterns
+  the skill marks legacy.
 - Prompt quality: System prompt defines MTG judge persona with citation
   requirement. Structured output. Reject generic "helpful assistant".
 - Citation grounding: Responses include `{ruleId, section, excerpt}`. Reject

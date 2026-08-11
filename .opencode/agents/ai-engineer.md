@@ -148,6 +148,9 @@ file. route.ts >150 lines or logic in route → `@code-review` REJECT.
 
 ## Skills compliance
 
+- `openrouter-typescript-sdk`: **MUST load before OpenRouter work.** Skill is
+  the reference for sdk-package patterns (`chat.send`, streaming chunks,
+  statusCode error handling). Deviations need justification.
 - `typescript-advanced-types`: All API types, RAG schemas, prompt output → strict interfaces, discriminated unions, generics.
 - `context7-mcp`: Fetch current OpenRouter SDK docs before implementing. Training data may be stale.
 
