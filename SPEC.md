@@ -367,8 +367,8 @@ SSE events:
   `{answer, citations}` (§9.7); server extracts `answer` and streams only its
   characters. Never raw JSON to client. Extraction failure → fallback: stream
   raw model output (degraded, still readable).
-- `citations` delivered once in `done` — rendered as footnote pills
-  (DESIGN.md §6.4.2).
+- `citations` delivered once in `done` — server contract (UI does not render
+  them; answers carry inline rule refs formatted per DESIGN.md §6.4.1).
 
 Error codes: `rate_limited`, `model_unavailable`, `misconfigured`, `timeout`,
 `bad_request`.
@@ -427,8 +427,8 @@ Player question: {question}
 ### 9.8 Game Context
 
 - `gameContext = {format:"commander", players: [{playerId, life, color[], counters[], commanderDamage[]}]}`.
-- Sent only by "Judge this play" chip (§6.4.1 DESIGN.md). Serialized live state
-  at send time. Optional on manual questions.
+- Optional API capability — server accepts it; client currently sends manual
+  questions only (no game-context attach). Reserved for future features.
 
 ### 9.9 History
 
@@ -449,7 +449,7 @@ Player question: {question}
   commander damage, persistence (§4) all work fully offline. **AI Judge is the
   ONLY feature that degrades offline** — until local engine (§9.11). Any other
   feature degrading offline = contract violation.
-- DESIGN.md §6.4 chat window, §6.4.1 suggestion chips, §6.4.0 offline fallback.
+- DESIGN.md §6.4 chat window, §6.4.0 offline fallback.
 - 503 `misconfigured` → UI disabled state: "AI Judge unavailable", chips hidden.
 - Token events render incremental. Typing indicator while streaming.
 - Error event → error bubble with message, input re-enabled.

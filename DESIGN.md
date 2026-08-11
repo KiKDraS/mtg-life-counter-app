@@ -406,7 +406,6 @@ Streaming response.
   System: BG `MANA.b` (`#666565`), text `#FAF8F5`. User: BG `MANA.c`
   (`#CAC5C0`), text `#1A1A1A`. High contrast both.
 - **Answer text only:** system bubble shows model answer text — never raw JSON.
-  Citations render as footnotes below the answer (§6.4.1).
 - **Header:** "AI Judge" `--text-heading sr-only`. ✕ close button — Escape too.
 - **Streaming:** Response renders incrementally in system bubble. Typing
   indicator (3 dots) while waiting. Input disabled while streaming.
@@ -433,25 +432,7 @@ Offline → chat read-only. No typing, no send. Alert explains why.
 - **History:** still visible + scrollable. Read-only.
 - **Online return:** state clears, input re-enables. No reload.
 
-#### 6.4.1 Citations
-
-Footnote pills under system bubble. Ground the answer, no clutter.
-
-```
-│  ┌────────────────────────────────┐
-│  │ Yes. Reanimate returns the…   │  ← answer text (never raw JSON)
-│  └────────────────────────────────┘
-│  [CR 702.12a]  [CR 603.6a]  [Card: Reanimate]   ← footnote pills
-```
-
-- **Pill:** inline-block, `--text-caption`, BG `#1A1A1A`, 1px border
-  `#FAF8F5` 25% opacity, text `#FAF8F5`, padding 2px 8px, gap 4px, wrap.
-- **Label:** rule → `CR <ruleId>` (e.g. `CR 702.12a`); card → `Card: <name>`.
-- **Expand:** native `<details>` — summary = pill label, body = excerpt
-  (`--text-body-sm`, `#FAF8F5` 80% opacity, max-width ~60ch). No JS.
-- **A11y:** pills = `<summary>` in `<details>`. Keyboard open/close native.
-
-#### 6.4.2 Answer Formatting
+#### 6.4.1 Answer Formatting
 
 Markdown subset, rendered client-side (no dependency):
 
