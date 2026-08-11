@@ -71,21 +71,19 @@ luminance. WCAG 4.5:1.
 | Text warm near-black  | `#1A1A1A`          | Life/UI text on light mana BGs               |
 | Icon silhouette dark  | `#0D0F0F`          | Mana fills                                   |
 | Icon silhouette light | `#FAF8F5`          | Counters, player-actions, Planeswalker fills |
+| System bubble BG      | `#666565`          | AI Judge system bubble — text `#FAF8F5`      |
+| User bubble BG        | `#CAC5C0`          | AI Judge user bubble — text `#1A1A1A`        |
 
-### 2.3 Guild & Clan Symbols
-
-Phase 2 (§10). Added after 5 base mana colors stable.
-
-### 2.4 Icon System
+### 2.3 Icon System
 
 All MTG symbols = inline SVG React components. No external `.svg` imports.
 
-| Icon type     | BG                   | Silhouette  | Selector                       |
-| ------------- | -------------------- | ----------- | ------------------------------ |
-| Mana          | Solid color circle   | `iconDark`  | `ManaSelector`                 |
-| Counter       | None — on overlay    | `iconLight` | `CounterSelector`              |
-| Player-action | None                 | `iconLight` | `PlayerActionSelector`         |
-| Planeswalker  | None — on overlay    | `iconLight` | Direct import                  |
+| Icon type     | BG                 | Silhouette  | Selector               |
+| ------------- | ------------------ | ----------- | ---------------------- |
+| Mana          | Solid color circle | `iconDark`  | `ManaSelector`         |
+| Counter       | None — on overlay  | `iconLight` | `CounterSelector`      |
+| Player-action | None               | `iconLight` | `PlayerActionSelector` |
+| Planeswalker  | None — on overlay  | `iconLight` | Direct import          |
 
 ### 2.5 Symbol Files
 
@@ -255,12 +253,12 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 
 Text readable from table side. Wrapper — interior layout identical.
 
-| Rotation | Angle         | CSS              | Applies                                                 |
-| -------- | ------------- | ---------------- | ------------------------------------------------------- |
-| 180°     | Full flip     | `rotate(180deg)` | Top-side: P1 (2p,3p,5p,6p)                              |
-| 90°      | Quarter right | `rotate(90deg)`  | Left-side: P2 (3p), P1/P3 (4p), P2/P4 (5p,6p)           |
-| −90°     | Quarter left  | `rotate(-90deg)` | Right-side: P3 (3p), P2/P4 (4p), P3/P5 (5p,6p)          |
-| None     | —             | —                | Bottom-side facing user: P2 (2p), P6 (6p)               |
+| Rotation | Angle         | CSS              | Applies                                        |
+| -------- | ------------- | ---------------- | ---------------------------------------------- |
+| 180°     | Full flip     | `rotate(180deg)` | Top-side: P1 (2p,3p,5p,6p)                     |
+| 90°      | Quarter right | `rotate(90deg)`  | Left-side: P2 (3p), P1/P3 (4p), P2/P4 (5p,6p)  |
+| −90°     | Quarter left  | `rotate(-90deg)` | Right-side: P3 (3p), P2/P4 (4p), P3/P5 (5p,6p) |
+| None     | —             | —                | Bottom-side facing user: P2 (2p), P6 (6p)      |
 
 ---
 
@@ -384,8 +382,71 @@ labels.
 
 ### 6.4 AI Judge
 
-Chat-style. Message bubbles. Text input bottom. Streaming response. "Ask about a
-card or rule…" placeholder. Maximized modal, #000 backdrop.
+Chat window. Maximized modal, `#000` backdrop (§6.1). AI = left, user = right.
+Streaming response. Suggestion chips above input.
+
+```
+┌──────────────────────────────────────────┐
+│                                  [✕]     │  ← heading row, --text-body
+│  ┌──────────────────┐                    │  System bubble — MANA.b BG
+│  │ Rules question…  │                    │  text #FAF8F5, left-aligned
+│  └──────────────────┘                    │
+│                    ┌──────────────────┐  │  User bubble — MANA.c BG
+│                    │ Ask about card…  │  │  text #1A1A1A, right-aligned
+│                    └──────────────────┘  │
+│  ┌─────────────┐  (typing indicator)     │  Streaming state
+│                                          │
+│  [ Judge this play ] [ Card legality ]   │  Suggestion chips
+│  ┌────────────────────────────────────┐  │
+│  │  Ask about a card or rule…     ⏎   │  │  Input, docked bottom
+│  └────────────────────────────────────┘  │
+└──────────────────────────────────────────┘
+```
+
+- **Bubbles:** max-width ~75% of modal. No border-radius on aligned side.
+  System: BG `MANA.b` (`#666565`), text `#FAF8F5`. User: BG `MANA.c`
+  (`#CAC5C0`), text `#1A1A1A`. High contrast both.
+- **Header:** "AI Judge" `--text-heading sr-only`. ✕ close button — Escape too.
+- **Streaming:** Response renders incrementally in system bubble. Typing
+  indicator (3 dots) while waiting. Input disabled while streaming.
+- **Input:** Docked bottom. Placeholder "Ask about a card or rule…" (50% white
+  opacity). Enter/⏎ sends. Auto-scroll to newest message.
+- **Suggestion chips (§6.4.1):** row above input. Tap → send as prompt. One-tap
+  ask, no typing. Mobile-first.
+- **Keyboard:** Escape closes. Focus on input on open.
+
+#### 6.4.1 Suggestion Chips
+
+One-tap prompts above input. No typing needed. Row above input, input stays
+cleared after send.
+
+```
+│  [ Judge this play ]  [ Card legality ]  [ Combat math ]   │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │  Ask about a card or rule…                     ⏎   │    │
+│  └────────────────────────────────────────────────────┘    │
+```
+
+| Chip              | Prompt                                     |
+| ----------------- | ------------------------------------------ |
+| Judge this play   | "Judge this play: <current game state>"    |
+| Card legality     | "Is <card> legal in Commander?"            |
+| Combat math       | "Explain combat damage here."              |
+
+- **Style:** Pill. BG `#1A1A1A`, 1px border `#FAF8F5` 40% opacity. Text
+  `#FAF8F5` `--text-body-sm`. Height ≥44px, horizontal padding 16px, gap 8px.
+  Border radius full.
+- **States:**
+  - Default: border 40% opacity.
+  - Hover / active tap: border 100% opacity. Press: scale 0.97.
+  - Focus: visible 2px `#FAF8F5` focus ring.
+  - Streaming: disabled — 25% opacity, no pointer events.
+- **Row:** horizontal scroll on overflow, scroll-snap proximity, hidden
+  scrollbar. Mobile: ~3 chips visible, rest scroll.
+- **Behavior:** Tap → prompt sent through same submit path as typed input.
+  Chips persist. No request → chips enabled.
+- **A11y:** Row `role="group"` `aria-label="Suggestions"`. Chips = `<button>`.
+  Label = full prompt, not short chip text.
 
 ### 6.5 Color Picker (per player)
 
