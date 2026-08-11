@@ -67,6 +67,24 @@ export const classifyFailure = (err: unknown): FailureKind => {
   return "retryable";
 };
 
+/** Concatenate one chunk's token delta (emitting via `onToken`); new content. */
+const applyToken = (chunk: ChatStreamChunk, content: string, onToken: (token: string) => void): string => {
+  const token = chunk.choices[0]?.delta?.content;
+  if (!token) return content;
+  onToken(token);
+  return content + token;
+};
+
+/** Chunk usage → our Usage shape, or the current usage when absent. */
+const applyUsage = (chunk: ChatStreamChunk, usage: Usage): Usage => {
+  if (!chunk.usage) return usage;
+  return {
+    inputTokens: chunk.usage.promptTokens,
+    outputTokens: chunk.usage.completionTokens,
+    cost: chunk.usage.cost ?? 0,
+  };
+};
+
 /**
  * @description Pump the SDK chunk iterator (SPEC §9.5): concat token deltas
  * (emitting each via `onToken`), track served model + usage. Throws on
@@ -93,18 +111,8 @@ async function pumpTokens(
     const chunk = current.value;
     if (chunk.error) throw new Error(chunk.error.message || "provider stream error");
     servedModel = chunk.model || servedModel;
-    const token = chunk.choices[0]?.delta?.content;
-    if (token) {
-      content += token;
-      onToken(token);
-    }
-    if (chunk.usage) {
-      usage = {
-        inputTokens: chunk.usage.promptTokens,
-        outputTokens: chunk.usage.completionTokens,
-        cost: chunk.usage.cost ?? 0,
-      };
-    }
+    content = applyToken(chunk, content, onToken);
+    usage = applyUsage(chunk, usage);
     current = await iterator.next();
   }
   return { content, usage, model: servedModel };

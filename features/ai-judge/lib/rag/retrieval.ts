@@ -29,6 +29,35 @@ function normalizeTokens(text: string): Set<string> {
   return tokens;
 }
 
+/** Rule ids mentioned in the question (e.g. "702.12" or "CR 702.12a"). */
+const mentionedRules = (question: string): Set<string> => {
+  const mentioned = new Set<string>();
+  let match: RegExpExecArray | null;
+  RULE_ID_RE.lastIndex = 0;
+  while ((match = RULE_ID_RE.exec(question)) !== null) mentioned.add(match[1]);
+  return mentioned;
+};
+
+/** Exact-rule mention boost: header +10, sub-rule under it +12. */
+const mentionScore = (ruleId: string, mentioned: Set<string>): number => {
+  let score = 0;
+  for (const m of mentioned) {
+    if (ruleId === m) score += 10;
+    else if (ruleId.startsWith(m)) score += 12;
+  }
+  return score;
+};
+
+/** Token-overlap score between the rule text and the question tokens. */
+const overlapScore = (ruleText: string, questionTokens: Set<string>): number => {
+  const ruleTokens = normalizeTokens(ruleText);
+  let score = 0;
+  for (const token of questionTokens) {
+    if (ruleTokens.has(token)) score += 1;
+  }
+  return score;
+};
+
 /**
  * @description Score a rule against the question (exact rule-id mention boost,
  * token overlap) and return the top-k, sorted desc. Ties broken by insertion
@@ -38,32 +67,13 @@ function normalizeTokens(text: string): Set<string> {
  * @returns Top-k ({@link TOP_K}) matching rules, score desc.
  */
 export function retrieveRules(question: string, artifact: RulesArtifact): RetrievedRule[] {
-  const mentioned = new Set<string>();
-  let match: RegExpExecArray | null;
-  RULE_ID_RE.lastIndex = 0;
-  while ((match = RULE_ID_RE.exec(question)) !== null) {
-    mentioned.add(match[1]);
-  }
-
+  const mentioned = mentionedRules(question);
   const questionTokens = normalizeTokens(question);
   const scored: RetrievedRule[] = [];
 
   for (const [ruleId, text] of artifact.rules) {
-    let score = 0;
-    if (mentioned.size > 0) {
-      // Mentioned "702.12" boosts the section header (+10) and, more, the
-      // sub-rules under it like "702.12a" (+12) — sub-rules carry the text.
-      for (const m of mentioned) {
-        if (ruleId === m) score += 10;
-        else if (ruleId.startsWith(m)) score += 12;
-      }
-    }
-    if (questionTokens.size > 0) {
-      const ruleTokens = normalizeTokens(text);
-      for (const token of questionTokens) {
-        if (ruleTokens.has(token)) score += 1;
-      }
-    }
+    let score = mentionScore(ruleId, mentioned);
+    score += overlapScore(text, questionTokens);
     if (score > 0) scored.push({ ruleId, text, score });
   }
 

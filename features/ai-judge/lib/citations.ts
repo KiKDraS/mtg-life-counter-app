@@ -23,30 +23,39 @@ const clipExcerpt = (excerpt: string): string => {
   return `${clean.slice(0, MAX_EXCERPT).replace(/\s+\S*$/, "")}…`;
 };
 
+/** Validated non-empty string, else fallback. */
+const orElse = (value: unknown, fallback: string): string =>
+  isNonEmptyString(value) ? sanitize(value) : fallback;
+
+/** Parse a rule citation; null → filtered. */
+function parseRule(v: Record<string, unknown>): Citation | null {
+  if (!isNonEmptyString(v.ruleId)) return null;
+  return {
+    type: "rule",
+    ruleId: sanitize(v.ruleId),
+    section: orElse(v.section, sanitize(v.ruleId)),
+    excerpt: clipExcerpt(orElse(v.excerpt, "")),
+  };
+}
+
+/** Parse a card citation; null → filtered. */
+function parseCard(v: Record<string, unknown>): Citation | null {
+  if (!isNonEmptyString(v.name)) return null;
+  return {
+    type: "card",
+    name: sanitize(v.name),
+    source: orElse(v.source, "scryfall"),
+    date: orElse(v.date, ""),
+    excerpt: clipExcerpt(orElse(v.excerpt, "")),
+  };
+}
+
 /** Validate one parsed citation object; null → filtered. */
 function toCitation(value: unknown): Citation | null {
   if (typeof value !== "object" || value === null) return null;
   const v = value as Record<string, unknown>;
-
-  if (v.type === "rule") {
-    if (!isNonEmptyString(v.ruleId)) return null;
-    return {
-      type: "rule",
-      ruleId: sanitize(v.ruleId),
-      section: isNonEmptyString(v.section) ? sanitize(v.section) : sanitize(v.ruleId),
-      excerpt: isNonEmptyString(v.excerpt) ? clipExcerpt(v.excerpt) : "",
-    };
-  }
-  if (v.type === "card") {
-    if (!isNonEmptyString(v.name)) return null;
-    return {
-      type: "card",
-      name: sanitize(v.name),
-      source: isNonEmptyString(v.source) ? sanitize(v.source) : "scryfall",
-      date: isNonEmptyString(v.date) ? sanitize(v.date) : "",
-      excerpt: isNonEmptyString(v.excerpt) ? clipExcerpt(v.excerpt) : "",
-    };
-  }
+  if (v.type === "rule") return parseRule(v);
+  if (v.type === "card") return parseCard(v);
   return null;
 }
 

@@ -33,31 +33,44 @@ const acquireSlot = (): Promise<void> => {
   return wait > 0 ? sleep(wait) : Promise.resolve();
 };
 
+const buildHeaders = (etag: string | null): Record<string, string> => {
+  const headers: Record<string, string> = {
+    "User-Agent": USER_AGENT,
+    Accept: "application/json",
+  };
+  if (etag) headers["If-None-Match"] = etag;
+  return headers;
+};
+
+/** 304 → revalidate; 429 with backoff budget → retry; other non-2xx → fail. */
+function statusDecision(
+  response: Response,
+  etag: string | null,
+  attempt: number,
+): "revalidate" | "retry" | "fail" | "ok" {
+  if (response.status === 304) return "revalidate";
+  if (response.status === 429 && attempt < MAX_429_RETRIES) return "retry";
+  return response.ok ? "ok" : "fail";
+}
+
 /** GET with 5s timeout + 429 backoff. Resolves null on any non-2xx failure. */
 async function fetchJson(url: string, etag: string | null): Promise<{ data: unknown; etag: string | null } | null> {
   for (let attempt = 0; attempt <= MAX_429_RETRIES; attempt++) {
     await acquireSlot();
     try {
-      const headers: Record<string, string> = {
-        "User-Agent": USER_AGENT,
-        Accept: "application/json",
-      };
-      if (etag) headers["If-None-Match"] = etag;
-
       const response = await fetch(url, {
-        headers,
+        headers: buildHeaders(etag),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
-
-      if (response.status === 304) {
-        return { data: null, etag: response.headers.get("etag") ?? etag };
-      }
-      if (response.status === 429 && attempt < MAX_429_RETRIES) {
+      const decision = statusDecision(response, etag, attempt);
+      if (decision === "retry") {
         await sleep(2 ** attempt * 1000); // 1s, 2s, 4s
         continue;
       }
-      if (!response.ok) return null;
-
+      if (decision === "fail") return null;
+      if (decision === "revalidate") {
+        return { data: null, etag: response.headers.get("etag") ?? etag };
+      }
       const data: unknown = await response.json();
       return { data, etag: response.headers.get("etag") };
     } catch {
@@ -78,6 +91,32 @@ const isRuling = (value: unknown): value is ScryfallRuling =>
   typeof (value as ScryfallRuling).comment === "string" &&
   typeof (value as ScryfallRuling).source === "string";
 
+/** Cached entry type (shape of {@link getCachedCard} result). */
+type CardCacheEntry = { card: ScryfallCard; etag: string | null };
+
+const etagOf = (cached: CardCacheEntry | null): string | null => (cached ? cached.etag : null);
+
+const staleCard = (cached: CardCacheEntry | null): ScryfallCard | null =>
+  cached ? cached.card : null;
+
+/** 304 revalidation: refresh cache freshness, reuse stored value. */
+function revalidate(name: string, cached: CardCacheEntry, etag: string | null): ScryfallCard {
+  putCachedCard(name, cached.card, etag ?? cached.etag);
+  return cached.card;
+}
+
+/** Fresh lookup with cache revalidation; null on any failure. */
+async function fetchResolved(name: string, cached: CardCacheEntry | null): Promise<ScryfallCard | null> {
+  const url = `${SCRYFALL_BASE}/cards/named?fuzzy=${encodeURIComponent(name)}`;
+  const result = await fetchJson(url, etagOf(cached));
+  if (!result) return staleCard(cached); // fail → reuse stale cache if any
+  if (result.data === null && cached) return revalidate(name, cached, result.etag);
+  if (!isCard(result.data)) return null;
+
+  putCachedCard(name, result.data, result.etag);
+  return result.data;
+}
+
 /**
  * @description Fuzzy card lookup (SPEC §9.3.1). Cache-first (LRU 500 / 24h,
  * ETag revalidation). Never throws.
@@ -88,20 +127,7 @@ const isRuling = (value: unknown): value is ScryfallRuling =>
 export async function resolveCard(name: string): Promise<ScryfallCard | null> {
   const cached = getCachedCard(name);
   if (cached && !cached.etag) return cached.card;
-
-  const url = `${SCRYFALL_BASE}/cards/named?fuzzy=${encodeURIComponent(name)}`;
-  const result = await fetchJson(url, cached?.etag ?? null);
-  if (!result) return cached?.card ?? null; // fail → reuse stale cache if any
-
-  if (result.data === null && cached) {
-    // 304 Not Modified → refresh freshness, reuse value
-    putCachedCard(name, cached.card, result.etag ?? cached.etag);
-    return cached.card;
-  }
-  if (!isCard(result.data)) return null;
-
-  putCachedCard(name, result.data, result.etag);
-  return result.data;
+  return fetchResolved(name, cached);
 }
 
 /**

@@ -36,6 +36,24 @@ const QUESTION_STARTERS = new Set([
 const TITLE_CASE_RE = /^[A-Z][a-z'-]{1,}$/;
 const QUOTED_RE = /"([^"]{2,40})"/;
 
+/** Longest title-case run starting at i, capped at 5 words. */
+const runFrom = (words: string[], i: number): string[] => {
+  const run: string[] = [];
+  for (let j = i; j < words.length && run.length < 5; j++) {
+    if (!TITLE_CASE_RE.test(words[j])) break;
+    run.push(words[j]);
+  }
+  return run;
+};
+
+/** Candidate run at i (skips question starters), or null when <2 words. */
+const nextRun = (words: string[], i: number): { candidate: string; next: number } | null => {
+  if (i === 0 && QUESTION_STARTERS.has(words[i].toLowerCase())) return null;
+  const run = runFrom(words, i);
+  if (run.length < 2) return null;
+  return { candidate: run.join(" "), next: i + run.length - 1 };
+};
+
 /**
  * @description Best-effort card name from a question (SPEC §9.3.1). Quoted
  * name wins; else the longest run of 2–5 consecutive title-case words, with
@@ -52,20 +70,12 @@ export function extractCardName(question: string): string | null {
 
   for (let i = 0; i < words.length; i++) {
     if (!TITLE_CASE_RE.test(words[i])) continue;
-    if (i === 0 && QUESTION_STARTERS.has(words[i].toLowerCase())) continue;
-
-    const run: string[] = [words[i]];
-    for (let j = i + 1; j < words.length && run.length < 5; j++) {
-      if (!TITLE_CASE_RE.test(words[j])) break;
-      run.push(words[j]);
+    const run = nextRun(words, i);
+    if (!run) continue;
+    if (best === null || run.candidate.split(" ").length > best.split(" ").length) {
+      best = run.candidate;
     }
-    if (run.length >= 2) {
-      const candidate = run.join(" ");
-      if (best === null || candidate.split(" ").length > best.split(" ").length) {
-        best = candidate;
-      }
-      i += run.length - 1;
-    }
+    i = run.next;
   }
   return best;
 }
