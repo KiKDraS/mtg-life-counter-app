@@ -6,6 +6,7 @@
  */
 
 import type { RulesArtifact } from "./rules-source";
+import { normalize, translateTerms } from "./es-dict";
 
 export interface RetrievedRule {
   readonly ruleId: string;
@@ -15,14 +16,26 @@ export interface RetrievedRule {
 
 export const TOP_K = 5;
 
+/** Exact-phrase containment boost — multi-word EN terms ("combat phase"). */
+export const PHRASE_BOOST = 3;
+
+/** Single-word translated term boost — deliberate semantic signal, worth
+ * more than a raw token that happens to coincide ("lifelink" from
+ * "vínculo vital" vs incidental "creature" in an unrelated example). */
+export const TRANSLATED_BOOST = 2;
+
 /** Exact-rule mention (e.g. "702.12" or "CR 702.12" in the question). */
 const RULE_ID_RE = /\b(?:CR\s*)?(\d{3}\.\d+[a-z]?)\b/gi;
 
-/** Lowercase, punctuation-stripped tokens. Skips noise: 1-2 char + filler. */
+/**
+ * Lowercase, accent-stripped, punctuation-stripped tokens. Skips noise: 1-2
+ * char + filler. Both sides normalized via es-dict normalize() — "instantáneo"
+ * in a question matches "instant" in rule text after translation.
+ */
 function normalizeTokens(text: string): Set<string> {
   const STOP = new Set(["the", "and", "of", "to", "in", "is", "a", "an", "for", "on", "do", "does", "can", "with"]);
   const tokens = new Set<string>();
-  for (const token of text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/)) {
+  for (const token of normalize(text).replace(/[^a-z0-9\s]/g, " ").split(/\s+/)) {
     if (token.length < 3 || STOP.has(token)) continue;
     tokens.add(token);
   }
@@ -48,15 +61,51 @@ const mentionScore = (ruleId: string, mentioned: Set<string>): number => {
   return score;
 };
 
-/** Token-overlap score between the rule text and the question tokens. */
-const overlapScore = (ruleText: string, questionTokens: Set<string>): number => {
-  const ruleTokens = normalizeTokens(ruleText);
+/**
+ * Token-overlap + translated-term + exact-phrase score between the rule text
+ * and the question. Multi-word translated terms ("combat phase") score as
+ * exact-phrase containment ({@link PHRASE_BOOST}); single-word translated
+ * terms score {@link TRANSLATED_BOOST}; raw shared tokens score 1.
+ */
+const overlapScore = (
+  ruleText: string,
+  questionTokens: Set<string>,
+  translatedTokens: Set<string>,
+  phrases: string[],
+): number => {
+  const normalizedRule = normalize(ruleText);
+  const ruleTokens = normalizeTokens(normalizedRule);
   let score = 0;
   for (const token of questionTokens) {
     if (ruleTokens.has(token)) score += 1;
   }
+  for (const token of translatedTokens) {
+    if (ruleTokens.has(token)) score += TRANSLATED_BOOST;
+  }
+  for (const phrase of phrases) {
+    if (normalizedRule.includes(phrase)) score += PHRASE_BOOST;
+  }
   return score;
 };
+
+/**
+ * @description Split translated terms: multi-word → exact-phrase list (strong
+ * boost), single-word → translated-token set (boosted overlap scoring).
+ * @param question The player's trimmed question.
+ * @param translatedTokens Set to extend with single-word EN terms.
+ * @param phrases Phrase list to extend with multi-word EN terms.
+ * @returns void. Mutates both collections in place.
+ */
+function splitTranslated(
+  question: string,
+  translatedTokens: Set<string>,
+  phrases: string[],
+): void {
+  for (const term of translateTerms(question)) {
+    if (term.includes(" ")) phrases.push(term);
+    else translatedTokens.add(term);
+  }
+}
 
 /** Bare section header ("405. Stack") — title only, no body. */
 const SECTION_HEADER_RE = /^\d{3}\.\s+[A-Z]/;
@@ -86,8 +135,8 @@ function expandSection(
 
 /**
  * @description Score a rule against the question (exact rule-id mention boost,
- * token overlap) and return the top-k, sorted desc. Ties broken by insertion
- * order (stable sort).
+ * token overlap + Spanish→English translated terms) and return the top-k,
+ * sorted desc. Ties broken by insertion order (stable sort).
  * @param question The player's question.
  * @param artifact The rules artifact to search.
  * @returns Top-k ({@link TOP_K}) matching rules, score desc.
@@ -95,11 +144,14 @@ function expandSection(
 export function retrieveRules(question: string, artifact: RulesArtifact): RetrievedRule[] {
   const mentioned = mentionedRules(question);
   const questionTokens = normalizeTokens(question);
+  const translatedTokens = new Set<string>();
+  const phrases: string[] = [];
+  splitTranslated(question, translatedTokens, phrases);
   const scored: RetrievedRule[] = [];
 
   for (const [ruleId, text] of artifact.rules) {
     let score = mentionScore(ruleId, mentioned);
-    score += overlapScore(text, questionTokens);
+    score += overlapScore(text, questionTokens, translatedTokens, phrases);
     if (score > 0) scored.push({ ruleId, text, score });
   }
 

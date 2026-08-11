@@ -75,7 +75,11 @@ function extractVersion(text: string): string {
  * @returns Versioned artifact: date-stamp version, hash, rules map.
  */
 export function parseRulesHtml(html: string): RulesArtifact {
-  const text = stripHtml(html);
+  // ponytail: glossary = trailing block, not rules text. Cut at its anchor so
+  // it never glues onto the last rule (a 100KB junk rule then matches every
+  // query). Anchor missing (site change) → parse full page, old behavior.
+  const glossaryAt = html.search(/<h[1-6][^>]*id="section-glossary"/);
+  const text = stripHtml(glossaryAt === -1 ? html : html.slice(0, glossaryAt));
   const rules = new Map<string, string>();
   let currentId: string | null = null;
   let currentText: string[] = [];
