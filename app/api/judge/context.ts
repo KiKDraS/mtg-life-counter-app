@@ -13,10 +13,8 @@ import { extractCardName } from "@/features/ai-judge/lib/rag/cards-source";
 import type { CardRuling } from "@/features/ai-judge/lib/rag/cards-source";
 import { retrieveRules } from "@/features/ai-judge/lib/rag/retrieval";
 import type { RetrievedRule } from "@/features/ai-judge/lib/rag/retrieval";
-import {
-  RULES_URL,
-  parseRulesHtml,
-} from "@/features/ai-judge/lib/rag/rules-source";
+import { RULES_URL, parseRulesHtml } from "@/features/ai-judge/lib/rag/rules-source";
+import type { RulesArtifact } from "@/features/ai-judge/lib/rag/rules-source";
 import {
   getRulesArtifact,
   getStaleRulesArtifact,
@@ -32,6 +30,72 @@ export interface JudgeContext {
   readonly sourcesUsed: string[];
 }
 
+/** Card-path result: mapped rulings + "scryfall" source only when resolved. */
+export interface CardRulingsResult {
+  readonly rulings: CardRuling[];
+  readonly sourcesUsed: string[];
+}
+
+/**
+ * @description Card rulings path (SPEC §9.3.1). Null-safe at every step:
+ * card name missing, card unresolvable/ambiguous, or rulings unavailable →
+ * empty result, no error (§9.3.1).
+ * @param question The player's trimmed question.
+ * @returns Mapped rulings plus `["scryfall"]` when a card resolved, else
+ * empty arrays.
+ */
+export async function resolveCardRulings(question: string): Promise<CardRulingsResult> {
+  const cardName = extractCardName(question);
+  if (!cardName) return { rulings: [], sourcesUsed: [] };
+  const card = await resolveCard(cardName);
+  if (!card) return { rulings: [], sourcesUsed: [] };
+
+  const rulings = (await getRulings(card.id)) ?? [];
+  return {
+    rulings: rulings.map((ruling) => ({
+      name: card.name,
+      source: ruling.source,
+      published_at: ruling.published_at,
+      comment: ruling.comment,
+    })),
+    sourcesUsed: ["scryfall"],
+  };
+}
+
+/** Fetch + parse + cache the rules artifact; throws on failure (§9.3.2). */
+async function fetchRules(): Promise<RulesArtifact> {
+  const response = await fetch(RULES_URL, {
+    signal: AbortSignal.timeout(RULES_FETCH_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error(`mtg.wtf returned ${response.status}`);
+  const parsed = parseRulesHtml(await response.text());
+  putRulesArtifact(parsed);
+  return parsed;
+}
+
+/**
+ * @description Rules RAG path (SPEC §9.3.2): fresh cache → fetch+parse+cache
+ * → stale-cache fallback (24h TTL) → null (degraded). Never throws.
+ * @param question The player's trimmed question.
+ * @returns Top-k rules with the artifact version, or null in degraded mode.
+ */
+export async function loadRules(
+  question: string,
+): Promise<{ rules: RetrievedRule[]; version: string } | null> {
+  try {
+    const artifact = getRulesArtifact() ?? (await fetchRules());
+    return { rules: retrieveRules(question, artifact), version: artifact.version };
+  } catch (err) {
+    const stale = getStaleRulesArtifact();
+    if (stale) return { rules: retrieveRules(question, stale), version: stale.version };
+    console.error(
+      "Rules fetch failed, degraded mode:",
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
+}
+
 /**
  * @description Build the user-message context (SPEC §9.7): card rulings +
  * top-k rules. Best-effort and null-safe:
@@ -43,61 +107,17 @@ export interface JudgeContext {
  * `mtg.wtf`).
  */
 export async function buildContext(question: string): Promise<JudgeContext> {
-  const sourcesUsed: string[] = [];
-  const rulings: CardRuling[] = [];
+  const [card, rules] = await Promise.all([
+    resolveCardRulings(question),
+    loadRules(question),
+  ]);
 
-  const cardName = extractCardName(question);
-  if (cardName) {
-    const card = await resolveCard(cardName);
-    if (card) {
-      sourcesUsed.push("scryfall");
-      const cardRulings = await getRulings(card.id);
-      if (cardRulings) {
-        for (const ruling of cardRulings) {
-          rulings.push({
-            name: card.name,
-            source: ruling.source,
-            published_at: ruling.published_at,
-            comment: ruling.comment,
-          });
-        }
-      }
-    }
-  }
-
-  let rules: RetrievedRule[] = [];
-  let rulesSourceOk = false;
-  try {
-    let artifact = getRulesArtifact();
-    if (!artifact) {
-      const response = await fetch(RULES_URL, {
-        signal: AbortSignal.timeout(RULES_FETCH_TIMEOUT_MS),
-      });
-      if (!response.ok) throw new Error(`mtg.wtf returned ${response.status}`);
-      const parsed = parseRulesHtml(await response.text());
-      putRulesArtifact(parsed);
-      artifact = parsed;
-    }
-    rules = retrieveRules(question, artifact);
-    rulesSourceOk = true;
-  } catch (err) {
-    // 24h TTL fallback: serve last known artifact; else degraded mode.
-    const stale = getStaleRulesArtifact();
-    if (stale) {
-      rules = retrieveRules(question, stale);
-      rulesSourceOk = true;
-    } else {
-      console.error(
-        "Rules fetch failed, degraded mode:",
-        err instanceof Error ? err.message : err,
-      );
-    }
-  }
-  if (rulesSourceOk) sourcesUsed.push("mtg.wtf");
+  const sourcesUsed = [...card.sourcesUsed];
+  if (rules) sourcesUsed.push("mtg.wtf");
   else if (sourcesUsed.length === 0) sourcesUsed.push("scryfall");
 
   return {
-    contextText: buildUserPrompt(question, rules, rulings),
+    contextText: buildUserPrompt(question, rules?.rules ?? [], card.rulings),
     sourcesUsed,
   };
 }
