@@ -52,8 +52,15 @@ async function boxOf(zoneLocator: Locator): Promise<{
   width: number;
   height: number;
 }> {
-  const box = await zoneLocator.boundingBox();
-  if (!box) throw new Error("zone not visible for bounding box");
+  const deadline = Date.now() + 10_000;
+  let box = await zoneLocator.boundingBox();
+  // Zone layout settles late (cqw/cqh container sizing + hydration remount);
+  // single-shot boundingBox can be null right after load. Poll until real box.
+  while (!box) {
+    if (Date.now() > deadline) throw new Error("zone not visible for bounding box");
+    await zoneLocator.page().waitForTimeout(100);
+    box = await zoneLocator.boundingBox();
+  }
   return box;
 }
 

@@ -11,7 +11,12 @@ export interface GameState {
   readonly playerCount: number;
   /** §3 — Starting life total. Default 40 (Commander). */
   readonly initialLife: number;
-  /** Bumped on restart → PlayerProvider key changes → remount with fresh defaults. */
+  /**
+   * §9.9 — user-initiated reset counter ONLY: bumped by RESTART,
+   * SET_PLAYER_COUNT, SET_INITIAL_LIFE (not HYDRATE, not color changes).
+   * Key for PlayerProvider remount + AI Judge chat (`chat-v${version}`);
+   * stable across reloads so persisted chat survives (SPEC §9.9).
+   */
   readonly version: number;
   /** §8.5.1 — multi-select color identity per player. Default `["r"]`. */
   readonly playerColors: Record<PlayerId, PlayerColor>;

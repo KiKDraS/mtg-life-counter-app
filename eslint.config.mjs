@@ -42,6 +42,12 @@ const eslintConfig = defineConfig([
     files: ["features/**/state/**/*.{ts,tsx}"],
     rules: { "state/no-state-spaghetti": "error" },
   },
+  // Cyclomatic complexity guard — one concern per fn, no megafunctions.
+  // Catches at lint time what SonarLint flags at review time.
+  {
+    files: ["app/api/judge/**/*.ts", "features/ai-judge/**/*.ts"],
+    rules: { complexity: ["error", { max: 8 }] },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

@@ -9,13 +9,33 @@ function zone(page: Page, n: 1 | 2): Locator {
   return page.getByRole("region", { name: new RegExp(`^Player ${n}:`) });
 }
 
+/**
+ * Zone layout settles late (cqw/cqh container sizing + hydration remount), so
+ * a single-shot `boundingBox()` can return null right after load. Poll until a
+ * real box exists.
+ */
+async function visibleBox(locator: Locator): Promise<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}> {
+  const deadline = Date.now() + 10_000;
+  let box = await locator.boundingBox();
+  while (!box) {
+    if (Date.now() > deadline) throw new Error("element not visible");
+    await locator.page().waitForTimeout(100);
+    box = await locator.boundingBox();
+  }
+  return box;
+}
+
 async function swipeOn(
   locator: Locator,
   direction: "left" | "right",
   distance = 50,
 ): Promise<void> {
-  const box = await locator.boundingBox();
-  if (!box) throw new Error("element not visible for swipe");
+  const box = await visibleBox(locator);
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   const targetX = direction === "left" ? cx - distance : cx + distance;
@@ -27,8 +47,7 @@ async function swipeOn(
 }
 
 async function holdButton(page: Page, button: Locator, ms: number): Promise<void> {
-  const box = await button.boundingBox();
-  if (!box) throw new Error("button not visible");
+  const box = await visibleBox(button);
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   await page.mouse.move(cx, cy);

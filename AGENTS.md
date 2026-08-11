@@ -96,5 +96,26 @@ features/game-shell/state/     features/player-zone/state/
 `state/no-state-spaghetti`, scope `features/**/state/**/*.{ts,tsx}`).
 No barrel `index.ts` re-exports — import direct from concern file.
 
+## Route Module Structure (enforced by `@code-review`)
+
+`app/api/**` route handlers: thin shells. One concern per file. No megafiles.
+
+`app/api/judge/` canonical — other API routes mirror:
+
+```
+app/api/judge/
+  route.ts      — thin shell: parse/validate → pipeline → stream out. ≤~90 lines. No business logic.
+  config.ts     — env validation + constants + SDK instances.
+  rate-limit.ts — sliding-window limiter.
+  sessions.ts   — session store.
+  sse.ts        — SSE encode/error helpers.
+  context.ts    — data-source assembly (degradable).
+  stream.ts     — model streaming, fallback, timeouts.
+```
+
+Violations → `@code-review` REJECT: route.ts >150 lines, business logic in
+route.ts, concern mixing, new concern without dedicated file. No barrel
+`index.ts`.
+
 **Change proposal:** `@orchestrator` presents, user approves
 ("Approved"/"Aprobado"), then updates doc, notifies all agents.

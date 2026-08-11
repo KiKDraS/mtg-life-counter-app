@@ -26,10 +26,12 @@ const TOP_ROW_COUNT_MAP: Record<number, number> = {
  */
 export function GameInner({ children }: Readonly<PropsWithChildren>) {
   const { state } = useGameStateContext();
-  const { playerCount, version } = state;
-  /* version: bumped on RESTART, SET_INITIAL_LIFE, SET_PLAYER_COUNT, and HYDRATE
-     (with persisted live state) → keyed PlayerProviders remount with fresh
-     defaults or seeded persisted values. SET_GAME_PLAYER_COLOR re-renders in
+  const { playerCount, version, isHydrated } = state;
+  /* version: bumped on RESTART, SET_INITIAL_LIFE, SET_PLAYER_COUNT only (not
+     HYDRATE — §9.9 chat key must stay stable across reload) → keyed
+     PlayerProviders remount with fresh defaults. isHydrated: flips false→true
+     when HYDRATE lands → remount re-runs lazy init so restored persisted state
+     is read via hydratedPlayerStates. SET_GAME_PLAYER_COLOR re-renders in
      place without destroying Provider state. */
 
   /*
@@ -53,12 +55,12 @@ export function GameInner({ children }: Readonly<PropsWithChildren>) {
 
   return (
     <PlayerStatesRegistry>
-      <PlayerRow slots={topSlots} version={version} />
+      <PlayerRow slots={topSlots} version={version} isHydrated={isHydrated} />
 
       {/* §5 — Spellbook belt divider (RSC passed via children) */}
       {children}
 
-      <PlayerRow slots={bottomSlots} version={version} isBottomSlot />
+      <PlayerRow slots={bottomSlots} version={version} isHydrated={isHydrated} isBottomSlot />
     </PlayerStatesRegistry>
   );
 }

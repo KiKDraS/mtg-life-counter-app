@@ -29,13 +29,33 @@ function plusButton(dlg: Locator): Locator {
   return dlg.getByRole("button", { name: "+1 commander damage" }).first();
 }
 
+/**
+ * Zone layout settles late (cqw/cqh container sizing + hydration remount), so
+ * a single-shot `boundingBox()` can return null right after load. Poll until a
+ * real box exists.
+ */
+async function visibleBox(locator: Locator): Promise<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}> {
+  const deadline = Date.now() + 10_000;
+  let box = await locator.boundingBox();
+  while (!box) {
+    if (Date.now() > deadline) throw new Error("element not visible");
+    await locator.page().waitForTimeout(100);
+    box = await locator.boundingBox();
+  }
+  return box;
+}
+
 async function swipeOn(
   locator: Locator,
   direction: "left" | "right",
   distance = 50,
 ): Promise<void> {
-  const box = await locator.boundingBox();
-  if (!box) throw new Error("element not visible for swipe");
+  const box = await visibleBox(locator);
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   const targetX = direction === "left" ? cx - distance : cx + distance;
@@ -51,8 +71,7 @@ async function holdButton(
   button: Locator,
   ms: number,
 ): Promise<void> {
-  const box = await button.boundingBox();
-  if (!box) throw new Error("button not visible");
+  const box = await visibleBox(button);
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   await page.mouse.move(cx, cy);
@@ -133,8 +152,7 @@ test.describe("Commander Damage — Opening the Overlay", () => {
     await page.goto("/");
 
     const p1 = zone(page, 1);
-    const box = await p1.boundingBox();
-    if (!box) throw new Error("zone not visible");
+    const box = await visibleBox(p1);
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;
 
@@ -162,8 +180,7 @@ test.describe("Commander Damage — Opening the Overlay", () => {
     await page.goto("/");
 
     const p1 = zone(page, 1);
-    const box = await p1.boundingBox();
-    if (!box) throw new Error("zone not visible");
+    const box = await visibleBox(p1);
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;
 
@@ -869,8 +886,7 @@ test.describe("Commander Damage — Accessibility & Edge Cases", () => {
 
     // 3. Read bounding box of aria-label="+1 commander damage"
     const btn = plusButton(dlg);
-    const box = await btn.boundingBox();
-    if (!box) throw new Error("button not visible");
+    const box = await visibleBox(btn);
     // expect: width ≥ 44px and height ≥ 44px
     expect(box.width).toBeGreaterThanOrEqual(44);
     expect(box.height).toBeGreaterThanOrEqual(44);

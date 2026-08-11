@@ -34,13 +34,14 @@ Own these dirs only. **Forbidden** from React components, Tailwind, app/ outside
   ```ts
   import { OpenRouter } from "@openrouter/sdk";
   const openrouter = new OpenRouter({
-    apiKey: process.env.OPENROUTER_API_KEY,
+    apiKey: process.env.OPEN_ROUTER_API_KEY,
   });
   ```
-- **ZDR default.** Each req: `provider: { zdr: true }`. No data retention.
-- **Provider routing:** `sort: "price"` for cheapest capable model:
+- **ZDR default.** Each req: `provider: { zdr: true }`. No data retention. Override via `OPEN_ROUTER_ZDR=false` when account lacks ZDR endpoints.
+- **Provider routing:** explicit models only — `OPEN_ROUTER_MODEL` +
+  `OPEN_ROUTER_FALLBACK_MODEL` (env). No `sort` — user picks models:
   ```ts
-  provider: { zdr: true, sort: "price" },
+  provider: { zdr: true },
   ```
 - **Streaming:** SDK async iterator — no manual SSE parsing:
   ```ts
@@ -56,7 +57,14 @@ Own these dirs only. **Forbidden** from React components, Tailwind, app/ outside
   }
   ```
 - **Cost tracking:** Log usage from `chunk.usage`. Expose cumulative cost to orchestrator.
-- **Key security:** `OPENROUTER_API_KEY` server-only env. Never client, never in repo, never logged.
+- **Key security:** `OPEN_ROUTER_API_KEY` server-only env. Never client, never in repo, never logged.
+
+### 1.5 Route structure
+
+Per AGENTS.md **Route Module Structure** — binding. `app/api/judge/` split:
+`route.ts` (thin shell only) + `config.ts`/`rate-limit.ts`/`sessions.ts`/
+`sse.ts`/`context.ts`/`stream.ts`. One concern per file. New concern → new
+file. route.ts >150 lines or logic in route → `@code-review` REJECT.
 
 ### 2. Prompt engineering
 
@@ -141,6 +149,9 @@ Own these dirs only. **Forbidden** from React components, Tailwind, app/ outside
 
 ## Skills compliance
 
+- `openrouter-typescript-sdk`: **MUST load before OpenRouter work.** Skill is
+  the reference for sdk-package patterns (`chat.send`, streaming chunks,
+  statusCode error handling). Deviations need justification.
 - `typescript-advanced-types`: All API types, RAG schemas, prompt output → strict interfaces, discriminated unions, generics.
 - `context7-mcp`: Fetch current OpenRouter SDK docs before implementing. Training data may be stale.
 

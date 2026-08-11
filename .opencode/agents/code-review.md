@@ -60,6 +60,14 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
   REJECT (ESLint `state/no-state-spaghetti`). One concern per file:
   `types.ts`/`constants.ts`/`actions.ts`/`reducer.ts`/`context.ts`/
   `<Name>Provider.tsx`/`hooks.ts`. No `*-context.tsx` megafiles, no barrels.
+- Route modules: `app/api/**` per AGENTS.md **Route Module Structure**. Judge:
+  thin `route.ts` (parse/validate → stream only), one concern per file
+  (`config`/`rate-limit`/`sessions`/`sse`/`context`/`stream`). route.ts
+  >150 lines, business logic in route.ts, concern mixing, new concern without
+  dedicated file → REJECT.
+- Cognitive complexity: fn with >4 decision points (if/&&/||/ternary/loop) or
+  nesting depth >2 → REJECT. Demand extraction to helpers. ESLint
+  `complexity` max 8 enforced on `app/api/judge/**` + `features/ai-judge/**`.
 
 ### 3. Tailwind & Design
 
@@ -155,6 +163,11 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 
 - OpenRouter SDK: Use `@openrouter/sdk` — no raw `fetch`. ZDR enabled
   (`zdr: true`). Proper provider routing.
+- Skill compliance: `openrouter-typescript-sdk` is the reference. Verify
+  sdk-package patterns — `chat.send` + chunk streaming, statusCode error
+  mapping (400/401/402/429/503), concurrent text+usage consumption. Reject
+  `@openrouter/agent` (callModel) usage — not a dependency. Reject patterns
+  the skill marks legacy.
 - Prompt quality: System prompt defines MTG judge persona with citation
   requirement. Structured output. Reject generic "helpful assistant".
 - Citation grounding: Responses include `{ruleId, section, excerpt}`. Reject
@@ -165,7 +178,7 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
   filters) → user-friendly messages. No raw SDK errors leaked.
 - Token budget: System prompt + history within model context limits. Reject
   unbounded growth.
-- Security: `OPENROUTER_API_KEY` server-only. Rate limiting on `/api/judge`. No
+- Security: `OPEN_ROUTER_API_KEY` server-only. Rate limiting on `/api/judge`. No
   user data persisted.
 
 ### 9. RSC Audit (SPEC.md §1)
