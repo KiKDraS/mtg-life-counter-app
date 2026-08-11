@@ -260,6 +260,16 @@ Text readable from table side. Wrapper — interior layout identical.
 | −90°     | Quarter left  | `rotate(-90deg)` | Right-side: P3 (3p), P2/P4 (4p), P3/P5 (5p,6p) |
 | None     | —             | —                | Bottom-side facing user: P2 (2p), P6 (6p)      |
 
+### 4.4 Extended Splash
+
+Launch state. Covers hydration hold. Belt visible beneath; zones empty until hydrate.
+
+- **Dialog:** dedicated modal `<dialog>` (`extended-splash`). NOT DialogShell (dismiss paths). Top layer via `showModal()`.
+- **Visual:** fullscreen. bg `#292A2A` = manifest `background_color` (seamless OS-splash → DOM). Centered MTG logo (`mtg-logo.png`) + app name. No animations.
+- **Timing:** opens only when hold >120ms. Fast hydration → never opens.
+- **Close:** hard cut on `isHydrated`. No Escape (cancel guard). No backdrop close. No ✕.
+- **Semantics:** `aria-label="Loading game"`, `aria-modal="true"`, `data-testid="extended-splash"`.
+
 ---
 
 ## 5. CENTRAL SPELLBOOK MENU
