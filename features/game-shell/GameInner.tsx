@@ -3,6 +3,7 @@
 import { PropsWithChildren, useMemo } from "react";
 import { PlayerRow } from "./PlayerRow";
 import { useGameStateContext } from "@/features/game-shell/state/game-state-context";
+import { PlayerStatesRegistry } from "@/features/persistence/player-states-registry";
 import { PlayerId } from "@/features/player-zone/types/player";
 import { getPlayerRotation } from "@/features/player-zone/hooks/use-player-config";
 
@@ -26,9 +27,10 @@ const TOP_ROW_COUNT_MAP: Record<number, number> = {
 export function GameInner({ children }: Readonly<PropsWithChildren>) {
   const { state } = useGameStateContext();
   const { playerCount, version } = state;
-  /* version: bumped on RESTART → keyed PlayerProviders remount with fresh defaults.
-     Only version changes trigger remount; SET_PLAYER_COUNT/INITIAL_LIFE/COLOR
-     re-render in place without destroying Provider state. */
+  /* version: bumped on RESTART, SET_INITIAL_LIFE, SET_PLAYER_COUNT, and HYDRATE
+     (with persisted live state) → keyed PlayerProviders remount with fresh
+     defaults or seeded persisted values. SET_GAME_PLAYER_COLOR re-renders in
+     place without destroying Provider state. */
 
   /*
    * Pre-compute the data structure before rendering.
@@ -50,13 +52,13 @@ export function GameInner({ children }: Readonly<PropsWithChildren>) {
   }, [playerCount]);
 
   return (
-    <>
+    <PlayerStatesRegistry>
       <PlayerRow slots={topSlots} version={version} />
 
       {/* §5 — Spellbook belt divider (RSC passed via children) */}
       {children}
 
       <PlayerRow slots={bottomSlots} version={version} isBottomSlot />
-    </>
+    </PlayerStatesRegistry>
   );
 }

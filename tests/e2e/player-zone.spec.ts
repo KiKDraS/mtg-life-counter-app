@@ -383,12 +383,21 @@ test.describe("Player Zone — Contrast & Touch Targets", () => {
     expect(compactShadow(shadowWhite)).not.toContain("rgba(0,0,0,0.4)");
 
     // 2. set P1 color to Black via gear → Black → CheckCircle
-    // Reload first: the picker ADDS on top of a non-default selection
-    // (§8.5.1: replace only when escaping default ["r"]), so from ["w"] a
-    // Black tap would make a w,b gradient, not solid black.
+    // Reload first: reload no longer resets the color — persistence restores
+    // the game-init selection ["w"] (SPEC §4.3/§8.5 "persists restart"). From
+    // a non-default selection the picker ADDS (§8.5.1), so a Black tap from
+    // ["w"] would make a w,b gradient, not solid black. Clear via Colorless
+    // (single-tap apply-and-close → ["c"]), then Black replaces ["c"] → ["b"].
     await page.reload();
+    // expect: P1 restored white — the persistence feature, not a fresh default
+    await expect(zone(page, 1)).toHaveCSS("background-color", "rgb(248, 246, 216)");
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
     const picker = page.locator('dialog[id="color-picker-0"]');
+    await expect(picker).toBeVisible();
+    await picker.getByRole("button", { name: "Colorless mana" }).click();
+    await expect(picker).not.toBeVisible();
+    await zone(page, 1).getByRole("button", { name: "Change color" }).click();
+    await expect(picker).toBeVisible();
     await picker.getByRole("button", { name: "Black mana" }).click();
     await picker.getByRole("button", { name: "Confirm color" }).click();
     await expect(picker).not.toBeVisible();

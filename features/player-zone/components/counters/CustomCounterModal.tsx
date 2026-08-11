@@ -12,9 +12,6 @@ interface CustomCounterModalProps {
   readonly id: string;
 }
 
-/** Smallest unique suffix for custom counter ids. */
-let customIdSeq = 0;
-
 /**
  * §6.6 Modal for naming a custom counter.
  *
@@ -32,7 +29,9 @@ export function CustomCounterModal({ id }: CustomCounterModalProps) {
     if (!input) return;
     const value = input.value.trim();
     if (!value) return;
-    const seqId = `custom-${++customIdSeq}`;
+    /* Timestamp id — persisted ids like `custom-1` survive reload; a monotonic
+       counter would restart at 1 and collide after a session reset. */
+    const seqId = `custom-${Date.now().toString(36)}`;
     dispatch(addCounter(seqId, value));
     input.value = "";
     (document.getElementById(id) as HTMLDialogElement | null)?.close();

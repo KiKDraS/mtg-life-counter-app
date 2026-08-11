@@ -77,7 +77,7 @@ export function LayoutPreview({ count }: { readonly count: number }) {
       {rects.map((rect, i) => {
         const fill = MANA_ORDER[i % MANA_ORDER.length];
         return (
-          <g key={i}>
+          <g key={MANA_ORDER[i]}>
             {/* Zone rect */}
             <rect
               x={rect.x}
