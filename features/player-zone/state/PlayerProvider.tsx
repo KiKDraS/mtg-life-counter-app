@@ -27,6 +27,40 @@ interface PlayerProviderProps extends PropsWithChildren {
 }
 
 /**
+ * Lazy-init argument for {@link buildInitialState} — captures the derived
+ * SPEC §3 defaults + §4.3 hydrated state read from the GameProvider.
+ */
+interface PlayerInit {
+  readonly playerIndex: number;
+  readonly playerCount: number;
+  readonly initialLife: number;
+  readonly color: PlayerColor;
+  readonly hydrated: PlayerState | null;
+}
+
+/**
+ * §3/§4.3 — useReducer lazy initializer. Runs once per mount (PlayerProvider
+ * keyed on game version → remount rebuilds the same state), never per render.
+ * Allocates the commanderDamage array only on mount.
+ */
+function buildInitialState(init: PlayerInit): PlayerState {
+  const { playerIndex, playerCount, initialLife, color, hydrated } = init;
+  return {
+    playerId: (playerIndex ?? 0) as PlayerId,
+    life: hydrated?.life ?? initialLife,
+    color,
+    commanderDamage:
+      hydrated?.commanderDamage?.length === playerCount
+        ? hydrated.commanderDamage
+        : Array.from({ length: playerCount }, (_, i) => ({
+            playerId: i as PlayerId,
+            value: 0,
+          })),
+    counters: hydrated?.counters ?? DEFAULT_COUNTERS,
+  };
+}
+
+/**
  * §2 — Per-player state provider.
  *
  * Donut Hole pattern: thin client boundary that creates isolated React Context
@@ -60,22 +94,17 @@ export function PlayerProvider({
   const hydrated = hasGameCtx
     ? gameCtx.state.hydratedPlayerStates?.[playerIndex as PlayerId] ?? null
     : null;
-  const initialState: PlayerState = {
-    playerId: (playerIndex ?? 0) as PlayerId,
-    life: hydrated?.life ?? (hasGameCtx ? gameCtx.state.initialLife : 40),
+  /* Lazy-init arg — consumed once on mount; cheap references, no allocation. */
+  const init: PlayerInit = {
+    playerIndex,
+    playerCount,
+    initialLife: hasGameCtx ? gameCtx.state.initialLife : 40,
     color: (hasGameCtx
       ? gameCtx.state.playerColors[playerIndex as PlayerId]
       : DEFAULT_PLAYER_COLOR) as PlayerColor,
-    commanderDamage:
-      hydrated?.commanderDamage?.length === playerCount
-        ? hydrated.commanderDamage
-        : Array.from({ length: playerCount }, (_, i) => ({
-            playerId: i as PlayerId,
-            value: 0,
-          })),
-    counters: hydrated?.counters ?? DEFAULT_COUNTERS,
+    hydrated,
   };
-  const [state, dispatch] = useReducer(playerReducer, initialState);
+  const [state, dispatch] = useReducer(playerReducer, init, buildInitialState);
 
   /* §4.2 — report live state up to the single-writer registry. */
   useEffect(() => {
