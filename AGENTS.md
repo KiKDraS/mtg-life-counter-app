@@ -71,8 +71,7 @@ All merges via PRs only. Branch ops by `@release-manager`.
 
 ## State Module Structure (enforced by ESLint `state/no-state-spaghetti`)
 
-`features/<name>/state/` follows the feature folder convention — one concern
-per file, no `*-context.tsx` megafiles:
+`features/<name>/state/` — one concern per file. No `*-context.tsx` megafiles.
 
 ```
 features/game-shell/state/     features/player-zone/state/
@@ -85,18 +84,17 @@ features/game-shell/state/     features/player-zone/state/
   hooks.ts                        hooks.ts
 ```
 
-- `types.ts` — state + action + context-value interfaces (type-only).
-- `constants.ts` — action type consts + initial state.
-- `actions.ts` — action creators (pure).
-- `reducer.ts` — reducer (pure).
-- `context.ts` — `createContext` only (`"use client"`).
-- `<Name>Provider.tsx` — provider component + effects (`"use client"`).
-- `hooks.ts` — consumer hooks (`"use client"`).
+- `types.ts` — state/action/context-value interfaces. Type-only.
+- `constants.ts` — action type consts + init state.
+- `actions.ts` — action creators. Pure.
+- `reducer.ts` — reducer. Pure.
+- `context.ts` — `createContext` only. `"use client"`.
+- `<Name>Provider.tsx` — provider + effects. `"use client"`.
+- `hooks.ts` — consumer hooks. `"use client"`.
 
-Files calling BOTH `createContext` and `useReducer` are rejected by
-`pnpm lint` (rule `state/no-state-spaghetti`, scoped
-`features/**/state/**/*.{ts,tsx}`). No barrel `index.ts` re-exports — import
-directly from the concern file.
+`createContext` + `useReducer` same file → `pnpm lint` REJECT (rule
+`state/no-state-spaghetti`, scope `features/**/state/**/*.{ts,tsx}`).
+No barrel `index.ts` re-exports — import direct from concern file.
 
 **Change proposal:** `@orchestrator` presents, user approves
 ("Approved"/"Aprobado"), then updates doc, notifies all agents.

@@ -57,11 +57,10 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 - No barrel imports: Flag imports from `index.ts` re-exports. Demand direct
   source import.
 - No catch-all `utils.ts`: Flag. Each util its own file.
-- State modules: Flag `features/**/state/**` files that mix `createContext` +
-  `useReducer` (ESLint `state/no-state-spaghetti` rejects). Demand one concern
-  per file: `types.ts` / `constants.ts` / `actions.ts` / `reducer.ts` /
-  `context.ts` / `<Name>Provider.tsx` / `hooks.ts`. No `*-context.tsx`
-  megafiles, no barrels.
+- State modules: `features/**/state/**` mix `createContext` + `useReducer` →
+  REJECT (ESLint `state/no-state-spaghetti`). One concern per file:
+  `types.ts`/`constants.ts`/`actions.ts`/`reducer.ts`/`context.ts`/
+  `<Name>Provider.tsx`/`hooks.ts`. No `*-context.tsx` megafiles, no barrels.
 
 ### 3. Tailwind & Design
 
