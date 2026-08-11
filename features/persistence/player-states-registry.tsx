@@ -4,7 +4,6 @@ import {
   createContext,
   use,
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   type ReactNode,
@@ -41,9 +40,17 @@ export function PlayerStatesRegistry({
   const isHydrated = gameCtx?.state.isHydrated ?? false;
   const playerCount = gameCtx?.state.playerCount ?? 0;
 
-  useEffect(() => {
-    statesMapRef.current.clear();
-  }, [playerCount]);
+  // Reset synchronously during render so remounted PlayerProviders (triggered by
+  // a playerCount change) report into a clean map — a passive effect would run
+  // after they've already reported, leaving stale keys in the map.
+  const lastCountRef = useRef(playerCount);
+  if (lastCountRef.current !== playerCount) {
+    lastCountRef.current = playerCount;
+    // Render-phase reset is intentional: it must run before remounted
+    // PlayerProviders fire their passive effects and report into the map.
+    // eslint-disable-next-line react-hooks/refs
+    statesMapRef.current = new Map();
+  }
 
   const reportPlayerState = useCallback(
     (state: PlayerState) => {
@@ -55,11 +62,12 @@ export function PlayerStatesRegistry({
       if (map.size === playerCount) {
         const playerStates = Array.from(
           { length: playerCount },
-          (_, i) => map.get(i)!,
-        );
+          (_, i) => map.get(i),
+        ).filter((s): s is PlayerState => s !== undefined);
+        if (playerStates.length !== playerCount) return;
 
-        // Disparo en segundo plano (Fire and forget)
-        idbPut(STORE_STATE, "state", { playerStates }).catch(console.warn);
+        // Fire-and-forget; empty catch preserves pre-refactor silent-fail behavior.
+        void idbPut(STORE_STATE, "state", { playerStates }).catch(() => {});
       }
     },
     [isHydrated, playerCount],
