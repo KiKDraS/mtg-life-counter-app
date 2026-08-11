@@ -38,9 +38,10 @@ Own these dirs only. **Forbidden** from React components, Tailwind, app/ outside
   });
   ```
 - **ZDR default.** Each req: `provider: { zdr: true }`. No data retention. Override via `OPEN_ROUTER_ZDR=false` when account lacks ZDR endpoints.
-- **Provider routing:** `sort: "price"` for cheapest capable model:
+- **Provider routing:** explicit models only — `OPEN_ROUTER_MODEL` +
+  `OPEN_ROUTER_FALLBACK_MODEL` (env). No `sort` — user picks models:
   ```ts
-  provider: { zdr: true, sort: "price" },
+  provider: { zdr: true },
   ```
 - **Streaming:** SDK async iterator — no manual SSE parsing:
   ```ts

@@ -240,7 +240,7 @@ export async function streamWithFallback(
           messages,
           stream: true,
           streamOptions: { includeUsage: true },
-          provider: { zdr: zdrEnabled, sort: "price" },
+          provider: { zdr: zdrEnabled },
         },
       },
       { timeoutMs: TOTAL_TIMEOUT_MS, signal: clientSignal },
