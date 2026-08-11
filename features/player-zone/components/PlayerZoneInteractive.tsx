@@ -8,8 +8,8 @@ import {
 } from "@/features/player-zone/constants/life";
 import {
   PlayerState,
-  usePlayerStateContext,
-} from "@/features/player-zone/state/player-state-context";
+} from "@/features/player-zone/state/types";
+import { usePlayerStateContext } from "@/features/player-zone/state/hooks";
 import { POISON_LETHAL } from "@/features/player-zone/constants/counter";
 import { COMMANDER_LETHAL_DAMAGE } from "@/features/player-zone/constants/commander";
 import { useSwipe } from "@/features/player-zone/hooks/use-swipe";

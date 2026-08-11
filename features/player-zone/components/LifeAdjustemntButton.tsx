@@ -1,8 +1,6 @@
 import { useLifeAdjustment } from "@/features/player-zone/hooks/use-life-adjustment";
-import {
-  adjustLife,
-  usePlayerStateContext,
-} from "@/features/player-zone/state/player-state-context";
+import { adjustLife } from "@/features/player-zone/state/actions";
+import { usePlayerStateContext } from "@/features/player-zone/state/hooks";
 import { LifeSign } from "@/features/player-zone/types/life";
 import { cn } from "@/shared/lib/cn";
 

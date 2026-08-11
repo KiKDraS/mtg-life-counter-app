@@ -69,5 +69,32 @@ All merges via PRs only. Branch ops by `@release-manager`.
 > This doc + DESIGN.md + SPEC.md are binding contracts. Violations rejected by
 > `@code-review`. Pipeline halts.
 
+## State Module Structure (enforced by ESLint `state/no-state-spaghetti`)
+
+`features/<name>/state/` — one concern per file. No `*-context.tsx` megafiles.
+
+```
+features/game-shell/state/     features/player-zone/state/
+  types.ts                        types.ts
+  constants.ts                    constants.ts
+  actions.ts                      actions.ts
+  reducer.ts                      reducer.ts
+  context.ts                      context.ts
+  GameProvider.tsx                PlayerProvider.tsx
+  hooks.ts                        hooks.ts
+```
+
+- `types.ts` — state/action/context-value interfaces. Type-only.
+- `constants.ts` — action type consts + init state.
+- `actions.ts` — action creators. Pure.
+- `reducer.ts` — reducer. Pure.
+- `context.ts` — `createContext` only. `"use client"`.
+- `<Name>Provider.tsx` — provider + effects. `"use client"`.
+- `hooks.ts` — consumer hooks. `"use client"`.
+
+`createContext` + `useReducer` same file → `pnpm lint` REJECT (rule
+`state/no-state-spaghetti`, scope `features/**/state/**/*.{ts,tsx}`).
+No barrel `index.ts` re-exports — import direct from concern file.
+
 **Change proposal:** `@orchestrator` presents, user approves
 ("Approved"/"Aprobado"), then updates doc, notifies all agents.

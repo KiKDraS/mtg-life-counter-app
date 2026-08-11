@@ -2,7 +2,7 @@ import { PlayerZoneInteractive } from "./components/PlayerZoneInteractive";
 import { ColorPicker } from "@/features/player-zone/components/color-picker/ColorPicker";
 import { CommanderDamage } from "@/features/player-zone/components/commander-damage/CommanderDamage";
 import { Counters } from "@/features/player-zone/components/counters/Counters";
-import { usePlayerStateContext } from "./state/player-state-context";
+import { usePlayerStateContext } from "@/features/player-zone/state/hooks";
 
 /**
  * §4.2 Player Zone — RSC shell.

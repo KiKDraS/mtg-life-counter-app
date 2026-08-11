@@ -4,9 +4,11 @@ import { useCallback } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
   useGameStateContext,
+} from "@/features/game-shell/state/hooks";
+import {
   setPlayerCount,
   restartGame,
-} from "@/features/game-shell/state/game-state-context";
+} from "@/features/game-shell/state/actions";
 import { LayoutPreview } from "./layouts";
 
 interface PlayerSelectorContentProps {

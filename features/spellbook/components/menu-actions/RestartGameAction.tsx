@@ -2,10 +2,8 @@
 
 import { type PropsWithChildren } from "react";
 import { MenuActionButton } from "../MenuActionButton";
-import {
-  useGameStateContext,
-  restartGame,
-} from "@/features/game-shell/state/game-state-context";
+import { useGameStateContext } from "@/features/game-shell/state/hooks";
+import { restartGame } from "@/features/game-shell/state/actions";
 
 export function RestartGameAction({ children }: Readonly<PropsWithChildren>) {
   const { dispatch } = useGameStateContext();

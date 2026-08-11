@@ -3,8 +3,8 @@
 import { useMemo } from "react";
 import { zoneStylesFor } from "@/features/player-zone/utils/zone-styles";
 import { DEFAULT_PLAYER_COLOR } from "@/features/player-zone/constants/player";
-import { usePlayerStateContext } from "@/features/player-zone/state/player-state-context";
-import { useGameStateContext } from "@/features/game-shell/state/game-state-context";
+import { usePlayerStateContext } from "@/features/player-zone/state/hooks";
+import { useGameStateContext } from "@/features/game-shell/state/hooks";
 import { CommanderDamageColumn } from "./CommanderDamageColumn";
 import type { PlayerId } from "@/features/player-zone/types/player";
 import { COMMANDER_LETHAL_DAMAGE } from "../../constants/commander";

@@ -5,8 +5,8 @@ import { DialogShell } from "@/shared/components/DialogShell";
 import { UI } from "@/shared/lib/constants/colors";
 import {
   usePlayerStateContext,
-  addCounter,
-} from "@/features/player-zone/state/player-state-context";
+} from "@/features/player-zone/state/hooks";
+import { addCounter } from "@/features/player-zone/state/actions";
 
 interface CustomCounterModalProps {
   readonly id: string;
