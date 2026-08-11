@@ -6,6 +6,7 @@ import type {
   JudgeErrorEvent,
 } from "@/features/ai-judge/hooks/use-judge-chat";
 import type { Citation } from "@/features/ai-judge/lib/types";
+import { MarkdownText } from "@/features/ai-judge/components/MarkdownText";
 
 /** DESIGN §6.4.2 — pill label: rule → "CR 702.12a", card → "Card: Reanimate". */
 const citationLabel = (citation: Citation): string =>
@@ -56,10 +57,15 @@ export function ChatMessageList({
             className={
               message.role === "user"
                 ? "max-w-[75%] self-end rounded-lg rounded-tr-none bg-mana-c px-3 py-2 text-sm whitespace-pre-wrap text-ui-textDark"
-                : "max-w-[75%] self-start rounded-lg rounded-tl-none bg-mana-b px-3 py-2 text-sm whitespace-pre-wrap text-ui-textLight"
+                : "max-w-[75%] self-start rounded-lg rounded-tl-none bg-mana-b px-3 py-2 text-sm text-ui-textLight"
             }
           >
-            {message.content}
+            {message.role === "user" ? (
+              message.content
+            ) : (
+              /* DESIGN §6.4 — answer text: markdown subset renderer. */
+              <MarkdownText content={message.content} />
+            )}
           </div>
 
           {/* DESIGN §6.4.2 — footnote pills under the system bubble. */}
