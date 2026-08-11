@@ -275,6 +275,7 @@ gradient.
 | `OPEN_ROUTER_MODEL`           | primary judge model  | yes      | route 503 `misconfigured`     |
 | `OPEN_ROUTER_FALLBACK_MODEL`  | fallback judge model | no       | no fallback — primary only    |
 | `OPEN_ROUTER_EMBEDDING_MODEL` | semantic retrieval   | no       | lexical retrieval only (§9.4) |
+| `OPEN_ROUTER_ZDR`             | zero-data-retention provider filter | no | default true — "false" disables (no ZDR endpoints on account) |
 
 - Validated at route module load. Model format `vendor/model` — else 503
   `misconfigured`.

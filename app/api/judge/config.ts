@@ -11,6 +11,13 @@ import { OpenRouter } from "@openrouter/sdk";
 /** `vendor/model` format per SPEC §9.2. */
 const MODEL_FORMAT_RE = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._:\/-]*$/i;
 
+/**
+ * Zero data retention filter (SPEC §9.2). Any value except the literal
+ * "false" → true. "false" disables ZDR for accounts with no ZDR-compliant
+ * endpoints (API error: "No endpoints found matching your data policy").
+ */
+export const zdrEnabled = process.env.OPEN_ROUTER_ZDR !== "false";
+
 /** Resolved env config. Empty strings when unset. */
 export const env = {
   apiKey: process.env.OPEN_ROUTER_API_KEY ?? "",

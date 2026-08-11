@@ -7,7 +7,7 @@
  * signal. Usage + cost extracted from the stream and logged per request.
  */
 
-import { openRouter } from "./config";
+import { openRouter, zdrEnabled } from "./config";
 import {
   ConnectionError,
   EdgeNetworkTimeoutResponseError,
@@ -204,7 +204,7 @@ export async function streamWithFallback(
           messages,
           stream: true,
           streamOptions: { includeUsage: true },
-          provider: { zdr: true, sort: "price" },
+          provider: { zdr: zdrEnabled, sort: "price" },
         },
       },
       { timeoutMs: TOTAL_TIMEOUT_MS, signal: clientSignal },
