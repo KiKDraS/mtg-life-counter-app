@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useMemo, type PropsWithChildren } from "react";
+import { useRef, useCallback, type PropsWithChildren } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
   INCREMENT_LIFE,
@@ -15,6 +15,7 @@ import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 import { LifeAdjustmentButton } from "./LifeAdjustemntButton";
 import { LifeTotalDisplay } from "./LifeTotalDisplay";
 import { CommanderDamage } from "@/features/player-zone/types/CommanderDamage";
+import type { PlayerState } from "@/features/player-zone/state/types";
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -49,14 +50,12 @@ const getGearPositionClasses = (isOnBottomSlot: boolean, rotation: number) => {
     : "";
 };
 
-const checkLethality = (
-  life: number,
-  poisonValue: number,
-  commanderDamage: CommanderDamage[],
-) => {
-  const isLifeLethal = life <= 0;
+const checkLethality = (state: PlayerState) => {
+  const isLifeLethal = state.life <= 0;
+  const poisonValue =
+    state.counters.find((c) => c.type === "poison")?.value ?? 0;
   const isPoisonLethal = poisonValue >= POISON_LETHAL;
-  const isCommanderLethal = commanderDamage.some(
+  const isCommanderLethal = state.commanderDamage.some(
     (cd: CommanderDamage) => cd.value >= COMMANDER_LETHAL_DAMAGE,
   );
 
@@ -126,20 +125,9 @@ export function PlayerZoneInteractive({
       Derived UI 
     ================= 
   */
-  const { background, textColor, textShadow } = useMemo(
-    () => zoneStylesFor(state.color),
-    [state.color],
-  );
+  const { background, textColor, textShadow } = zoneStylesFor(state.color);
 
-  const poisonValue = useMemo(() => {
-    const countersByType = new Map(state.counters.map((c) => [c.type, c]));
-    return countersByType.get("poison")?.value ?? 0;
-  }, [state.counters]);
-
-  const { isPoisonLethal, isCommanderLethal, isLethal } = useMemo(
-    () => checkLethality(state.life, poisonValue, state.commanderDamage),
-    [state.life, poisonValue, state.commanderDamage],
-  );
+  const { isPoisonLethal, isCommanderLethal, isLethal } = checkLethality(state);
 
   return (
     <div
