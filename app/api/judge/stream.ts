@@ -1,10 +1,10 @@
 /**
  * OpenRouter model streaming for the AI Judge (SPEC §9.5, §9.6).
  *
- * `runModelAttempt` streams one model call (first-token 30s, total 120s
- * timeouts; abort tied to the client signal). `streamWithFallback` adds the
- * multi-model routing: fallback on 5xx/timeout/provider error, never 4xx.
- * Usage + cost extracted from the stream and logged per request.
+ * One `chat.send` per answer with the full model list — the SDK/API performs
+ * multi-model auto-fallback internally (5xx/timeout/provider overload, never
+ * 4xx). First-token 30s + total 120s timeouts; abort tied to the client
+ * signal. Usage + cost extracted from the stream and logged per request.
  */
 
 import { openRouter } from "./config";
@@ -13,6 +13,7 @@ import {
   EdgeNetworkTimeoutResponseError,
   OpenRouterError,
   ProviderOverloadedResponseError,
+  RequestTimeoutError,
   RequestTimeoutResponseError,
   ResponseValidationError,
   SDKValidationError,
@@ -39,14 +40,21 @@ type JudgeMessages = Array<{
   content: string;
 }>;
 
-/** Fallback routing classification (SPEC §9.6). */
+/** Failure classification for the route's error event mapping (SPEC §9.6). */
 export type FailureKind = "timeout" | "retryable" | "permanent";
 
-/** One model attempt outcome (SPEC §9.5, §9.6). */
+/** One model call outcome (SPEC §9.5, §9.6). */
 export type AttemptResult =
   | { readonly kind: "success"; readonly outcome: StreamOutcome }
   | { readonly kind: "client_disconnected" }
   | { readonly kind: "failed"; readonly failure: FailureKind; readonly error: unknown };
+
+/** Outcome of a routed model call with SDK auto-fallback (SPEC §9.6). */
+export type StreamWithFallbackResult =
+  | { readonly kind: "done"; readonly outcome: StreamOutcome }
+  | { readonly kind: "client_disconnected" }
+  | { readonly kind: "mid_stream_failure" }
+  | { readonly kind: "failed"; readonly failure: FailureKind };
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -73,15 +81,15 @@ const PERMANENT_ERRORS: readonly ErrorClass[] = [
 ];
 
 /**
- * @description Classify a model failure for fallback routing (SPEC §9.6):
+ * @description Classify a model failure (SPEC §9.6): first-token or total
  * timeout → "timeout"; 4xx → "permanent" (no fallback); 5xx, provider
- * timeout/overload, connection error, anything else → "retryable". SDK
- * validation errors → "permanent" (same request fails again).
- * @param err The thrown error from a model call.
+ * timeout/overload, connection error, anything else → "retryable" (SDK
+ * auto-fallback covers it). SDK validation errors → "permanent".
+ * @param err The thrown error from the model call.
  * @returns The FailureKind for the error.
  */
 export const classifyFailure = (err: unknown): FailureKind => {
-  if (err instanceof StreamTimeoutError) return "timeout";
+  if (err instanceof StreamTimeoutError || err instanceof RequestTimeoutError) return "timeout";
   if (RETRYABLE_ERRORS.some((Ctor) => err instanceof Ctor)) return "retryable";
   if (PERMANENT_ERRORS.some((Ctor) => err instanceof Ctor)) return "permanent";
   if (err instanceof OpenRouterError)
@@ -112,9 +120,9 @@ const applyUsage = (chunk: ChatStreamChunk, usage: Usage): Usage => {
  * (emitting each via `onToken`), track served model + usage. Throws on
  * provider error chunks; abort surfaces as an iterator rejection.
  * @param iterator The chunk iterator (first chunk consumed by the first-token
- * race in {@link runModelAttempt}).
+ * race in {@link streamWithFallback}).
  * @param first The first `next()` result from the race.
- * @param model Model id for the attempt (initial served model).
+ * @param model Initial served model id (primary; chunk.model wins when set).
  * @param onToken Callback per token delta (called in arrival order).
  * @returns The completed outcome (content, usage, served model).
  * @throws Error on provider stream error chunk or stream abort.
@@ -140,72 +148,6 @@ async function pumpTokens(
   return { content, usage, model: servedModel };
 }
 
-/**
- * @description Stream one model call (SPEC §9.5). Timeouts: first token 30s,
- * total 120s. AbortController tied to `clientSignal` — client disconnect
- * cancels the upstream stream immediately.
- * @param model Model id to call (e.g. `anthropic/claude-sonnet-4`).
- * @param messages System + history + context user messages.
- * @param clientSignal Request abort signal — abort cancels the stream.
- * @param onToken Callback per token delta (called in arrival order).
- * @returns success (content, usage, served model), client_disconnected, or
- * failed with the classified FailureKind + original error.
- */
-export async function runModelAttempt(
-  model: string,
-  messages: JudgeMessages,
-  clientSignal: AbortSignal,
-  onToken: (token: string) => void,
-): Promise<AttemptResult> {
-  const controller = new AbortController();
-  const onClientAbort = (): void => controller.abort();
-  clientSignal.addEventListener("abort", onClientAbort, { once: true });
-  const totalTimer = setTimeout(() => controller.abort(), TOTAL_TIMEOUT_MS);
-
-  try {
-    const result = await openRouter.chat.send(
-      {
-        chatRequest: {
-          model,
-          messages,
-          stream: true,
-          streamOptions: { includeUsage: true },
-          provider: { zdr: true, sort: "price" },
-        },
-      },
-      { signal: controller.signal },
-    );
-    if (!isAsyncIterable<ChatStreamChunk>(result)) throw new Error("unexpected non-stream response");
-
-    const iterator = result[Symbol.asyncIterator]();
-    const firstPromise = iterator.next();
-    const first = await Promise.race([
-      firstPromise,
-      sleep(FIRST_TOKEN_TIMEOUT_MS).then(() => null),
-    ]);
-    if (first === null) {
-      firstPromise.catch(() => {});
-      controller.abort();
-      throw new StreamTimeoutError("first token timeout");
-    }
-    return { kind: "success", outcome: await pumpTokens(iterator, first, model, onToken) };
-  } catch (err) {
-    if (clientSignal.aborted) return { kind: "client_disconnected" };
-    if (controller.signal.aborted) return { kind: "failed", failure: "timeout", error: err };
-    return { kind: "failed", failure: classifyFailure(err), error: err };
-  } finally {
-    clearTimeout(totalTimer);
-    clientSignal.removeEventListener("abort", onClientAbort);
-  }
-}
-
-/** Outcome of a routed model attempt with fallback (SPEC §9.6). */
-export type StreamWithFallbackResult =
-  | { readonly kind: "done"; readonly outcome: StreamOutcome }
-  | { readonly kind: "client_disconnected" }
-  | { readonly kind: "mid_stream_failure" }
-  | { readonly kind: "failed"; readonly failure: FailureKind };
-
 /** SPEC §9.6 — usage + cost logged per request. Never logs key/question. */
 const logUsage = (outcome: StreamOutcome): void => {
   console.log(
@@ -219,54 +161,31 @@ const logUsage = (outcome: StreamOutcome): void => {
   );
 };
 
-/** Log usage + wrap a successful attempt as the routed result. */
-const done = (outcome: StreamOutcome): StreamWithFallbackResult => {
-  logUsage(outcome);
-  return { kind: "done", outcome };
-};
-
 /** SPEC §9.6 — model failure log (message only, never key/question). */
-const logAttemptError = (
-  label: string,
-  attempt: { readonly failure: FailureKind; readonly error: unknown },
-): void => {
+const logFailure = (failure: FailureKind, err: unknown): void => {
   console.error(
-    `AI Judge ${label} model failed:`,
-    attempt.error instanceof Error ? attempt.error.message : attempt.error,
+    `AI Judge model failed (${failure}):`,
+    err instanceof Error ? err.message : err,
   );
 };
 
-/** Run the fallback model after a retryable primary failure (SPEC §9.6). */
-async function runFallback(
-  fallbackModel: string,
-  messages: JudgeMessages,
-  clientSignal: AbortSignal,
-  onToken: (token: string) => void,
-): Promise<StreamWithFallbackResult> {
-  const attempt = await runModelAttempt(fallbackModel, messages, clientSignal, onToken);
-  if (attempt.kind === "success") return done(attempt.outcome);
-  if (attempt.kind === "client_disconnected") return { kind: "client_disconnected" };
-  logAttemptError("fallback", attempt);
-  return { kind: "failed", failure: attempt.failure };
-}
-
 /**
- * @description Route one answer through primary + fallback models (SPEC
- * §9.6). Fallback on 5xx/timeout/provider error only (never 4xx). Tokens
- * already sent before a failure → "mid_stream_failure" (a retry cannot be
- * spliced in cleanly); both models failed with no tokens → "failed" with the
- * last failure kind; client disconnect → "client_disconnected".
- * @param primaryModel Primary model id (OPEN_ROUTER_MODEL).
- * @param fallbackModel Fallback model id or null when unset.
+ * @description Stream one answer (SPEC §9.5, §9.6): a single `chat.send` with
+ * the full model list — the SDK/API auto-falls back across models on
+ * 5xx/timeout/provider overload, never 4xx. First token 30s, total 120s
+ * (`timeoutMs`), abort tied to `clientSignal`. Tokens already sent before a
+ * failure → "mid_stream_failure" (a fallback cannot be spliced in cleanly);
+ * client disconnect → "client_disconnected"; otherwise "failed" with the
+ * classified failure kind.
+ * @param models Model ids in preference order (primary first).
  * @param messages System + history + context user messages.
- * @param clientSignal Request abort signal.
+ * @param clientSignal Request abort signal — abort cancels the stream.
  * @param onToken Callback per token delta (called in arrival order).
  * @returns The routed result: done outcome, client_disconnected,
- * mid_stream_failure, or failed with the last failure kind.
+ * mid_stream_failure, or failed with the classified failure kind.
  */
 export async function streamWithFallback(
-  primaryModel: string,
-  fallbackModel: string | null,
+  models: readonly string[],
   messages: JudgeMessages,
   clientSignal: AbortSignal,
   onToken: (token: string) => void,
@@ -277,11 +196,39 @@ export async function streamWithFallback(
     onToken(token);
   };
 
-  const primary = await runModelAttempt(primaryModel, messages, clientSignal, trackToken);
-  if (primary.kind === "success") return done(primary.outcome);
-  if (primary.kind === "client_disconnected") return { kind: "client_disconnected" };
-  logAttemptError("primary", primary);
-  if (streamedAnyToken) return { kind: "mid_stream_failure" };
-  if (primary.failure === "permanent" || !fallbackModel) return { kind: "failed", failure: primary.failure };
-  return runFallback(fallbackModel, messages, clientSignal, trackToken);
+  try {
+    const result = await openRouter.chat.send(
+      {
+        chatRequest: {
+          models: [...models],
+          messages,
+          stream: true,
+          streamOptions: { includeUsage: true },
+          provider: { zdr: true, sort: "price" },
+        },
+      },
+      { timeoutMs: TOTAL_TIMEOUT_MS, signal: clientSignal },
+    );
+    if (!isAsyncIterable<ChatStreamChunk>(result)) throw new Error("unexpected non-stream response");
+
+    const iterator = result[Symbol.asyncIterator]();
+    const firstPromise = iterator.next();
+    const first = await Promise.race([
+      firstPromise,
+      sleep(FIRST_TOKEN_TIMEOUT_MS).then(() => null),
+    ]);
+    if (first === null) {
+      firstPromise.catch(() => {});
+      throw new StreamTimeoutError("first token timeout");
+    }
+    const outcome = await pumpTokens(iterator, first, models[0] ?? "", trackToken);
+    logUsage(outcome);
+    return { kind: "done", outcome };
+  } catch (err) {
+    if (clientSignal.aborted) return { kind: "client_disconnected" };
+    const failure = classifyFailure(err);
+    logFailure(failure, err);
+    if (streamedAnyToken) return { kind: "mid_stream_failure" };
+    return { kind: "failed", failure };
+  }
 }

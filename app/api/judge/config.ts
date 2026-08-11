@@ -21,11 +21,17 @@ export const env = {
 /** True when the required key + model are present and well-formed. */
 export const ENV_OK = env.apiKey.length > 0 && MODEL_FORMAT_RE.test(env.model);
 
+/** Model list in preference order: primary + optional fallback (SPEC §9.6). */
+export const models: readonly string[] = [
+  env.model,
+  ...(env.fallbackModel ? [env.fallbackModel] : []),
+];
+
 // Never constructed/used when ENV_OK is false → no fetch without a key.
 export const openRouter = new OpenRouter({
   apiKey: env.apiKey,
   // Ranking metadata for OpenRouter's leaderboard (SPEC §9.2); APP_URL
   // overrides the default deploy URL when running elsewhere.
-  httpReferer: process.env.APP_URL ?? "https://mtg-life-counter.vercel.app",
+  httpReferer: process.env.APP_URL ?? "https://mtg-life-counter-app.vercel.app",
   appTitle: "MTG Life Counter",
 });

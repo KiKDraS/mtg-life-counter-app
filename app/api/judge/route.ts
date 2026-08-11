@@ -5,7 +5,7 @@
  * ./sessions ./sse ./context ./stream. See SPEC.md §9.
  */
 
-import { ENV_OK, env } from "./config";
+import { ENV_OK, models } from "./config";
 import { isRateLimited, clientIp } from "./rate-limit";
 import { SSE_HEADERS, encodeEvent, errorResponse, ERROR_MESSAGES } from "./sse";
 import { sessionKey, getSession } from "./sessions";
@@ -47,8 +47,7 @@ export async function POST(request: Request): Promise<Response> {
         const onToken = (token: string): void =>
           enqueue({ type: "token", content: token });
         const result = await streamWithFallback(
-          env.model,
-          env.fallbackModel,
+          models,
           messages,
           request.signal,
           onToken,
