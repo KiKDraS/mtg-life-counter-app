@@ -13,6 +13,27 @@ function lifeTotal(zoneLocator: Locator): Locator {
   return zoneLocator.locator('[aria-live="polite"]');
 }
 
+/**
+ * Zone layout settles late (cqw/cqh container sizing + hydration remount), so
+ * a single-shot `boundingBox()` can return null right after load. Poll until a
+ * real box exists.
+ */
+async function visibleBox(locator: Locator): Promise<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}> {
+  const deadline = Date.now() + 10_000;
+  let box = await locator.boundingBox();
+  while (!box) {
+    if (Date.now() > deadline) throw new Error("element not visible");
+    await locator.page().waitForTimeout(100);
+    box = await locator.boundingBox();
+  }
+  return box;
+}
+
 async function openPlayersModal(page: Page): Promise<void> {
   await page.getByLabel("Open Spellbook Menu").click();
   await page.getByRole("button", { name: "Players" }).click();
@@ -35,8 +56,7 @@ async function swipeOn(
   direction: "left" | "right",
   distance = 50,
 ): Promise<void> {
-  const box = await locator.boundingBox();
-  if (!box) throw new Error("element not visible for swipe");
+  const box = await visibleBox(locator);
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   const targetX = direction === "left" ? cx - distance : cx + distance;
@@ -53,8 +73,7 @@ async function swipeY(
   direction: "up" | "down",
   distance = 80,
 ): Promise<void> {
-  const box = await locator.boundingBox();
-  if (!box) throw new Error("element not visible for swipe");
+  const box = await visibleBox(locator);
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   const targetY = direction === "up" ? cy - distance : cy + distance;

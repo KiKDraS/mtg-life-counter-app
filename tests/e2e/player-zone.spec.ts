@@ -15,15 +15,62 @@ async function lifeValue(zoneLocator: Locator): Promise<number> {
   return Number(await lifeTotal(zoneLocator).textContent());
 }
 
+/**
+ * Zone layout settles late (cqw/cqh container sizing + hydration remount), so
+ * a single-shot `boundingBox()` can return null right after load. Poll until a
+ * real box exists.
+ */
+async function visibleBox(locator: Locator): Promise<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}> {
+  const deadline = Date.now() + 10_000;
+  let box = await locator.boundingBox();
+  while (!box) {
+    if (Date.now() > deadline) throw new Error("element not visible");
+    await locator.page().waitForTimeout(100);
+    box = await locator.boundingBox();
+  }
+  return box;
+}
+
 async function holdButton(page: Page, button: Locator, ms: number): Promise<void> {
-  const box = await button.boundingBox();
-  if (!box) throw new Error("button not visible");
+  const box = await visibleBox(button);
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   await page.mouse.move(cx, cy);
   await page.mouse.down();
   await page.waitForTimeout(ms);
   await page.mouse.up();
+}
+
+/**
+ * Dev mode: the page reloads once ~100ms after load (HMR double connect), and
+ * hydration remounts the zone nodes right after — both reset focus and
+ * geometry. Wait until the P1 zone node has been stable for 300ms so Tab
+ * sequences run on a settled page.
+ */
+async function waitZoneStable(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () => {
+      const sec = document.querySelector('section[aria-label^="Player 1:"]');
+      if (!sec) return false;
+      const w = window as unknown as {
+        __zoneNode?: Element;
+        __zoneChangedAt?: number;
+      };
+      if (w.__zoneNode !== sec) {
+        w.__zoneNode = sec;
+        w.__zoneChangedAt = Date.now();
+        return false;
+      }
+      return Date.now() - (w.__zoneChangedAt ?? 0) > 300;
+    },
+    undefined,
+    { timeout: 15_000 },
+  );
 }
 
 test.describe("Player Zone — Board Rendering", () => {
@@ -183,8 +230,7 @@ test.describe("Player Zone — Hold Acceleration & Press Feedback", () => {
     expect(restShadow).toBe("none");
 
     // Press down to trigger :active state
-    const box = await button.boundingBox();
-    if (!box) throw new Error("button not visible");
+    const box = await visibleBox(button);
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;
     await page.mouse.move(cx, cy);
@@ -226,8 +272,7 @@ test.describe("Player Zone — Lethal State", () => {
     const p2Life = lifeTotal(p2);
 
     const minusButton = p1.getByRole("button", { name: "-1 life" });
-    const box = await minusButton.boundingBox();
-    if (!box) throw new Error("minus button not visible");
+    const box = await visibleBox(minusButton);
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     const deadline = Date.now() + 5000;
@@ -272,9 +317,28 @@ test.describe("Player Zone — Keyboard & Focus", () => {
       p2.getByRole("button", { name: "Change color" }),
       p2.getByRole("button", { name: "+1 life" }),
     ];
-    for (const button of order) {
-      await page.keyboard.press("Tab");
-      await expect(button).toBeFocused();
+    // Hydration remounts the zone nodes after load, which resets focus and
+    // makes Chromium skip zero-size elements on Tab. Retry the cycle until it
+    // completes without a remount interrupting it; the last attempt lets the
+    // real assertion error surface.
+    await waitZoneStable(page);
+    for (let attempt = 0; ; attempt++) {
+      const lastAttempt = attempt >= 2;
+      let ok = true;
+      for (const button of order) {
+        await page.keyboard.press("Tab");
+        if (lastAttempt) {
+          await expect(button).toBeFocused();
+        } else {
+          try {
+            await expect(button).toBeFocused({ timeout: 1000 });
+          } catch {
+            ok = false;
+            break;
+          }
+        }
+      }
+      if (ok) break;
     }
 
     // 2. Focused button exposes a visible focus ring
@@ -291,18 +355,39 @@ test.describe("Player Zone — Keyboard & Focus", () => {
 
     const p1 = zone(page, 1);
     const p2 = zone(page, 2);
-    // Tab past P1 "-1 life" → Tab past P1 "Change color" → Tab to P1 "+1 life"
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Tab");
-    await expect(p1.getByRole("button", { name: "+1 life" })).toBeFocused();
-    await page.keyboard.press("Enter");
-    await expect(lifeTotal(p1)).toHaveText("41");
-
-    // 2. Press Space once; P1 reads 42, P2 unchanged at 40
-    await page.keyboard.press("Space");
-    await expect(lifeTotal(p1)).toHaveText("42");
-    await expect(lifeTotal(p2)).toHaveText("40");
+    // Dev-mode page reload (~100ms in) + hydration remount (~1s in) both reset
+    // focus to body; Chromium also skips zero-size elements on Tab. Retry the
+    // whole flow until it survives both; the last attempt surfaces the real
+    // assertion error.
+    await waitZoneStable(page);
+    const plus = p1.getByRole("button", { name: "+1 life" });
+    for (let attempt = 0; ; attempt++) {
+      const lastAttempt = attempt >= 3;
+      // Tab past P1 "-1 life" → Tab past P1 "Change color" → Tab to P1 "+1 life"
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Tab");
+      if (lastAttempt) {
+        await expect(plus).toBeFocused();
+        await page.keyboard.press("Enter");
+        await expect(lifeTotal(p1)).toHaveText("41");
+        await page.keyboard.press("Space");
+        await expect(lifeTotal(p1)).toHaveText("42");
+        await expect(lifeTotal(p2)).toHaveText("40");
+        break;
+      }
+      try {
+        await expect(plus).toBeFocused({ timeout: 1000 });
+        await page.keyboard.press("Enter");
+        await expect(lifeTotal(p1)).toHaveText("41");
+        await page.keyboard.press("Space");
+        await expect(lifeTotal(p1)).toHaveText("42");
+        await expect(lifeTotal(p2)).toHaveText("40");
+        break;
+      } catch {
+        // reload/remount interrupted the cycle — retry from body
+      }
+    }
   });
 });
 
@@ -458,8 +543,7 @@ test.describe("Player Zone — Contrast & Touch Targets", () => {
     for (const n of [1, 2] as const) {
       for (const name of ["-1 life", "+1 life"]) {
         const button = zone(page, n).getByRole("button", { name });
-        const box = await button.boundingBox();
-        if (!box) throw new Error(`${name} button (player ${n}) not visible`);
+        const box = await visibleBox(button);
         // Buttons are full columns: width ≈ zone/3, height ≈ zone height
         expect(box.width).toBeGreaterThanOrEqual(44);
         expect(box.height).toBeGreaterThanOrEqual(100);
@@ -480,8 +564,7 @@ async function swipeOn(
   direction: "left" | "right",
   distance = 50,
 ): Promise<void> {
-  const box = await locator.boundingBox();
-  if (!box) throw new Error("element not visible for swipe");
+  const box = await visibleBox(locator);
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   const targetX = direction === "left" ? cx - distance : cx + distance;
@@ -527,8 +610,7 @@ test.describe("Player Zone — Swipe Gestures (§7.2)", () => {
     await page.goto("/");
 
     const p1 = zone(page, 1);
-    const box = await p1.boundingBox();
-    if (!box) throw new Error("zone not visible");
+    const box = await visibleBox(p1);
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;
 
