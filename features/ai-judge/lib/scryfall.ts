@@ -131,16 +131,18 @@ export async function resolveCard(name: string): Promise<ScryfallCard | null> {
 }
 
 /**
- * @description Rulings for a card id (SPEC §9.3.1). Cache TTL 7d. Never
- * throws.
- * @param cardId Scryfall card id.
+ * @description Rulings for a card (SPEC §9.3.1). Fetches the card's canonical
+ * `rulings_uri` when present, else falls back to `/cards/{id}/rulings`. Cache
+ * TTL 7d, keyed by card id. Never throws.
+ * @param card Resolved Scryfall card.
  * @returns Rulings array, or null on any failure / empty response.
  */
-export async function getRulings(cardId: string): Promise<ScryfallRuling[] | null> {
-  const cached = getCachedRulings(cardId);
+export async function getRulings(card: ScryfallCard): Promise<ScryfallRuling[] | null> {
+  const cached = getCachedRulings(card.id);
   if (cached) return cached;
 
-  const url = `${SCRYFALL_BASE}/cards/${encodeURIComponent(cardId)}/rulings`;
+  const url =
+    card.rulings_uri ?? `${SCRYFALL_BASE}/cards/${encodeURIComponent(card.id)}/rulings`;
   const result = await fetchJson(url, null);
   if (!result) return null;
 
@@ -149,6 +151,6 @@ export async function getRulings(cardId: string): Promise<ScryfallRuling[] | nul
   const rulings = data.data.filter(isRuling);
   if (rulings.length === 0) return null;
 
-  putCachedRulings(cardId, rulings);
+  putCachedRulings(card.id, rulings);
   return rulings;
 }

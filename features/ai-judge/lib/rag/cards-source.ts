@@ -10,6 +10,8 @@ export interface ScryfallCard {
   readonly name: string;
   readonly oracle_text: string | null;
   readonly type_line: string | null;
+  /** Canonical rulings endpoint (SPEC §9.3.1) — fallback `/cards/{id}/rulings`. */
+  readonly rulings_uri: string | null;
 }
 
 /** Rulings shape per SPEC §9.3.1: `{data: [{source, published_at, comment}]}`. */

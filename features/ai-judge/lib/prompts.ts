@@ -8,6 +8,13 @@
 import type { CardRuling } from "./rag/cards-source";
 import type { RetrievedRule } from "./rag/retrieval";
 
+/** Card data rendered as the Card block (SPEC §9.7). */
+export interface PromptCard {
+  readonly name: string;
+  readonly typeLine: string | null;
+  readonly oracleText: string | null;
+}
+
 /**
  * Spanish stopwords — any present marks the question as Spanish (SPEC §9.7).
  * Accent-stripped forms ("qué" → "que", "cuándo" → "cuando").
@@ -68,16 +75,30 @@ A: {"answer": "Yes. You may cast an instant any time you have priority, which in
  * @description SPEC §9.7 — RAG context + question in a single USER message.
  * @param question The player's trimmed question.
  * @param rules Top-k retrieved rules to inject as a rules block.
+ * @param card Resolved card (name + type line + oracle text, verbatim) or null.
  * @param rulings Best-effort card rulings to inject as a rulings block.
- * @returns The assembled user message: optional rules/rulings blocks, then the
- * question. Empty blocks omitted.
+ * @returns The assembled user message: optional card/rules/rulings blocks, then
+ * the question. Empty blocks omitted.
  */
 export function buildUserPrompt(
   question: string,
   rules: RetrievedRule[],
+  card: PromptCard | null,
   rulings: CardRuling[],
 ): string {
   const parts: string[] = [];
+
+  if (card) {
+    const cardBlock = [
+      "Card:",
+      `Name: ${card.name}`,
+      card.typeLine ? `Type: ${card.typeLine}` : null,
+      card.oracleText ? `Oracle text: ${card.oracleText}` : null,
+    ]
+      .filter((line): line is string => line !== null)
+      .join("\n");
+    parts.push(cardBlock);
+  }
 
   if (rules.length > 0) {
     const ruleBlock = rules

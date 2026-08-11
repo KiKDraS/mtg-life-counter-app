@@ -304,7 +304,7 @@ artifacts (§9.11).
 | Operation | Endpoint                         | Cache            |
 | --------- | -------------------------------- | ---------------- |
 | Card      | `GET /cards/named?fuzzy={query}` | LRU 500, TTL 24h |
-| Rulings   | `GET /cards/{id}/rulings`        | TTL 7d           |
+| Rulings   | `GET rulings_uri` → fallback `GET /cards/{id}/rulings` | TTL 7d |
 
 - Canonical card schema = **raw Scryfall card JSON**. Never reshaped.
 - Card name extraction: quoted names in question, else fuzzy match on question
@@ -314,6 +314,9 @@ artifacts (§9.11).
 - Rate: 10 req/s queue. 429 → backoff 1s / 2s / 4s, max 3 retries → skip path.
 - Timeout 5s → card path skipped. Answer proceeds with rules only.
 - Rulings shape: `{data: [{source, published_at, comment}]}`.
+- Card context = `name` + `type_line` + `oracle_text` (verbatim) + rulings via
+  `rulings_uri` (canonical, from card JSON), fallback `GET /cards/{id}/rulings`.
+  Card block injected whenever the card resolves — even with zero rulings.
 
 #### 9.3.2 mtg.wtf (Comprehensive Rules)
 
@@ -385,12 +388,21 @@ Error codes: `rate_limited`, `model_unavailable`, `misconfigured`, `timeout`,
 - RAG context in **user** message, never system:
 
 ```
+Card:
+Name: {name}
+Type: {type_line}
+Oracle text: {oracle_text}
+
 Relevant rules:
 ---
 [CR 702.12a] <text>
 ---
 Player question: {question}
 ```
+
+- Card block present whenever the card resolves — even with zero rulings.
+  Rulings block (existing format) follows it when rulings exist. No card → card
+  block omitted.
 
 - Structured output `{answer, citations[]}`. Few-shot 2–3 Q&A pairs in system
   prompt. Reasoning hidden — final answer only.

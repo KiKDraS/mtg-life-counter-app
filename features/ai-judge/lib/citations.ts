@@ -104,7 +104,21 @@ export function buildRuleCitation(ruleId: string, section: string, excerpt: stri
   return { type: "rule", ruleId: normalized, section, excerpt: clipExcerpt(excerpt) };
 }
 
-/** Build a card citation from a Scryfall ruling (§9.7). */
-export function buildCardCitation(name: string, date: string, excerpt: string): Citation {
-  return { type: "card", name, source: "scryfall", date, excerpt: clipExcerpt(excerpt) };
+/**
+ * Build a card citation from a Scryfall ruling or, when no ruling excerpt is
+ * available, the card's oracle text (SPEC §9.7 — excerpt = ruling comment when
+ * rulings exist, else oracle text, truncated to 300 chars).
+ * @param name Card name.
+ * @param date Ruling date if known, else "".
+ * @param excerpt Ruling comment (may be empty).
+ * @param oracleText Oracle text fallback for the empty-excerpt case.
+ */
+export function buildCardCitation(
+  name: string,
+  date: string,
+  excerpt: string,
+  oracleText?: string,
+): Citation {
+  const excerptText = excerpt.trim().length > 0 ? excerpt : (oracleText ?? "");
+  return { type: "card", name, source: "scryfall", date, excerpt: clipExcerpt(excerptText) };
 }

@@ -30,8 +30,13 @@ export interface JudgeContext {
   readonly sourcesUsed: string[];
 }
 
-/** Card-path result: mapped rulings + "scryfall" source only when resolved. */
+/** Card-path result: oracle text + type line + mapped rulings + "scryfall"
+ * source only when resolved. Present (name/typeLine/oracleText) whenever the
+ * card resolves — even with zero rulings (§9.3.1). */
 export interface CardRulingsResult {
+  readonly name: string;
+  readonly typeLine: string | null;
+  readonly oracleText: string | null;
   readonly rulings: CardRuling[];
   readonly sourcesUsed: string[];
 }
@@ -39,19 +44,23 @@ export interface CardRulingsResult {
 /**
  * @description Card rulings path (SPEC §9.3.1). Null-safe at every step:
  * card name missing, card unresolvable/ambiguous, or rulings unavailable →
- * empty result, no error (§9.3.1).
+ * empty result, no error (§9.3.1). Card context (name/type/oracle text)
+ * present whenever the card resolves — rulings stay optional.
  * @param question The player's trimmed question.
- * @returns Mapped rulings plus `["scryfall"]` when a card resolved, else
- * empty arrays.
+ * @returns Card context + mapped rulings plus `["scryfall"]` when a card
+ * resolved, else empty arrays.
  */
 export async function resolveCardRulings(question: string): Promise<CardRulingsResult> {
   const cardName = extractCardName(question);
-  if (!cardName) return { rulings: [], sourcesUsed: [] };
+  if (!cardName) return { name: "", typeLine: null, oracleText: null, rulings: [], sourcesUsed: [] };
   const card = await resolveCard(cardName);
-  if (!card) return { rulings: [], sourcesUsed: [] };
+  if (!card) return { name: "", typeLine: null, oracleText: null, rulings: [], sourcesUsed: [] };
 
-  const rulings = (await getRulings(card.id)) ?? [];
+  const rulings = (await getRulings(card)) ?? [];
   return {
+    name: card.name,
+    typeLine: card.type_line,
+    oracleText: card.oracle_text,
     rulings: rulings.map((ruling) => ({
       name: card.name,
       source: ruling.source,
@@ -116,7 +125,12 @@ export async function buildContext(question: string): Promise<JudgeContext> {
   if (rules) sourcesUsed.push("mtg.wtf");
 
   return {
-    contextText: buildUserPrompt(question, rules?.rules ?? [], card.rulings),
+    contextText: buildUserPrompt(
+      question,
+      rules?.rules ?? [],
+      card.sourcesUsed.length > 0 ? card : null,
+      card.rulings,
+    ),
     sourcesUsed,
   };
 }
