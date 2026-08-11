@@ -1,14 +1,11 @@
 "use client";
 
-import { useRef, useCallback, type PropsWithChildren } from "react";
+import { useRef, useCallback, useMemo, type PropsWithChildren } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
   INCREMENT_LIFE,
   DECREMENT_LIFE,
 } from "@/features/player-zone/constants/life";
-import {
-  PlayerState,
-} from "@/features/player-zone/state/types";
 import { usePlayerStateContext } from "@/features/player-zone/state/hooks";
 import { POISON_LETHAL } from "@/features/player-zone/constants/counter";
 import { COMMANDER_LETHAL_DAMAGE } from "@/features/player-zone/constants/commander";
@@ -17,7 +14,6 @@ import { zoneStylesFor } from "@/features/player-zone/utils/zone-styles";
 import ColorSettings from "@/shared/components/icons/player-actions/Settings";
 import { LifeAdjustmentButton } from "./LifeAdjustemntButton";
 import { LifeTotalDisplay } from "./LifeTotalDisplay";
-import { Counter } from "@/features/player-zone/types/counter";
 import { CommanderDamage } from "@/features/player-zone/types/CommanderDamage";
 
 // ============================================================================
@@ -53,18 +49,21 @@ const getGearPositionClasses = (isOnBottomSlot: boolean, rotation: number) => {
     : "";
 };
 
-const checkLethality = (state: PlayerState) => {
-  const isPoisonLethal =
-    (state.counters.find((c: Counter) => c.type === "poison")?.value ?? 0) >=
-    POISON_LETHAL;
-  const isCommanderLethal = state.commanderDamage.some(
+const checkLethality = (
+  life: number,
+  poisonValue: number,
+  commanderDamage: CommanderDamage[],
+) => {
+  const isLifeLethal = life <= 0;
+  const isPoisonLethal = poisonValue >= POISON_LETHAL;
+  const isCommanderLethal = commanderDamage.some(
     (cd: CommanderDamage) => cd.value >= COMMANDER_LETHAL_DAMAGE,
   );
 
   return {
     isPoisonLethal,
     isCommanderLethal,
-    isLethal: state.life <= 0 || isCommanderLethal || isPoisonLethal,
+    isLethal: isLifeLethal || isPoisonLethal || isCommanderLethal,
   };
 };
 
@@ -127,8 +126,20 @@ export function PlayerZoneInteractive({
       Derived UI 
     ================= 
   */
-  const { background, textColor, textShadow } = zoneStylesFor(state.color);
-  const { isPoisonLethal, isCommanderLethal, isLethal } = checkLethality(state);
+  const { background, textColor, textShadow } = useMemo(
+    () => zoneStylesFor(state.color),
+    [state.color],
+  );
+
+  const poisonValue = useMemo(() => {
+    const countersByType = new Map(state.counters.map((c) => [c.type, c]));
+    return countersByType.get("poison")?.value ?? 0;
+  }, [state.counters]);
+
+  const { isPoisonLethal, isCommanderLethal, isLethal } = useMemo(
+    () => checkLethality(state.life, poisonValue, state.commanderDamage),
+    [state.life, poisonValue, state.commanderDamage],
+  );
 
   return (
     <div
