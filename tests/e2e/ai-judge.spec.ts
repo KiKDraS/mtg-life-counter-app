@@ -10,8 +10,8 @@ const SYSTEM_TEXT = "rgb(250, 248, 245)"; // ui-textLight #FAF8F5
 const USER_BG = "rgb(202, 197, 192)"; // mana-c #CAC5C0
 const USER_TEXT = "rgb(26, 26, 26)"; // ui-textDark #1A1A1A
 const OFFLINE_COPY = "You're offline — AI Judge needs internet.";
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+/* SPEC §9.9 — sessionId is version-derived: `aijudge-${gameVersion}`. */
+const sessionIdFor = (version: number): string => `aijudge-${version}`;
 
 const DONE_EVENT =
   'data: {"type":"done","citations":[],"usage":{"inputTokens":10,"outputTokens":20,"cost":0.0001},"model":"test/model","sourcesUsed":["mtg.wtf"]}\n\n';
@@ -256,6 +256,31 @@ async function judgeStatuses(page: Page): Promise<number[]> {
   });
 }
 
+/** Message count persisted in IndexedDB for a game version (ai-judge-chat, chat-v<n>). */
+async function persistedMessageCount(page: Page, version: number): Promise<number> {
+  return page.evaluate((v) => {
+    const open = indexedDB.open("mtg-life-counter");
+    return new Promise<number>((resolve) => {
+      open.onsuccess = () => {
+        const db = open.result;
+        const tx = db.transaction("ai-judge-chat", "readonly");
+        const get = tx.objectStore("ai-judge-chat").get(`chat-v${v}`);
+        get.onsuccess = () => {
+          const messages = (get.result as { messages?: unknown[] } | undefined)
+            ?.messages;
+          db.close();
+          resolve(messages?.length ?? 0);
+        };
+        get.onerror = () => {
+          db.close();
+          resolve(0);
+        };
+      };
+      open.onerror = () => resolve(0);
+    });
+  }, version);
+}
+
 async function waitForBodies(page: Page, count: number): Promise<JudgeRequestBody[]> {
   await expect
     .poll(() =>
@@ -367,10 +392,10 @@ test.describe("AI Judge", () => {
     // 3. Wait for response to complete
     await expect(systemBubbles(page)).toHaveText("When you gain life");
 
-    // expect: exactly 1 request captured; question exact; sessionId uuid; no gameContext
+    // expect: exactly 1 request captured; question exact; sessionId version-derived (SPEC §9.9); no gameContext
     const bodies = await waitForBodies(page, 1);
     expect(bodies[0].question).toBe("When can I cast instants?");
-    expect(bodies[0].sessionId).toMatch(UUID_RE);
+    expect(bodies[0].sessionId).toBe(sessionIdFor(0));
     expect(bodies[0].gameContext).toBeUndefined();
 
     // expect: user bubble with question text, colors, right-aligned
@@ -635,7 +660,7 @@ test.describe("AI Judge", () => {
     expect(errors.pageErrors).toEqual([]);
   });
 
-  test("TC-AJ-10: Escape closes; re-open = fresh session (new sessionId, empty history)", async ({
+  test("TC-AJ-10: Escape closes; re-open = same session (history persisted)", async ({
     page,
   }) => {
     // 1. Mock the judge route → FULL
@@ -650,8 +675,8 @@ test.describe("AI Judge", () => {
     await expect(systemBubbles(page).last()).toHaveText("When you gain life");
 
     // expect: bodies[0].sessionId === bodies[1].sessionId (same open, one session)
-    expect(firstSessionBodies[0].sessionId).toMatch(UUID_RE);
-    expect(firstSessionBodies[1].sessionId).toMatch(UUID_RE);
+    expect(firstSessionBodies[0].sessionId).toBe(sessionIdFor(0));
+    expect(firstSessionBodies[1].sessionId).toBe(sessionIdFor(0));
     expect(firstSessionBodies[1].sessionId).toBe(firstSessionBodies[0].sessionId);
     // expect: 4 bubbles total (2 user + 2 system)
     await expect(userBubbles(page)).toHaveCount(2);
@@ -667,8 +692,9 @@ test.describe("AI Judge", () => {
     // 4. Re-open via belt → "AI Judge"
     await reopenJudgeModal(page);
     await expect(modal(page)).toBeVisible();
-    // expect: 0 chat bubbles (history cleared, SPEC §9.9)
-    await expect(allBubbles(page)).toHaveCount(0);
+    // expect: history persisted across close (SPEC §9.9) — all 4 bubbles restored
+    await expect(userBubbles(page)).toHaveCount(2);
+    await expect(systemBubbles(page)).toHaveCount(2);
     // expect: input empty and enabled
     await expect(input(page)).toHaveValue("");
     await expect(input(page)).toBeEnabled();
@@ -676,14 +702,14 @@ test.describe("AI Judge", () => {
     // 5. Send "Third question"; wait done
     await sendQuestion(page, "Third question");
     const allBodies = await waitForBodies(page, 3);
-    await expect(systemBubbles(page)).toHaveText("When you gain life");
+    await expect(systemBubbles(page).last()).toHaveText("When you gain life");
 
-    // expect: bodies[2].sessionId differs from bodies[0].sessionId (fresh uuid per open)
-    expect(allBodies[2].sessionId).toMatch(UUID_RE);
-    expect(allBodies[2].sessionId).not.toBe(allBodies[0].sessionId);
-    // expect: exactly 1 user bubble + 1 system bubble (no carryover)
-    await expect(userBubbles(page)).toHaveCount(1);
-    await expect(systemBubbles(page)).toHaveCount(1);
+    // expect: sessionId unchanged — same version thread persists, not a fresh session
+    expect(allBodies[2].sessionId).toBe(sessionIdFor(0));
+    expect(allBodies[2].sessionId).toBe(allBodies[0].sessionId);
+    // expect: 3 user + 3 system bubbles (history carried over, no reset)
+    await expect(userBubbles(page)).toHaveCount(3);
+    await expect(systemBubbles(page)).toHaveCount(3);
   });
 
   test("TC-AJ-11: Auto-scroll — long stream pins to bottom", async ({ page }) => {
@@ -722,7 +748,7 @@ test.describe("AI Judge", () => {
     await expect(systemBubbles(page)).toHaveCount(1);
   });
 
-  test("TC-AJ-13: Close mid-stream → abort, no crash, clean re-open", async ({ page }) => {
+  test("TC-AJ-13: Close mid-stream → abort, no crash; user bubble persists", async ({ page }) => {
     // 1. Attach pageerror + console-error collectors. Mock STREAM_NEVER_ENDS.
     const errors = errorCollectors(page);
     await mockJudge(page, FIXTURE_NEVER_ENDS);
@@ -746,8 +772,11 @@ test.describe("AI Judge", () => {
     // 4. Re-open modal
     await reopenJudgeModal(page);
     await expect(modal(page)).toBeVisible();
-    // expect: 0 bubbles (history reset, partial answer dropped)
-    await expect(allBubbles(page)).toHaveCount(0);
+    // expect: user bubble persisted (SPEC §9.9 — close no longer clears
+    // history); partial stream bubble dropped with the abort
+    await expect(userBubbles(page)).toHaveCount(1);
+    await expect(userBubbles(page)).toHaveText("Abort me");
+    await expect(systemBubbles(page)).toHaveCount(0);
     // expect: input enabled
     await expect(input(page)).toBeEnabled();
 
@@ -757,9 +786,8 @@ test.describe("AI Judge", () => {
     await sendQuestion(page, "After abort");
     await expect(systemBubbles(page).last()).toHaveText("partial");
     const allBodies = await waitForBodies(page, 2);
-    // expect: request captured (new sessionId)
-    expect(allBodies[1].sessionId).toMatch(UUID_RE);
-    expect(allBodies[1].sessionId).not.toBe(allBodies[0].sessionId);
+    // expect: request captured — same version thread, sessionId unchanged
+    expect(allBodies[1].sessionId).toBe(sessionIdFor(0));
     await closeButton(page).focus();
     await page.keyboard.press("Escape");
     await expect(modal(page)).not.toBeVisible();
@@ -1047,6 +1075,128 @@ test.describe("AI Judge", () => {
     }
 
     // expect: no console/page errors
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  /* BLOCKED (2026-08-11): chat does NOT survive reload — app bug, not test.
+     GameProvider HYDRATE bumps version (reducer.ts HYDRATE → version+1) whenever
+     game-init/game-state exist (they are written on every first load), so after
+     reload the app looks up chat-v1 while the chat was persisted under chat-v0
+     (SPEC §9.9 requires reload survival). Verified via probe: chat-v0 intact in
+     IndexedDB after reload, sessionId sent post-reload = "aijudge-1".
+     Fix: version must be stable across reload (e.g. HYDRATE keeps version,
+     PlayerProvider remount keyed on isHydrated too). Un-fixme when landed. */
+  test.fixme("TC-AJ-22: Reload — chat restored from IndexedDB; sessionId stable", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL (addInitScript re-applies on every reload)
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // 2. Send "Persist me" + Enter; wait done
+    await sendQuestion(page, "Persist me");
+    await expect(systemBubbles(page)).toHaveText("When you gain life");
+
+    // 3. Wait for the async IndexedDB write to land (ai-judge-chat, chat-v0)
+    await expect.poll(() => persistedMessageCount(page, 0)).toBe(2);
+
+    // 4. Reload the page (same context — IndexedDB survives)
+    await page.reload();
+    await page.waitForLoadState("load");
+
+    // 5. Re-open judge modal
+    await reopenJudgeModal(page);
+    await expect(modal(page)).toBeVisible();
+    // expect: user + system bubbles restored from IndexedDB (SPEC §9.9)
+    await expect(userBubbles(page)).toHaveText("Persist me");
+    await expect(systemBubbles(page)).toHaveText("When you gain life");
+    await expect(allBubbles(page)).toHaveCount(2);
+    // expect: input empty and enabled
+    await expect(input(page)).toHaveValue("");
+    await expect(input(page)).toBeEnabled();
+
+    // 6. Send "After reload" (mock still active after reload)
+    await sendQuestion(page, "After reload");
+    const bodies = await waitForBodies(page, 1);
+    await expect(systemBubbles(page).last()).toHaveText("When you gain life");
+    // expect: sessionId deterministic across reload — aijudge-0 (SPEC §9.9)
+    expect(bodies[0].sessionId).toBe(sessionIdFor(0));
+    // expect: restored history + new exchange (2 user + 2 system bubbles)
+    await expect(userBubbles(page)).toHaveCount(2);
+    await expect(systemBubbles(page)).toHaveCount(2);
+  });
+
+  test("TC-AJ-23: Game restart (⟳) bumps version → fresh chat, aijudge-1", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // 2. Send "Reset me" + Enter; wait done; close modal
+    await sendQuestion(page, "Reset me");
+    await expect(systemBubbles(page)).toHaveText("When you gain life");
+    await closeButton(page).click();
+    await expect(modal(page)).not.toBeVisible();
+
+    // 3. Restart the game via belt (⟳ Restart Life) — version bump (SPEC §9.9)
+    if (!(await page.locator("#spellbook-toggle").isChecked())) {
+      await page.getByLabel("Open Spellbook Menu").click();
+      await expect(page.locator("#spellbook-toggle")).toBeChecked();
+    }
+    await page.getByRole("button", { name: "Restart Life" }).click();
+
+    // 4. Re-open judge modal
+    await reopenJudgeModal(page);
+    await expect(modal(page)).toBeVisible();
+    // expect: history EMPTY — new game version starts a fresh chat (SPEC §9.9)
+    await expect(allBubbles(page)).toHaveCount(0);
+    // expect: input enabled
+    await expect(input(page)).toBeEnabled();
+
+    // 5. Send "After reset" + Enter; wait done (2 bodies: "Reset me" + "After reset")
+    await sendQuestion(page, "After reset");
+    const bodies = await waitForBodies(page, 2);
+    await expect(systemBubbles(page)).toHaveText("When you gain life");
+    // expect: sessionId = aijudge-1 (version bumped by restart)
+    expect(bodies[1].sessionId).toBe(sessionIdFor(1));
+    // expect: exactly 1 user + 1 system bubble (fresh thread, no carryover)
+    await expect(userBubbles(page)).toHaveCount(1);
+    await expect(systemBubbles(page)).toHaveCount(1);
+  });
+
+  test("TC-AJ-24: IndexedDB blocked → in-memory chat works, no crash", async ({
+    page,
+  }) => {
+    // 1. Break IndexedDB before any app script runs (blocked/private-mode
+    //    fallback, SPEC §9.9) — every open throws; app callers all catch.
+    await page.addInitScript(() => {
+      const idb = window.indexedDB;
+      (idb as unknown as { open: unknown }).open = () => {
+        throw new DOMException("blocked", "BlockedError");
+      };
+    });
+    const errors = errorCollectors(page);
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // 2. Send "Memory only" + Enter; wait done
+    await sendQuestion(page, "Memory only");
+    await expect(systemBubbles(page)).toHaveText("When you gain life");
+    await expect(userBubbles(page)).toHaveText("Memory only");
+    // expect: input re-enabled, app usable
+    await expect(input(page)).toBeEnabled();
+
+    // 3. Close + reopen — in-memory history survives modal close
+    await closeButton(page).click();
+    await expect(modal(page)).not.toBeVisible();
+    await reopenJudgeModal(page);
+    await expect(modal(page)).toBeVisible();
+    await expect(userBubbles(page)).toHaveCount(1);
+    await expect(systemBubbles(page)).toHaveCount(1);
+
+    // expect: no pageerror/console errors (blocked IDB swallowed everywhere)
     expect(errors.pageErrors).toEqual([]);
     expect(errors.consoleErrors).toEqual([]);
   });

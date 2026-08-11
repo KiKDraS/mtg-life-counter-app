@@ -4,7 +4,7 @@
 
 # AI Judge — E2E Test Plan (specs/ai-judge.spec.md)
 
-Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target file: `tests/e2e/ai-judge.spec.ts` (single spec, 14 tests, describe blocks per area). Config: baseURL `http://localhost:3000`, chromium, 1 worker, viewport 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state each test; dev machine has NO OpenRouter key → route 503s — **every test MUST mock `**/api/judge`**, never hit real route.
+Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target file: `tests/e2e/ai-judge.spec.ts` (single spec, 22 tests — TC-AJ-22 is `test.fixme` blocked, see §1.15; describe blocks per area). Config: baseURL `http://localhost:3000`, chromium, 1 worker, viewport 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state each test; dev machine has NO OpenRouter key → route 503s — **every test MUST mock `**/api/judge`**, never hit real route.
 
 ## Contract sources
 DESIGN.md §6.4 (chat window), §6.4.0 (offline), §6.4.1 (chips). SPEC.md §9.5 (SSE), §9.8 (gameContext), §9.9 (session), §9.10 (UI/offline).
@@ -47,7 +47,14 @@ Client parses SSE blocks split on `\n\n`, accepts `data: ` prefixed lines. Body 
 - **STREAM_MANY**: 300 chunks `data: {"type":"token","content":"tokenN "}\n\n` every 5ms, then done (like FULL's done), close.
 - **STREAM_LONG**: 600 chunks `data: {"type":"token","content":"answer "}\n\n` every 5ms, then done, close. (~3600 chars → overflow.)
 
-Route handler (all tests): `page.route("**/api/judge", handler)` where handler pushes `request.postDataJSON()` to a closure array `bodies` then fulfills per fixture. Assert on `bodies[0]` (chip JudgePlay is async — `page.waitForRequest` or poll array). POST body shape (SPEC §9.5): `{sessionId, question, gameContext?}`; sessionId = crypto.randomUUID → `/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/`.
+Route handler (all tests): `page.route("**/api/judge", handler)` where handler pushes `request.postDataJSON()` to a closure array `bodies` then fulfills per fixture. Assert on `bodies[0]` (chip JudgePlay is async — `page.waitForRequest` or poll array). POST body shape (SPEC §9.5): `{sessionId, question, gameContext?}`; sessionId = `aijudge-<version>` — deterministic per game version (SPEC §9.9), e.g. `aijudge-0`; NOT a UUID.
+
+## Chat persistence (SPEC §9.9 — landed behavior, supersedes old "fresh per open")
+- Chat persisted per game version in IndexedDB store `ai-judge-chat`, key `chat-v<version>`.
+- Survives modal close AND page reload. Close no longer clears history.
+- Restart (⟳ Restart Life) / setup changes bump `version` → fresh chat under `chat-v<version+1>`, sessionId `aijudge-<version+1>`.
+- IndexedDB blocked/private mode → memory-only fallback, app stays usable (no crash).
+- Mock via `page.addInitScript` re-applies automatically on `page.reload()` — mock stays active after reload.
 
 ## Data-testid recommendations (future hardening, NOT in current DOM — use class/aria fallbacks above)
 `chat-scroll`, `bubble-user`, `bubble-system`, `bubble-stream`, `bubble-error`, `judge-input`, `chip-judge-play`, `chip-card-legality`, `chip-combat-math`, `offline-alert`. Generator: do NOT modify app code; tests run against current selectors.
@@ -89,7 +96,7 @@ Streaming/abort tests: attach `page.on("pageerror")` + `page.on("console")` erro
     - expect: typing indicator "AI Judge is typing" visible while response pending (during 400ms delay)
   3. Wait for response to complete
     - expect: exactly 1 request captured; postDataJSON.question === "When can I cast instants?"
-    - expect: postDataJSON.sessionId matches uuid regex
+    - expect: postDataJSON.sessionId === "aijudge-0" (version-derived, SPEC §9.9; NOT a UUID)
     - expect: postDataJSON.gameContext is undefined (manual question, SPEC §9.8)
     - expect: user bubble (.bg-mana-c) with text "When can I cast instants?" visible
     - expect: user bubble computed bg rgb(202,197,192), color rgb(26,26,26)
@@ -227,25 +234,24 @@ Streaming/abort tests: attach `page.on("pageerror")` + `page.on("console")` erro
   5. Cleanup: context.setOffline(false), close modal
     - expect: no console/page errors
 
-#### 1.10. TC-AJ-10: Escape closes; re-open = fresh session (new sessionId, empty history)
+#### 1.10. TC-AJ-10: Escape closes; re-open = same session (history persisted)
 
 **File:** `tests/e2e/ai-judge.spec.ts`
 
 **Steps:**
   1. Route **/api/judge → FULL, record bodies[]. Open modal (prelude)
   2. Send "First question" (Enter); wait done; send "Second question"; wait done
-    - expect: bodies[0].sessionId === bodies[1].sessionId (same open, one session)
-    - expect: both match uuid regex
+    - expect: bodies[0].sessionId === bodies[1].sessionId === "aijudge-0" (same open, one session)
     - expect: 4 bubbles total (2 user + 2 system)
   3. Press Escape
     - expect: #ai-judge-modal not visible (closed)
   4. Re-open via belt → "AI Judge"
     - expect: modal visible
-    - expect: 0 chat bubbles in scroll container (history cleared, SPEC §9.9)
+    - expect: history persisted across close (SPEC §9.9) — 2 user + 2 system bubbles restored
     - expect: input empty and enabled
   5. Send "Third question"; wait done
-    - expect: bodies[2].sessionId differs from bodies[0].sessionId (fresh uuid per open)
-    - expect: exactly 1 user bubble + 1 system bubble (no carryover)
+    - expect: bodies[2].sessionId === "aijudge-0" (same version thread, NOT a fresh session)
+    - expect: 3 user + 3 system bubbles (history carried over, no reset)
 
 #### 1.11. TC-AJ-11: Auto-scroll — long stream pins to bottom
 
@@ -277,7 +283,7 @@ Streaming/abort tests: attach `page.on("pageerror")` + `page.on("console")` erro
     - expect: input has aria-label "Ask about a card or rule"
     - expect: close button aria-label "Close AI Judge"
 
-#### 1.13. TC-AJ-13: Close mid-stream → abort, no crash, clean re-open
+#### 1.13. TC-AJ-13: Close mid-stream → abort, no crash; user bubble persists
 
 **File:** `tests/e2e/ai-judge.spec.ts`
 
@@ -290,10 +296,10 @@ Streaming/abort tests: attach `page.on("pageerror")` + `page.on("console")` erro
     - expect: no pageerror events, no error-level console messages (abort handled, SPEC §9.9)
   4. Re-open modal
     - expect: modal visible
-    - expect: 0 bubbles (history reset, partial answer dropped)
-    - expect: input enabled, chips enabled opacity "1"
+    - expect: user bubble "Abort me" persisted (SPEC §9.9 — close no longer clears history); 0 system bubbles (partial answer dropped with abort)
+    - expect: input enabled
   5. Send "After abort" (STREAM_NEVER_ENDS still active), then close via Escape
-    - expect: request captured (new sessionId), no errors
+    - expect: request captured — sessionId "aijudge-0" (same version thread, unchanged)
     - expect: modal closed, no pageerror/console errors
 
 #### 1.14. TC-AJ-14: A11y smoke — dialog semantics + sr-only title
@@ -309,3 +315,61 @@ Streaming/abort tests: attach `page.on("pageerror")` + `page.on("console")` erro
   2. Keyboard: press Escape
     - expect: modal closes
     - expect: re-open works: belt → "AI Judge" → modal visible again
+
+#### 1.15. TC-AJ-22: Reload — chat restored from IndexedDB; sessionId stable
+
+**File:** `tests/e2e/ai-judge.spec.ts`
+
+**Status: BLOCKED (2026-08-11) — `test.fixme` in spec. App bug, not test.**
+`GameProvider` HYDRATE bumps `version` (reducer HYDRATE → version+1) whenever
+`game-init`/`game-state` records exist — and they are written on every first
+load — so after reload the app reads `chat-v1` while the chat persisted under
+`chat-v0`. SPEC §9.9 (binding) requires chat to survive reload. Verified by
+probe: `chat-v0` intact in IndexedDB post-reload, app sends sessionId
+`aijudge-1` after reload. Fix direction: keep `version` stable across reload
+(e.g. HYDRATE does not bump; PlayerProvider remount keyed on `isHydrated` as
+well). Un-fixme when the app lands the fix.
+
+**Steps (when unblocked):**
+  1. Route **/api/judge → FULL via addInitScript (re-applies on reload). Open modal (prelude)
+  2. Send "Persist me" + Enter; wait done
+    - expect: system bubble "When you gain life" visible
+  3. Wait for async IndexedDB write to land — poll store `ai-judge-chat`, key `chat-v0`, message count === 2
+  4. `page.reload()`; wait for load
+  5. Re-open judge modal
+    - expect: user bubble "Persist me" + system bubble "When you gain life" restored from IndexedDB (SPEC §9.9)
+    - expect: exactly 2 bubbles (1 user + 1 system)
+    - expect: input empty and enabled
+  6. Send "After reload" + Enter (mock still active after reload)
+    - expect: request captured; sessionId === "aijudge-0" (deterministic across reload)
+    - expect: 2 user + 2 system bubbles (restored + new exchange)
+
+#### 1.16. TC-AJ-23: Game restart (⟳) bumps version → fresh chat, aijudge-1
+
+**File:** `tests/e2e/ai-judge.spec.ts`
+
+**Steps:**
+  1. Route **/api/judge → FULL. Open modal (prelude)
+  2. Send "Reset me" + Enter; wait done; close modal via CLOSE
+  3. Open belt → click "Restart Life" (⟳; version bump, SPEC §9.9)
+  4. Re-open judge modal
+    - expect: modal visible
+    - expect: 0 bubbles — new game version starts fresh chat (no carryover)
+    - expect: input enabled
+  5. Send "After reset" + Enter; wait done
+    - expect: request captured; sessionId === "aijudge-1" (version bumped by restart)
+    - expect: exactly 1 user + 1 system bubble (fresh thread)
+
+#### 1.17. TC-AJ-24: IndexedDB blocked → in-memory chat works, no crash
+
+**File:** `tests/e2e/ai-judge.spec.ts`
+
+**Steps:**
+  1. `page.addInitScript`: override `indexedDB.open` to throw `DOMException("blocked")` (before app scripts). Attach pageerror + console-error collectors. Route **/api/judge → FULL. Open modal (prelude)
+  2. Send "Memory only" + Enter; wait done
+    - expect: user bubble + system bubble visible (in-memory chat works, SPEC §9.9 fallback)
+    - expect: input re-enabled
+  3. Close via CLOSE; re-open
+    - expect: in-memory history survives modal close (1 user + 1 system bubble)
+  4. Cleanup assertions
+    - expect: no pageerror events, no error-level console messages (blocked IDB swallowed everywhere)

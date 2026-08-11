@@ -3,7 +3,7 @@
 
 import { test, expect, type Locator, type Page } from "@playwright/test";
 
-/* ── IDB helpers (DB name `mtg-life-counter`, version 1) ── */
+/* ── IDB helpers (DB name `mtg-life-counter`, version 2 — idb.ts DB_VERSION) ── */
 
 const STORE_INIT = "game-init";
 const STORE_STATE = "game-state";
@@ -18,10 +18,10 @@ async function readIdb<T>(
 ): Promise<T | undefined> {
   return page.evaluate(async ({ store, key }) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      const req = indexedDB.open("mtg-life-counter", 1);
+      const req = indexedDB.open("mtg-life-counter", 2);
       // Mirrors features/persistence/idb.ts openDb(): if this helper opens the
       // DB before the app's post-mount hydrator does, `onupgradeneeded` MUST
-      // create the stores — otherwise a version-1 DB with zero object stores
+      // create the stores — otherwise a version-2 DB with zero object stores
       // is created and the app's same-version open can never fire the upgrade
       // event again (permanently poisoned for the whole context).
       req.onupgradeneeded = () => {
@@ -31,6 +31,9 @@ async function readIdb<T>(
         }
         if (!db.objectStoreNames.contains("game-state")) {
           db.createObjectStore("game-state");
+        }
+        if (!db.objectStoreNames.contains("ai-judge-chat")) {
+          db.createObjectStore("ai-judge-chat");
         }
       };
       req.onsuccess = () => resolve(req.result);
