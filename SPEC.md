@@ -391,7 +391,9 @@ Player question: {question}
   excerpts + CR knowledge; never refuse over incomplete excerpt.
 - **Formatting:** answers use markdown subset — paragraphs (`\n\n`), `**bold**`,
   `- ` bullets, `1. ` lists. No headings/tables/code blocks. Client renders via
-  minimal renderer (DESIGN.md §6.4.3).
+  minimal renderer (DESIGN.md §6.4.2). Inline rule refs
+  (`CR|rule|regla <num>`) → stripped from text, appended as
+  ` - <i>CR <num></i>` suffix (comma-joined multiple).
 - Server extracts `answer` → streamed as token events; `citations` → `done`
   event. Client never renders raw JSON (DESIGN.md §6.4).
 - Citation types:

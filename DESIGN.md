@@ -383,7 +383,7 @@ labels.
 ### 6.4 AI Judge
 
 Chat window. Maximized modal, `#000` backdrop (§6.1). AI = left, user = right.
-Streaming response. Suggestion chips above input.
+Streaming response.
 
 ```
 ┌──────────────────────────────────────────┐
@@ -396,7 +396,6 @@ Streaming response. Suggestion chips above input.
 │                    └──────────────────┘  │
 │  ┌─────────────┐  (typing indicator)     │  Streaming state
 │                                          │
-│  [ Judge this play ] [ Card legality ]   │  Suggestion chips
 │  ┌────────────────────────────────────┐  │
 │  │  Ask about a card or rule…     ⏎   │  │  Input, docked bottom
 │  └────────────────────────────────────┘  │
@@ -407,33 +406,12 @@ Streaming response. Suggestion chips above input.
   System: BG `MANA.b` (`#666565`), text `#FAF8F5`. User: BG `MANA.c`
   (`#CAC5C0`), text `#1A1A1A`. High contrast both.
 - **Answer text only:** system bubble shows model answer text — never raw JSON.
-  Citations render as footnotes below the answer (§6.4.2).
-
-#### 6.4.3 Answer Formatting
-
-Markdown subset, rendered client-side (no dependency):
-
-- Paragraphs: blank-line separated → `<p>` blocks.
-- **Bold:** `**term**` → `<strong>`. Unmatched `**` (mid-stream) → literal.
-- Bullets: consecutive `- ` lines → one `<ul>`. Numbered `1. ` → `<ol>`.
-- List tolerance: lists recognized WITHOUT preceding blank line — any run of
-  consecutive `- ` / `• ` / `1. ` lines inside a block → one list; surrounding
-  text lines → their own `<p>` (e.g. `Intro\n- a\n- b\nOutro` → `<p>` +
-  `<ul>` + `<p>`).
-- Paragraphize fallback: one long text block (>300 chars, no lists, no
-  blank-line separation) → sentence-boundary split into `<p>` (~2 sentences,
-  ≤240 chars each). Sentence split refuses after `.<digit>`, so rule ids
-  like `CR 405.1a` stay unsplit.
-- No headings/tables/code blocks/links. Escape via React text nodes — no
-  `dangerouslySetInnerHTML`.
-- Streaming: partial markdown renders as-is (unclosed `**` passes through).
+  Citations render as footnotes below the answer (§6.4.1).
 - **Header:** "AI Judge" `--text-heading sr-only`. ✕ close button — Escape too.
 - **Streaming:** Response renders incrementally in system bubble. Typing
   indicator (3 dots) while waiting. Input disabled while streaming.
 - **Input:** Docked bottom. Placeholder "Ask about a card or rule…" (50% white
   opacity). Enter/⏎ sends. Auto-scroll to newest message.
-- **Suggestion chips (§6.4.1):** row above input. Tap → send as prompt. One-tap
-  ask, no typing. Mobile-first.
 - **Keyboard:** Escape closes. Focus on input on open.
 
 #### 6.4.0 Offline Fallback (until local engine lands)
@@ -441,21 +419,19 @@ Markdown subset, rendered client-side (no dependency):
 Offline → chat read-only. No typing, no send. Alert explains why.
 
 ```
-│  [ Judge this play ]  [ Card legality ]        ← chips disabled (25%)
 │  ⚠️  You're offline — AI Judge needs internet.  ← alert row
 │  ┌──────────────────────────────────────────┐
 │  │  Ask about a card or rule…          ⏎    │  ← input disabled
 │  └──────────────────────────────────────────┘
 ```
 
-- **Alert row:** full-width, above chips. BG `MANA.b`, text `#FAF8F5`,
+- **Alert row:** full-width, above input. BG `MANA.b`, text `#FAF8F5`,
   `--text-body-sm`. Copy: "You're offline — AI Judge needs internet."
 - **Input:** disabled — no focus, no send, placeholder unchanged.
-- **Chips:** disabled, 25% opacity, no pointer events (§6.4.1 disabled state).
 - **History:** still visible + scrollable. Read-only.
-- **Online return:** state clears, input + chips re-enable. No reload.
+- **Online return:** state clears, input re-enables. No reload.
 
-#### 6.4.2 Citations
+#### 6.4.1 Citations
 
 Footnote pills under system bubble. Ground the answer, no clutter.
 
@@ -473,38 +449,28 @@ Footnote pills under system bubble. Ground the answer, no clutter.
   (`--text-body-sm`, `#FAF8F5` 80% opacity, max-width ~60ch). No JS.
 - **A11y:** pills = `<summary>` in `<details>`. Keyboard open/close native.
 
-#### 6.4.1 Suggestion Chips
+#### 6.4.2 Answer Formatting
 
-One-tap prompts above input. No typing needed. Row above input, input stays
-cleared after send.
+Markdown subset, rendered client-side (no dependency):
 
-```
-│  [ Judge this play ]  [ Card legality ]  [ Combat math ]   │
-│  ┌────────────────────────────────────────────────────┐    │
-│  │  Ask about a card or rule…                     ⏎   │    │
-│  └────────────────────────────────────────────────────┘    │
-```
-
-| Chip              | Prompt                                     |
-| ----------------- | ------------------------------------------ |
-| Judge this play   | "Judge this play: <current game state>"    |
-| Card legality     | "Is <card> legal in Commander?"            |
-| Combat math       | "Explain combat damage here."              |
-
-- **Style:** Pill. BG `#1A1A1A`, 1px border `#FAF8F5` 40% opacity. Text
-  `#FAF8F5` `--text-body-sm`. Height ≥44px, horizontal padding 16px, gap 8px.
-  Border radius full.
-- **States:**
-  - Default: border 40% opacity.
-  - Hover / active tap: border 100% opacity. Press: scale 0.97.
-  - Focus: visible 2px `#FAF8F5` focus ring.
-  - Streaming: disabled — 25% opacity, no pointer events.
-- **Row:** horizontal scroll on overflow, scroll-snap proximity, hidden
-  scrollbar. Mobile: ~3 chips visible, rest scroll.
-- **Behavior:** Tap → prompt sent through same submit path as typed input.
-  Chips persist. No request → chips enabled.
-- **A11y:** Row `role="group"` `aria-label="Suggestions"`. Chips = `<button>`.
-  Label = full prompt, not short chip text.
+- Paragraphs: blank-line separated → `<p>` blocks.
+- **Bold:** `**term**` → `<strong>`. Unmatched `**` (mid-stream) → literal.
+- Bullets: consecutive `- ` lines → one `<ul>`. Numbered `1. ` → `<ol>`.
+- List tolerance: lists recognized WITHOUT preceding blank line — any run of
+  consecutive `- ` / `• ` / `1. ` lines inside a block → one list; surrounding
+  text lines → their own `<p>` (e.g. `Intro\n- a\n- b\nOutro` → `<p>` +
+  `<ul>` + `<p>`).
+- Paragraphize fallback: one long text block (>300 chars, no lists, no
+  blank-line separation) → sentence-boundary split into `<p>` (~2 sentences,
+  ≤240 chars each). Sentence split refuses after `.<digit>`, so rule ids
+  like `CR 405.1a` stay unsplit.
+- Rule references: inline `CR|rule|regla <num>` refs extracted from
+  paragraph text → appended at end as ` - <i>CR 405.1</i>` (comma-joined
+  multiple), italic, `#FAF8F5` 75% opacity (high contrast on MANA.b, less
+  solid than body).
+- No headings/tables/code blocks/links. Escape via React text nodes — no
+  `dangerouslySetInnerHTML`.
+- Streaming: partial markdown renders as-is (unclosed `**` passes through).
 
 ### 6.5 Color Picker (per player)
 

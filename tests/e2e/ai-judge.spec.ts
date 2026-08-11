@@ -143,6 +143,16 @@ const FIXTURE_LONG_PLAIN: MockFixture = {
   ].join(""),
 };
 
+/* DESIGN §6.4.2 — inline rule refs ("(CR 405.1)", "(rule 405.2)") extracted
+   from the paragraph → " - <i>CR 405.1</i>, <i>CR 405.2</i>" suffix. */
+const FIXTURE_RULE_REFS: MockFixture = {
+  kind: "body",
+  body: [
+    'data: {"type":"token","content":"The stack is a zone (CR 405.1) and holds spells (rule 405.2)."}\n\n',
+    DONE_EVENT,
+  ].join(""),
+};
+
 /* SPEC §9.5 — new server behavior: tokens streamed = extracted answer text only,
    never raw JSON; citations delivered once in done. */
 const FIXTURE_CLEAN_ANSWER: MockFixture = {
@@ -979,6 +989,63 @@ test.describe("AI Judge", () => {
     // expect: full text preserved across paragraphs
     await expect(bubble).toContainText("stack resolution");
     await expect(bubble).toContainText("readable on one screen.");
+    // expect: no console/page errors
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  test("TC-AJ-21: Rule references — inline refs extracted to italic suffix", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FIXTURE_RULE_REFS (inline "(CR 405.1)" +
+    //    "(rule 405.2)" in the paragraph text; DESIGN §6.4.2)
+    const errors = errorCollectors(page);
+    await mockJudge(page, FIXTURE_RULE_REFS);
+    await openJudgeModal(page);
+
+    // 2. Send a question + Enter; wait for answer done
+    await sendQuestion(page, "Stack and spells?");
+    const bubble = systemBubbles(page).last();
+    // expect: refs stripped from the sentence, appended as " - " suffix with
+    //     two comma-joined <i> nodes ("CR 405.1", "CR 405.2")
+    await expect(bubble).toHaveText(
+      "The stack is a zone and holds spells. - CR 405.1, CR 405.2",
+    );
+    // expect: no "(CR 405.1)" / "(rule 405.2)" remnants in the bubble text
+    await expect(bubble).not.toContainText("(CR 405.1)");
+    await expect(bubble).not.toContainText("(rule 405.2)");
+    // expect: exactly 2 <i> refs with exact normalized texts
+    await expect(bubble.locator("i")).toHaveCount(2);
+    await expect(bubble.locator("i")).toHaveText(["CR 405.1", "CR 405.2"]);
+
+    // 3. Style: refs italic, #FAF8F5 at 75% opacity — rgba(...) or the
+    //    color-mix "color(srgb ...)" form Tailwind emits
+    const italic = bubble.locator("i").first();
+    expect(await italic.evaluate((el) => getComputedStyle(el).fontStyle)).toBe(
+      "italic",
+    );
+    const color = await italic.evaluate((el) => getComputedStyle(el).color);
+    const rgba = color.match(/rgba?\((\d+), ?(\d+), ?(\d+)(?:, ?([\d.]+))?\)/);
+    const srgb = color.match(/color\(srgb ([\d.]+) ([\d.]+) ([\d.]+) \/ ([\d.]+)\)/);
+    const lab = color.match(/lab\(([\d.]+) [\d.]+ [\d.]+ \/ ([\d.]+)\)/);
+    if (rgba) {
+      expect(Number(rgba[1])).toBeCloseTo(250, 0);
+      expect(Number(rgba[2])).toBeCloseTo(248, 0);
+      expect(Number(rgba[3])).toBeCloseTo(245, 0);
+      expect(Number(rgba[4] ?? 1)).toBeCloseTo(0.75, 2);
+    } else if (srgb) {
+      expect(Number(srgb[1]) * 255).toBeCloseTo(250, 0);
+      expect(Number(srgb[2]) * 255).toBeCloseTo(248, 0);
+      expect(Number(srgb[3]) * 255).toBeCloseTo(245, 0);
+      expect(Number(srgb[4])).toBeCloseTo(0.75, 2);
+    } else if (lab) {
+      // color-mix computed form: #FAF8F5 → L≈97.67 in lab, alpha 0.75
+      expect(Number(lab[1])).toBeCloseTo(97.67, 1);
+      expect(Number(lab[2])).toBeCloseTo(0.75, 2);
+    } else {
+      throw new Error(`unexpected computed color: ${color}`);
+    }
+
     // expect: no console/page errors
     expect(errors.pageErrors).toEqual([]);
     expect(errors.consoleErrors).toEqual([]);
