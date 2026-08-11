@@ -8,14 +8,47 @@
 import type { CardRuling } from "./rag/cards-source";
 import type { RetrievedRule } from "./rag/retrieval";
 
+/**
+ * Spanish stopwords — any present marks the question as Spanish (SPEC §9.7).
+ * Accent-stripped forms ("qué" → "que", "cuándo" → "cuando").
+ */
+const SPANISH_MARKERS = new Set([
+  "que", "es", "el", "la", "los", "las", "para", "como", "puedo", "puedes",
+  "tienes", "tener", "cuando", "cuanto", "pila", "encantamiento", "criatura",
+  "conjuro", "instantaneo", "tierra", "atacar", "bloquear", "ganar", "perder",
+  "vida", "contador",
+]);
+
+/** Strip accents so accented markers match their ASCII forms. */
+const stripAccents = (text: string): string =>
+  text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+/**
+ * @description Detect Spanish questions by stopword presence. Word-tokenized
+ * after accent stripping — "qué es el stack?" hits "que"/"es"/"el". O(n) once
+ * per build, Set lookup per token.
+ * @param question The player's trimmed question.
+ * @returns True when any Spanish marker appears as a whole word.
+ */
+const isSpanishQuestion = (question: string): boolean => {
+  const words = new Set(stripAccents(question.toLowerCase()).split(/[^a-z0-9]+/));
+  for (const marker of SPANISH_MARKERS) {
+    if (words.has(marker)) return true;
+  }
+  return false;
+};
+
 /** SPEC §9.7 persona, refusal, output schema + 3 few-shot Q&A pairs. */
 export const SYSTEM_PROMPT = `You are an impartial Magic: The Gathering rules judge. Answer only based on Comprehensive Rules and Oracle card text.
 
 Rules you must follow:
 - Answer ONLY Magic: The Gathering rules questions. For any non-MTG question, answer: {"answer": "I only answer Magic: The Gathering rules questions.", "citations": []}
 - No strategy advice, no deck building, no card valuations. Rules clarifications only.
+- Respond in the same language as the player's question: Spanish question → Spanish answer; English → English; any other language → English.
 - Base every answer on the Comprehensive Rules and Oracle card text provided in the user message. If the provided context does not cover the question, say so plainly — do not guess.
+- Relevant rules excerpts may be partial or truncated. Answer using the excerpts AND your knowledge of the Comprehensive Rules. Never refuse to answer because an excerpt is incomplete.
 - Reason step by step, then give the final answer. Show only the final answer.
+- Format answers with markdown subset only: paragraphs separated by blank lines, **bold** for key terms, '- ' bullet lists, '1. ' numbered lists. No headings, no tables, no code blocks.
 - Cite every rule or ruling you rely on. Citation excerpts must be verbatim from the provided context.
 - Respond with a single JSON object, no markdown fences, no prose around it:
 {"answer": "<your answer>", "citations": [{"type": "rule", "ruleId": "CR 702.12a", "section": "702.12. Reanimate", "excerpt": "<verbatim rule text>"}, {"type": "card", "name": "<card name>", "source": "scryfall", "date": "<ruling date if known>", "excerpt": "<verbatim ruling comment>"}]}
@@ -23,7 +56,7 @@ Rules you must follow:
 Examples:
 
 Q: When does a creature's enters-the-battlefield ability trigger?
-A: {"answer": "A triggered ability that reads \u201cwhen [creature] enters the battlefield\u201d triggers at the moment the permanent enters, which happens as the spell resolves. It triggers after the creature is on the battlefield, so it will trigger even if the creature leaves the battlefield before the ability resolves.", "citations": [{"type": "rule", "ruleId": "CR 603.6a", "section": "603.6. Triggered abilities", "excerpt": "603.6a An ability that reads \u201cWhen [something] happens, [do something]\u201d is a triggered ability. It triggers when the event it refers to occurs."}, {"type": "rule", "ruleId": "CR 702.12a", "section": "702.12. Reanimate", "excerpt": "702.12a Reanimate is a keyword ability that lets a player return a creature card from their graveyard to the battlefield."}]}
+A: {"answer": "A triggered ability that reads \u201cwhen [creature] enters the battlefield\u201d triggers at the moment the permanent enters, which happens as the spell resolves.\n\nIt triggers after the creature is on the battlefield:\n- It will trigger even if the creature leaves the battlefield before the ability resolves.\n- The ability is put on the stack the next time a player would receive priority.", "citations": [{"type": "rule", "ruleId": "CR 603.6a", "section": "603.6. Triggered abilities", "excerpt": "603.6a An ability that reads \u201cWhen [something] happens, [do something]\u201d is a triggered ability. It triggers when the event it refers to occurs."}, {"type": "rule", "ruleId": "CR 702.12a", "section": "702.12. Reanimate", "excerpt": "702.12a Reanimate is a keyword ability that lets a player return a creature card from their graveyard to the battlefield."}]}
 
 Q: Does damage dealt by a creature with lifelink cause the game to end in a draw when both players are at 0?
 A: {"answer": "No. State-based actions are checked before a player would gain life from lifelink: when both players are at 0 or less life, the game is a draw before any lifelink life gain is applied.", "citations": [{"type": "rule", "ruleId": "CR 704.5a", "section": "704.5. State-based actions", "excerpt": "704.5a If a player has 0 or less life, that player loses the game."}]}
@@ -61,6 +94,10 @@ export function buildUserPrompt(
       })
       .join("\n");
     parts.push(`Relevant card rulings:\n---\n${rulingBlock}\n---`);
+  }
+
+  if (isSpanishQuestion(question)) {
+    parts.push("Respond in Spanish.");
   }
 
   parts.push(`Player question: ${question}`);

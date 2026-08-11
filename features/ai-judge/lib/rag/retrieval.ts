@@ -58,6 +58,32 @@ const overlapScore = (ruleText: string, questionTokens: Set<string>): number => 
   return score;
 };
 
+/** Bare section header ("405. Stack") — title only, no body. */
+const SECTION_HEADER_RE = /^\d{3}\.\s+[A-Z]/;
+
+/**
+ * @description Expand a bare section header into its subrules — every rule
+ * whose id starts with "<sectionNo>.". O(n) map scan; map iteration order =
+ * rule-id order (document order, CR numbers ascend).
+ * @param sectionId Three-digit section id, e.g. "405".
+ * @param artifact Rules artifact to pull subrules from.
+ * @param cap Max subrules to return.
+ * @returns Subrules in rule-id order.
+ */
+function expandSection(
+  sectionId: string,
+  artifact: RulesArtifact,
+  cap: number,
+): RetrievedRule[] {
+  const prefix = `${sectionId}.`;
+  const subrules: RetrievedRule[] = [];
+  for (const [ruleId, text] of artifact.rules) {
+    if (subrules.length >= cap) break;
+    if (ruleId.startsWith(prefix)) subrules.push({ ruleId, text, score: 0 });
+  }
+  return subrules;
+}
+
 /**
  * @description Score a rule against the question (exact rule-id mention boost,
  * token overlap) and return the top-k, sorted desc. Ties broken by insertion
@@ -78,5 +104,21 @@ export function retrieveRules(question: string, artifact: RulesArtifact): Retrie
   }
 
   scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, TOP_K);
+
+  // Bare section headers carry no body — never return them. Expand matching
+  // sections into their subrules (title match = topic match, most relevant),
+  // then fill remaining slots with the other candidates. Deduped by rule id.
+  // O(n) single pass; expansion sets are ≤ TOP_K.
+  const results: RetrievedRule[] = [];
+  const rest: RetrievedRule[] = [];
+  for (const candidate of scored) {
+    if (SECTION_HEADER_RE.test(candidate.text)) {
+      for (const sub of expandSection(candidate.ruleId, artifact, TOP_K - results.length)) {
+        results.push(sub);
+      }
+    } else if (!results.some((r) => r.ruleId === candidate.ruleId)) {
+      rest.push(candidate);
+    }
+  }
+  return [...results, ...rest].slice(0, TOP_K);
 }
