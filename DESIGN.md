@@ -415,6 +415,25 @@ Streaming response. Suggestion chips above input.
   ask, no typing. Mobile-first.
 - **Keyboard:** Escape closes. Focus on input on open.
 
+#### 6.4.0 Offline Fallback (until local engine lands)
+
+Offline → chat read-only. No typing, no send. Alert explains why.
+
+```
+│  [ Judge this play ]  [ Card legality ]        ← chips disabled (25%)
+│  ⚠️  You're offline — AI Judge needs internet.  ← alert row
+│  ┌──────────────────────────────────────────┐
+│  │  Ask about a card or rule…          ⏎    │  ← input disabled
+│  └──────────────────────────────────────────┘
+```
+
+- **Alert row:** full-width, above chips. BG `MANA.b`, text `#FAF8F5`,
+  `--text-body-sm`. Copy: "You're offline — AI Judge needs internet."
+- **Input:** disabled — no focus, no send, placeholder unchanged.
+- **Chips:** disabled, 25% opacity, no pointer events (§6.4.1 disabled state).
+- **History:** still visible + scrollable. Read-only.
+- **Online return:** state clears, input + chips re-enable. No reload.
+
 #### 6.4.1 Suggestion Chips
 
 One-tap prompts above input. No typing needed. Row above input, input stays
