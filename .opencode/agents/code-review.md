@@ -65,6 +65,9 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
   (`config`/`rate-limit`/`sessions`/`sse`/`context`/`stream`). route.ts
   >150 lines, business logic in route.ts, concern mixing, new concern without
   dedicated file → REJECT.
+- Cognitive complexity: fn with >4 decision points (if/&&/||/ternary/loop) or
+  nesting depth >2 → REJECT. Demand extraction to helpers. ESLint
+  `complexity` max 8 enforced on `app/api/judge/**` + `features/ai-judge/**`.
 
 ### 3. Tailwind & Design
 
