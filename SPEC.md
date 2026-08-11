@@ -342,10 +342,17 @@ Pure TS only — no Node APIs, no `fs`, no `fetch`. Browser-portable unchanged
 SSE events:
 
 ```json
-{ "type": "token", "content": "When" }
+{ "type": "token", "content": "Yes. Reanimate returns the" }
 { "type": "done", "citations": [...], "usage": { "inputTokens": 1200, "outputTokens": 300, "cost": 0.0015 }, "model": "anthropic/claude-sonnet-4", "sourcesUsed": ["mtg.wtf", "scryfall"] }
 { "type": "error", "code": "rate_limited", "message": "The AI Judge is busy. Please wait a moment." }
 ```
+
+- `token.content` = **answer text only**. Model emits JSON
+  `{answer, citations}` (§9.7); server extracts `answer` and streams only its
+  characters. Never raw JSON to client. Extraction failure → fallback: stream
+  raw model output (degraded, still readable).
+- `citations` delivered once in `done` — rendered as footnote pills
+  (DESIGN.md §6.4.2).
 
 Error codes: `rate_limited`, `model_unavailable`, `misconfigured`, `timeout`,
 `bad_request`.
@@ -374,6 +381,8 @@ Player question: {question}
 
 - Structured output `{answer, citations[]}`. Few-shot 2–3 Q&A pairs in system
   prompt. Reasoning hidden — final answer only.
+- Server extracts `answer` → streamed as token events; `citations` → `done`
+  event. Client never renders raw JSON (DESIGN.md §6.4).
 - Citation types:
   - rule:
     `{type:"rule", ruleId:"CR 702.12a", section:"702.12. Reanimate", excerpt}`
