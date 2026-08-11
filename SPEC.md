@@ -23,8 +23,8 @@
 
 - No names — color + position only identifier (matches DESIGN.md §1.3).
 - `playerId: number` = array index in `playerStates[]` (0 = Player 1).
-- Stable identity for cross-references (commander damage tracking, future AI
-  context).
+- Stable identity for cross-references (commander damage tracking, AI Judge
+  context §9).
 
 ---
 
@@ -259,11 +259,200 @@ gradient.
 
 ---
 
-## 9. Roadmap
+## 9. AI Judge
 
-| Feature                         | Phase |
-| ------------------------------- | ----- |
-| Guild color combos (10 2-color) | 2     |
-| AI Judge voice input            | 2     |
-| Card art BGs from Scryfall      | 2     |
-| Offline AI rules engine         | 3     |
+### 9.1 Scope
+
+- Server-side only. Rules adjudication + card lookup during gameplay.
+- Refuses non-MTG questions. No strategy advice — rules clarifications only.
+- No accounts. Session-only. No persistence of chats.
+
+### 9.2 Environment Config (server-only)
+
+| Var                          | Role                    | Required | Unset behavior                 |
+| ---------------------------- | ----------------------- | -------- | ------------------------------ |
+| `OPENROUTER_API_KEY`         | OpenRouter SDK auth     | yes      | route 503 `misconfigured`      |
+| `OPENROUTER_MODEL`           | primary judge model     | yes      | route 503 `misconfigured`      |
+| `OPENROUTER_FALLBACK_MODEL`  | fallback judge model    | no       | no fallback — primary only     |
+| `OPENROUTER_EMBEDDING_MODEL` | semantic retrieval      | no       | lexical retrieval only (§9.4)  |
+
+- Validated at route module load. Model format `vendor/model` — else 503
+  `misconfigured`.
+- **No hardcoded model names in code.** Model set via env only.
+- Server-only env. Never client, never `NEXT_PUBLIC_*`, never in repo, never
+  logged.
+
+### 9.3 Data Sources → Versioned Artifacts
+
+All external data becomes a **versioned artifact** `{version, hash, data}`.
+Caches keyed by version, never by TTL guesswork. Offline stage consumes same
+artifacts (§9.11).
+
+#### 9.3.1 Scryfall (cards + rulings)
+
+| Operation | Endpoint                                   | Cache                    |
+| --------- | ------------------------------------------ | ------------------------ |
+| Card      | `GET /cards/named?fuzzy={query}`           | LRU 500, TTL 24h         |
+| Rulings   | `GET /cards/{id}/rulings`                  | TTL 7d                   |
+
+- Canonical card schema = **raw Scryfall card JSON**. Never reshaped.
+- Card name extraction: quoted names in question, else fuzzy match on question
+  tokens. No match → card path skipped, answer on rules only.
+- 404 `not_found` / `ambiguous` → card path skipped, no error.
+- ETag / `If-None-Match` → 304 honored, cache refreshed.
+- Rate: 10 req/s queue. 429 → backoff 1s / 2s / 4s, max 3 retries → skip path.
+- Timeout 5s → card path skipped. Answer proceeds with rules only.
+- Rulings shape: `{data: [{source, published_at, comment}]}`.
+
+#### 9.3.2 mtg.wtf (Comprehensive Rules)
+
+- Single fetch: `https://mtg.wtf/help/rules`. Full CR doc, one page.
+- Parse (pure fn): HTML → text. Split rules on `^(\d{3})\.(\d+)([a-z])?\.?\s`,
+  sections on `^(\d{3})\.\s`. Output: `Map<ruleId, text>`.
+- Artifact `version` = rules date stamp from page ("effective as of …").
+- Memory cache. Refetch on version change. 24h TTL fallback.
+- Fetch fail → **degraded mode**: answer from card rulings only. `done` event
+  includes `sourcesUsed: ["scryfall"]`.
+
+### 9.4 Retrieval
+
+Pure TS only — no Node APIs, no `fs`, no `fetch`. Browser-portable unchanged
+(offline seam §9.11).
+
+- **Lexical (default):** ruleId regex match (e.g. `702.12` in question) + token
+  overlap scoring. top-k = 5.
+- **Semantic (opt-in):** `OPENROUTER_EMBEDDING_MODEL` set → embed rules corpus,
+  cosine similarity. top-k = 5. Embedding artifact file-cached, keyed by rules
+  version. Rebuild only on version change.
+- Retrieved rules injected into prompt (§9.7). Both paths share context format.
+
+### 9.5 API Route `/api/judge`
+
+| Property    | Value                                             |
+| ----------- | ------------------------------------------------- |
+| Method      | `POST`                                            |
+| Body        | `{question: string, gameContext?: GameContext}`   |
+| Validation  | `question` string, trimmed, 1–500 chars. Else 400 `bad_request` |
+| Response    | SSE — `text/event-stream`, `Cache-Control: no-cache` |
+| Rate limit  | 10 req/min/IP, in-memory sliding window. Exceed → 429 `rate_limited` |
+| Timeouts    | first token 30s; total 120s → `timeout`           |
+| Abort       | `AbortController` tied to `request.signal`. Client disconnect → cancel OpenRouter stream immediately |
+
+SSE events:
+
+```json
+{ "type": "token", "content": "When" }
+{ "type": "done", "citations": [...], "usage": { "inputTokens": 1200, "outputTokens": 300, "cost": 0.0015 }, "model": "anthropic/claude-sonnet-4", "sourcesUsed": ["mtg.wtf", "scryfall"] }
+{ "type": "error", "code": "rate_limited", "message": "The AI Judge is busy. Please wait a moment." }
+```
+
+Error codes: `rate_limited`, `model_unavailable`, `misconfigured`,
+`timeout`, `bad_request`.
+
+### 9.6 Multi-Model Routing
+
+- Primary = `OPENROUTER_MODEL`. Fallback = `OPENROUTER_FALLBACK_MODEL`.
+- Fallback on: HTTP 5xx, timeout, provider error, `model_unavailable`.
+- **No fallback on 4xx** (incl. 429) — same failure recurs.
+- Both fail → error event `model_unavailable`.
+- `done.model` = model actually served. Usage + cost logged per request.
+
+### 9.7 Prompt & Citations
+
+- Persona: "You are an impartial Magic: The Gathering rules judge. Answer only
+  based on Comprehensive Rules and Oracle card text."
+- RAG context in **user** message, never system:
+
+```
+Relevant rules:
+---
+[CR 702.12a] <text>
+---
+Player question: {question}
+```
+
+- Structured output `{answer, citations[]}`. Few-shot 2–3 Q&A pairs in system
+  prompt. Reasoning hidden — final answer only.
+- Citation types:
+  - rule: `{type:"rule", ruleId:"CR 702.12a", section:"702.12. Reanimate", excerpt}`
+  - card: `{type:"card", name, source:"scryfall", date, excerpt}`
+- Card rulings injected into context as card citations.
+
+### 9.8 Game Context
+
+- `gameContext = {format:"commander", players: [{playerId, life, color[], counters[], commanderDamage[]}]}`.
+- Sent only by "Judge this play" chip (§6.4.1 DESIGN.md). Serialized live state
+  at send time. Optional on manual questions.
+
+### 9.9 History
+
+- In-memory per session. Max 24k tokens → FIFO prune oldest, keep system prompt
+  + last N turns.
+- Cleared on modal close. Never written to disk / IndexedDB / localStorage.
+
+### 9.10 UI Contract
+
+- **PWA offline stance (binding):** App = PWA. Life tracking, counters,
+  commander damage, persistence (§4) all work fully offline. **AI Judge is the
+  ONLY feature that degrades offline** — until local engine (§9.11). Any other
+  feature degrading offline = contract violation.
+- DESIGN.md §6.4 chat window, §6.4.1 suggestion chips, §6.4.0 offline fallback.
+- 503 `misconfigured` → UI disabled state: "AI Judge unavailable", chips hidden.
+- Token events render incremental. Typing indicator while streaming.
+- Error event → error bubble with message, input re-enabled.
+- **Offline fallback (until local engine §9.11):**
+  - Detect: `navigator.onLine === false` OR `/api/judge` fetch network failure
+    → `offline` UI state.
+  - State: input disabled, chips disabled, alert row visible (DESIGN.md
+    §6.4.0 copy). History read-only.
+  - Check: modal open + `online`/`offline` window events. No polling.
+  - `online` event → state cleared, input + chips re-enable. No reload.
+  - Removed when local engine lands (§9.11).
+
+### 9.11 Offline Transition (Phase 3 — forward contract, NOT implemented now)
+
+Seams only. No interfaces, no DI, no provider layer.
+
+- **Delivery = PWA stack.** App is PWA (manifest + `sw.js` cache-first shell,
+  versioned `mtg-life-vN`). Offline artifacts ship through existing channels:
+  - **Service worker** caches artifacts (runtime cache add). SW version bump
+    → stale artifact cache purged by existing activate cleanup.
+  - **IndexedDB** = long-term artifact store — same pattern as §4 persistence.
+    No new storage tech.
+- **Data:** versioned artifacts only. Cache key = version + hash. Nothing
+  assumes fresh fetch.
+- **Cards:** raw Scryfall JSON schema. Offline = `default-cards.json` artifact
+  cached via SW → IndexedDB, same objects, zero migration.
+- **Retrieval:** pure TS (§9.4) — runs in browser unchanged.
+- **Shared types:** `features/ai-judge/lib/types.ts` — request, response, SSE
+  events, citations, gameContext. Route + client import same module.
+- **Client call site:** `features/ai-judge/lib/client.ts` — all UI calls route
+  through it. Now: POST `/api/judge` + SSE parse. Later: offline → `navigator.onLine` / fetch failure → swap internals to local engine, UI untouched.
+- **Model config:** plain object built at boot. Now from env (§9.2), later from
+  settings. Same schema. Offline = local engine, no OpenRouter — server models
+  unreachable by definition.
+- **Note:** `/api/judge` stays network-only in SW (no precache). Judge goes
+  offline only when local engine exists.
+
+### 9.12 File Map
+
+```
+app/api/judge/route.ts            # SSE route, env validation, rate limit
+features/ai-judge/lib/types.ts    # shared types (§9.11)
+features/ai-judge/lib/client.ts   # single client call site
+features/ai-judge/lib/prompts.ts  # persona, few-shot, RAG format
+features/ai-judge/lib/citations.ts# citation parse + validate + sanitize
+features/ai-judge/lib/history.ts  # in-memory session history
+features/ai-judge/lib/rag/        # pure TS: parse, retrieve, score
+```
+
+---
+
+## 10. Roadmap
+
+| Feature                                    | Phase |
+| ------------------------------------------ | ----- |
+| Semantic retrieval (`OPENROUTER_EMBEDDING_MODEL`) | 2     |
+| AI Judge voice input                       | 2     |
+| Card art BGs from Scryfall                 | 2     |
+| Offline AI rules engine — consumes §9 artifacts + §9.4 pure retrieval | 3 |
