@@ -392,10 +392,18 @@ Player question: {question}
 
 ### 9.10 UI Contract
 
-- DESIGN.md §6.4 chat window, §6.4.1 suggestion chips.
+- DESIGN.md §6.4 chat window, §6.4.1 suggestion chips, §6.4.0 offline fallback.
 - 503 `misconfigured` → UI disabled state: "AI Judge unavailable", chips hidden.
 - Token events render incremental. Typing indicator while streaming.
 - Error event → error bubble with message, input re-enabled.
+- **Offline fallback (until local engine §9.11):**
+  - Detect: `navigator.onLine === false` OR `/api/judge` fetch network failure
+    → `offline` UI state.
+  - State: input disabled, chips disabled, alert row visible (DESIGN.md
+    §6.4.0 copy). History read-only.
+  - Check: modal open + `online`/`offline` window events. No polling.
+  - `online` event → state cleared, input + chips re-enable. No reload.
+  - Removed when local engine lands (§9.11).
 
 ### 9.11 Offline Transition (Phase 3 — forward contract, NOT implemented now)
 
