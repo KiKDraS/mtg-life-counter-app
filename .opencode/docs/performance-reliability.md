@@ -19,28 +19,46 @@ Code style rule: LOW cognitive difficulty + HIGH perf (O(1)/O(n) lookup). Bindin
 
 ## Performance (lookup)
 
-- Lookup = Map/Set/object. NEVER array scan for membership/key.
-- `indexOf`/`includes`/`find` in loop = O(n²). REJECT. Build Map once, reuse.
+- Lookup = Map/Set/object for LARGE-N or loop-nested lookups. NEVER `indexOf`/`find`/`includes`
+  inside a loop = O(n²). REJECT. Build Map once, reuse.
+- Bounded-small arrays (n ≤ ~10) may be scanned inline: O(n) with tiny constant is within norm.
+  `new Set(arr)` build ≈ `arr.includes(x)` for small N — no win. Don't "fix" what's free.
 - Dedupe = Set. Not `filter + indexOf`.
-- Hoist lookup out of loop/render. One Map build, many reads.
-- Static data → module const. Derived → `useMemo`. Cache repeat work.
-- No re-scan in render. Build lookup once outside render body.
+- Hoist lookup out of loop/render — one Map build, many reads — ONLY when N is large or the
+  rebuild repeats inside a loop. Small-N per-render scan is fine.
+- Static data → module const. Derived → cache ONLY if cache pays (see Memoization).
 - `Promise.all` over sequential await. No waterfall.
 - Big-O documented: O(1)/O(n) norm. O(n²) needs written justification.
+
+## Memoization (useMemo/useCallback)
+
+Cache only what pays. Every hook = dep-compare + closure alloc + GC. Memoize ONLY when:
+
+1. Work is genuinely expensive: non-trivial loop, string build, parse, N large. N ≤ ~10 inline
+   ops = NOT expensive. Recompute inline.
+2. Deps stay stable across renders. Dep changes EVERY render (e.g. `life` on every tap) →
+   cache never hits → write plain. Memo = pure overhead.
+3. Referential stability has a consumer: value feeds `React.memo` child or effect deps.
+   No `React.memo` anywhere → stability buys nothing.
+
+REJECT:
+- Memo whose dep changes every render. Pure overhead on the hot path.
+- Memo over trivial O(≤10) work. Same cost as recompute + hook overhead.
+- Memo "to satisfy a rule". The rule IS cost-benefit.
 
 ## Write checklist (frontend-dev, ai-engineer)
 
 - [ ] Depth ≤2. Guard returns first.
 - [ ] Predicates named. No inline magic condition.
 - [ ] Fn ≤20 lines. One job.
-- [ ] Lookup via Map/Set. Zero array-scan-in-loop.
-- [ ] Hoisted + cached. No rebuild per call/render.
+- [ ] Lookup via Map/Set. Zero array-scan-in-loop. Small-N inline scan OK (n ≤ ~10).
+- [ ] Memo justified? Dep stable across renders + work non-trivial + consumer exists.
 - [ ] Big-O stated for non-trivial fn.
 
 ## Review checklist (code-review)
 
-- [ ] Array scan for membership/key → REJECT. Demand Map/Set.
-- [ ] `indexOf`/`find`/`includes` in loop → REJECT. O(n²).
+- [ ] Array scan in loop for membership/key → REJECT. O(n²). Small-N inline scan (n ≤ ~10) OK.
+- [ ] `useMemo`/`useCallback` with ever-changing dep → REJECT. Trivial work memoized → REJECT.
 - [ ] Nested >2, no guard return → REJECT.
 - [ ] Inline magic predicate → REJECT. Name it.
 - [ ] Lookup rebuilt per call/render → REJECT. Hoist/cache.
