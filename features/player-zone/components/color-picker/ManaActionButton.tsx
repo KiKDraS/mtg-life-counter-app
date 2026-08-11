@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { MANA_LABELS } from "@/shared/lib/constants/labels";
 import type { ManaColor } from "@/shared/lib/constants/colors";
 import { cn } from "@/shared/lib/cn";
@@ -46,13 +46,11 @@ export function ManaActionButton({
   const { state, dispatch: playerDispatch } = usePlayerStateContext();
   const { dispatch: gameDispatch } = useGameStateContext();
 
-  const selectedColors = useMemo(() => new Set(state.color), [state.color]);
-
-  const isSelected = selectedColors.has(color);
+  const isSelected = state.color.includes(color);
 
   const handleClick = () => {
     const current = state.color;
-    const isPresent = selectedColors.has(color);
+    const isPresent = state.color.includes(color);
     const isColorless = current.length === 1 && current[0] === "c";
 
     let nextColors: ManaColor[];
