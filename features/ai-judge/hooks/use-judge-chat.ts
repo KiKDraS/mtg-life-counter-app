@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { judgeChat, isOffline, type JudgeChatCallbacks } from "@/features/ai-judge/lib/client";
 import type { Citation, JudgeEvent } from "@/features/ai-judge/lib/types";
+import {
+  loadChat,
+  pruneChats,
+  saveChat,
+} from "@/features/ai-judge/lib/chat-store";
+import { useOptionalGameStateContext } from "@/features/game-shell/state/hooks";
 
 /* SPEC §9.9 — 24k token cap, rough 4 chars/token, FIFO prune. */
 const HISTORY_CHAR_CAP = 24_000 * 4;
@@ -34,7 +40,7 @@ export interface JudgeChatResult {
   readonly sendQuestion: (text: string) => Promise<void>;
   /** Sends the current draft. */
   readonly submit: () => void;
-  /** Clears history + aborts mid-flight stream on dialog close (SPEC §9.9). */
+  /** Aborts mid-flight stream + resets transient state. History persists (SPEC §9.9). */
   readonly reset: () => void;
   readonly inputDisabled: boolean;
 }
@@ -44,14 +50,16 @@ export interface JudgeChatResult {
  * SPEC §9.11 — AI Judge chat state machine, consumed by JudgeModal.
  *
  * Owns: SSE streaming (send/token/done/error/abort via {@link judgeChat}),
- * in-memory conversation history with FIFO prune (SPEC §9.9), offline
+ * conversation history persisted to IndexedDB per game version (SPEC §9.9 —
+ * survives modal close + page reload; old versions pruned, keep 5), offline
  * detection (SPEC §9.10: navigator.onLine + window online/offline events +
- * fetch TypeError → offline), and input disabled logic. History clears
- * and a fresh `sessionId` (SPEC §9.9) is minted on every dialog close —
- * each open starts with empty server history.
+ * fetch TypeError → offline), and input disabled logic. `sessionId` is
+ * version-derived (`aijudge-${version}`) so server history follows the
+ * persisted client thread.
  *
  * @param modalId — id of the owning dialog element. The hook listens for its
- *   `close` event to reset state; without it, state leaks across opens.
+ *   `close` event to abort mid-flight streams and reset transient state;
+ *   history is intentionally NOT cleared on close.
  * @returns {@link JudgeChatResult} — render everything, call nothing else.
  *
  * @example
@@ -62,6 +70,11 @@ export interface JudgeChatResult {
  * @see SPEC.md §9.9, §9.10
  */
 export function useJudgeChat(modalId: string): JudgeChatResult {
+  /* §9.9 — chat identity: game version. Bumped on restart/setup changes
+     (not color changes); each version gets its own persisted thread. */
+  const gameCtx = useOptionalGameStateContext();
+  const version = gameCtx?.state.version ?? 0;
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamText, setStreamText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -71,17 +84,29 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
 
   const abortRef = useRef<AbortController | null>(null);
   const streamTextRef = useRef("");
-  /* SPEC §9.9 — fresh id per open. Re-minted on dialog close. */
-  const sessionIdRef = useRef(crypto.randomUUID());
+  /* §9.9 — stable per game version: `aijudge-${version}` in-game, random
+     fallback outside one. Overridden by the persisted entry's id on load. */
+  const sessionIdRef = useRef<string | null>(null);
+  if (sessionIdRef.current === null) {
+    sessionIdRef.current = gameCtx
+      ? `aijudge-${version}`
+      : crypto.randomUUID();
+  }
+  /* Version the load resolved for; null while a load is in flight so the save
+     effect skips (an empty save would overwrite persisted history). */
+  const loadedVersionRef = useRef<number | null>(null);
+  /* Sends since the current load started — a slow load must not wipe
+     user-visible messages mid-session. */
+  const sendsSinceLoadRef = useRef(0);
   const getDialog = useCallback(
     () => document.getElementById(modalId) as HTMLDialogElement | null,
     [modalId],
   );
 
-  /* SPEC §9.9 — history cleared on dialog close. Abort any mid-flight stream
-     first so no callback writes into the reset state. ponytail: close during
-     stream = partial answer dropped; deterministic abort beats invisible
-     background streaming. New open mints a fresh sessionId. */
+  /* §9.9 — modal close aborts any mid-flight stream and resets transient
+     state. History + sessionId persist: chat survives reopen and reload.
+     ponytail: close during stream = partial answer dropped; deterministic
+     abort beats invisible background streaming. */
   useEffect(() => {
     const dialog = getDialog();
     if (!dialog) return;
@@ -92,9 +117,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
       setStreamText("");
       streamTextRef.current = "";
       setErrorBubble(null);
-      setMessages([]);
       setIsOfflineState(isOffline()); // re-check on next open
-      sessionIdRef.current = crypto.randomUUID();
     };
     dialog.addEventListener("close", handleClose);
     return () => {
@@ -114,6 +137,45 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
+  /* §9.9 — hydrate persisted chat for the current game version. Runs once
+     per version change (bumped on restart/setup changes, not color). A send
+     while the load is in flight skips the swap so user-visible messages are
+     never wiped mid-session; the send itself marks the version loaded, so
+     the save effect resumes persisting from that point. */
+  useEffect(() => {
+    if (loadedVersionRef.current === version) return;
+    loadedVersionRef.current = null; // load in flight → save effect skips
+    sendsSinceLoadRef.current = 0;
+    sessionIdRef.current = gameCtx ? `aijudge-${version}` : crypto.randomUUID();
+
+    let cancelled = false;
+    void loadChat(version).then((entry) => {
+      if (cancelled || sendsSinceLoadRef.current > 0) return;
+      loadedVersionRef.current = version;
+      setMessages(entry?.messages ?? []);
+      if (entry) sessionIdRef.current = entry.sessionId;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [version, gameCtx]);
+
+  /* §9.9 — persist on every message change, keyed by game version. Skipped
+     while the load for this version is still in flight (an empty save would
+     overwrite persisted history). Prune old versions after each save. */
+  useEffect(() => {
+    if (loadedVersionRef.current !== version) return;
+    void saveChat({
+      version,
+      /* Non-null: lazy init above guarantees a value by first effect run. */
+      sessionId: sessionIdRef.current!,
+      updatedAt: Date.now(),
+      messages,
+    }).then(() => {
+      void pruneChats();
+    });
+  }, [messages, version]);
 
   /* SPEC §9.9 — append with FIFO prune past the char cap. */
   const pushMessage = useCallback((message: ChatMessage) => {
@@ -143,6 +205,12 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
     async (text: string) => {
       const question = text.trim();
       if (!question || isStreaming || isOfflineState) return;
+
+      /* §9.9 — a send during a pending load owns the session from here on:
+         mark loaded (save resumes) and tell the load to skip its swap. */
+      sendsSinceLoadRef.current += 1;
+      if (loadedVersionRef.current === null)
+        loadedVersionRef.current = version;
 
       pushMessage({ role: "user", content: question });
       setDraft("");
@@ -184,7 +252,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
 
       try {
         await judgeChat(
-          { sessionId: sessionIdRef.current, question },
+          { sessionId: sessionIdRef.current!, question },
           callbacks,
           controller.signal,
         );
@@ -206,7 +274,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
         }
       }
     },
-    [isStreaming, isOfflineState, pushMessage],
+    [isStreaming, isOfflineState, pushMessage, version],
   );
 
   /** @description Sends the current draft through the submit path. */
@@ -215,8 +283,9 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
   }, [sendQuestion, draft]);
 
   /**
-   * @description Clears the in-memory history, aborts any mid-flight stream,
-   *   and mints a fresh sessionId — called on dialog close (SPEC §9.9).
+   * @description Aborts any mid-flight stream and resets transient state
+   *   (streaming text, error bubble, offline re-check). History + sessionId
+   *   persist — chat survives dialog close and reload (SPEC §9.9).
    * @returns void.
    */
   const reset = useCallback(() => {
@@ -226,9 +295,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
     setStreamText("");
     streamTextRef.current = "";
     setErrorBubble(null);
-    setMessages([]);
     setIsOfflineState(isOffline());
-    sessionIdRef.current = crypto.randomUUID();
   }, []);
 
   /* SPEC §9.10 — streaming or offline blocks sending. */
