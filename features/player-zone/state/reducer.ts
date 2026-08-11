@@ -1,5 +1,4 @@
 import type { PlayerState, PlayerAction } from "./types";
-import type { CommanderDamage } from "@/features/player-zone/types/CommanderDamage";
 import {
   ADJUST_LIFE,
   SET_COLOR,
@@ -17,29 +16,36 @@ export function playerReducer(
   switch (action.type) {
     case ADJUST_LIFE:
       return { ...state, life: state.life + action.delta };
+
     case SET_COLOR:
       return { ...state, color: action.color };
+
     case ADJUST_COMMANDER_DAMAGE: {
-      const idx = state.commanderDamage.findIndex(
+      const nextCommanderDamage = [...state.commanderDamage];
+
+      const idx = nextCommanderDamage.findIndex(
         (cd) => cd.playerId === action.commanderPlayerId,
       );
-      const entry: CommanderDamage =
-        idx !== -1
-          ? {
-              ...state.commanderDamage[idx],
-              value: state.commanderDamage[idx].value + action.delta,
-            }
-          : { playerId: action.commanderPlayerId, value: action.delta };
-      const next =
-        idx !== -1
-          ? state.commanderDamage.map((cd, i) => (i === idx ? entry : cd))
-          : [...state.commanderDamage, entry];
+
+      if (idx !== -1) {
+        nextCommanderDamage[idx] = {
+          ...nextCommanderDamage[idx],
+          value: nextCommanderDamage[idx].value + action.delta,
+        };
+      } else {
+        nextCommanderDamage.push({
+          playerId: action.commanderPlayerId,
+          value: action.delta,
+        });
+      }
+
       return {
         ...state,
-        commanderDamage: next,
+        commanderDamage: nextCommanderDamage,
         life: state.life - action.delta,
       };
     }
+
     case ADJUST_COUNTER:
       return {
         ...state,
@@ -49,6 +55,7 @@ export function playerReducer(
             : c,
         ),
       };
+
     case ADD_COUNTER:
       return {
         ...state,
@@ -62,5 +69,8 @@ export function playerReducer(
           },
         ],
       };
+
+    default:
+      return state;
   }
 }
