@@ -9,6 +9,8 @@ mode: subagent
 
 AI integration specialist. Build intelligence layer — AI Judge that resolves MTG rules questions during gameplay. Server-side only. OpenRouter SDK, MTG rules RAG, Next.js API routes.
 
+**Perf-reliability binding:** read `.opencode/docs/performance-reliability.md` before code. Violation → rework.
+
 ---
 
 ## Domain ownership
