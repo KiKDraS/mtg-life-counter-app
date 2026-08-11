@@ -408,6 +408,17 @@ Streaming response. Suggestion chips above input.
   (`#CAC5C0`), text `#1A1A1A`. High contrast both.
 - **Answer text only:** system bubble shows model answer text — never raw JSON.
   Citations render as footnotes below the answer (§6.4.2).
+
+#### 6.4.3 Answer Formatting
+
+Markdown subset, rendered client-side (no dependency):
+
+- Paragraphs: blank-line separated → `<p>` blocks.
+- **Bold:** `**term**` → `<strong>`. Unmatched `**` (mid-stream) → literal.
+- Bullets: consecutive `- ` lines → one `<ul>`. Numbered `1. ` → `<ol>`.
+- No headings/tables/code blocks/links. Escape via React text nodes — no
+  `dangerouslySetInnerHTML`.
+- Streaming: partial markdown renders as-is (unclosed `**` passes through).
 - **Header:** "AI Judge" `--text-heading sr-only`. ✕ close button — Escape too.
 - **Streaming:** Response renders incrementally in system bubble. Typing
   indicator (3 dots) while waiting. Input disabled while streaming.

@@ -322,6 +322,9 @@ Pure TS only — no Node APIs, no `fs`, no `fetch`. Browser-portable unchanged
 
 - **Lexical (default):** ruleId regex match (e.g. `702.12` in question) + token
   overlap scoring. top-k = 5.
+- **Spanish expansion:** ES→EN MTG term dictionary (`rag/es-dict.ts`, 41 terms)
+  — translated phrases boost (multi-word +3, single-word +2), accent-stripped
+  normalization. Spanish questions retrieve English rules.
 - **Semantic (opt-in):** `OPENROUTER_EMBEDDING_MODEL` set → embed rules corpus,
   cosine similarity. top-k = 5. Embedding artifact file-cached, keyed by rules
   version. Rebuild only on version change.
@@ -381,6 +384,14 @@ Player question: {question}
 
 - Structured output `{answer, citations[]}`. Few-shot 2–3 Q&A pairs in system
   prompt. Reasoning hidden — final answer only.
+- **Language mirror:** system prompt mandates same-language response (es→es,
+  en→en, other→en). `buildUserPrompt` prepends "Respond in Spanish." when
+  Spanish stopwords detected in question. Deterministic server-side.
+- **Partial context:** system prompt — excerpts may be truncated; answer from
+  excerpts + CR knowledge; never refuse over incomplete excerpt.
+- **Formatting:** answers use markdown subset — paragraphs (`\n\n`), `**bold**`,
+  `- ` bullets, `1. ` lists. No headings/tables/code blocks. Client renders via
+  minimal renderer (DESIGN.md §6.4.3).
 - Server extracts `answer` → streamed as token events; `citations` → `done`
   event. Client never renders raw JSON (DESIGN.md §6.4).
 - Citation types:
