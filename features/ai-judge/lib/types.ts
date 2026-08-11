@@ -7,6 +7,8 @@
  * @see SPEC.md §9.5 (SSE events), §9.7 (citations), §9.8 (game context)
  */
 
+import type { CounterType } from "@/features/player-zone/types/counter";
+
 /** SPEC §9.8 — snapshot of live board state, serialized at send time. */
 export interface GameContext {
   readonly format: "commander";
@@ -16,7 +18,7 @@ export interface GameContext {
     readonly color: string[];
     readonly counters: Array<{
       readonly id: string;
-      readonly type: string;
+      readonly type: CounterType;
       readonly value: number;
       readonly name?: string;
     }>;
@@ -52,6 +54,8 @@ export interface Usage {
 
 /** SPEC §9.5 — POST /api/judge request body. */
 export interface JudgeRequest {
+  /** SPEC §9.9 — per-modal-open session id. Fresh id = fresh server history. */
+  readonly sessionId: string;
   readonly question: string;
   readonly gameContext?: GameContext;
 }
