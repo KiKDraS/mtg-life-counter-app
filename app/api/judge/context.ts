@@ -104,7 +104,7 @@ export async function loadRules(
  *   rulings only (§9.3.2).
  * @param question The player's trimmed question.
  * @returns The assembled context text plus the sources used (`scryfall`,
- * `mtg.wtf`).
+ * `mtg.wtf`) — empty when both paths degraded (§9.3.2).
  */
 export async function buildContext(question: string): Promise<JudgeContext> {
   const [card, rules] = await Promise.all([
@@ -114,7 +114,6 @@ export async function buildContext(question: string): Promise<JudgeContext> {
 
   const sourcesUsed = [...card.sourcesUsed];
   if (rules) sourcesUsed.push("mtg.wtf");
-  else if (sourcesUsed.length === 0) sourcesUsed.push("scryfall");
 
   return {
     contextText: buildUserPrompt(question, rules?.rules ?? [], card.rulings),
