@@ -440,7 +440,13 @@ Seams only. No interfaces, no DI, no provider layer.
 ### 9.12 File Map
 
 ```
-app/api/judge/route.ts            # SSE route, env validation, rate limit
+app/api/judge/route.ts            # thin shell: parse → pipeline → SSE (§9.5)
+app/api/judge/config.ts           # env validation + SDK instance (§9.2)
+app/api/judge/rate-limit.ts       # 10 req/min/IP sliding window (§9.5)
+app/api/judge/sessions.ts         # session history store, cap 100, idle sweep (§9.9)
+app/api/judge/sse.ts              # SSE encode + error helpers (§9.5)
+app/api/judge/context.ts          # card + rules context assembly, degradable (§9.3)
+app/api/judge/stream.ts           # model stream, fallback, timeouts (§9.6)
 features/ai-judge/lib/types.ts    # shared types (§9.11)
 features/ai-judge/lib/client.ts   # single client call site
 features/ai-judge/lib/prompts.ts  # persona, few-shot, RAG format
@@ -448,6 +454,9 @@ features/ai-judge/lib/citations.ts# citation parse + validate + sanitize
 features/ai-judge/lib/history.ts  # in-memory session history
 features/ai-judge/lib/rag/        # pure TS: parse, retrieve, score
 ```
+
+Route split per AGENTS.md **Route Module Structure** — one concern per file,
+thin `route.ts` only.
 
 ---
 

@@ -34,7 +34,7 @@ Own these dirs only. **Forbidden** from React components, Tailwind, app/ outside
   ```ts
   import { OpenRouter } from "@openrouter/sdk";
   const openrouter = new OpenRouter({
-    apiKey: process.env.OPENROUTER_API_KEY,
+    apiKey: process.env.OPEN_ROUTER_API_KEY,
   });
   ```
 - **ZDR default.** Each req: `provider: { zdr: true }`. No data retention.
@@ -56,7 +56,14 @@ Own these dirs only. **Forbidden** from React components, Tailwind, app/ outside
   }
   ```
 - **Cost tracking:** Log usage from `chunk.usage`. Expose cumulative cost to orchestrator.
-- **Key security:** `OPENROUTER_API_KEY` server-only env. Never client, never in repo, never logged.
+- **Key security:** `OPEN_ROUTER_API_KEY` server-only env. Never client, never in repo, never logged.
+
+### 1.5 Route structure
+
+Per AGENTS.md **Route Module Structure** — binding. `app/api/judge/` split:
+`route.ts` (thin shell only) + `config.ts`/`rate-limit.ts`/`sessions.ts`/
+`sse.ts`/`context.ts`/`stream.ts`. One concern per file. New concern → new
+file. route.ts >150 lines or logic in route → `@code-review` REJECT.
 
 ### 2. Prompt engineering
 

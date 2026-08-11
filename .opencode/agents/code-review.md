@@ -60,6 +60,11 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
   REJECT (ESLint `state/no-state-spaghetti`). One concern per file:
   `types.ts`/`constants.ts`/`actions.ts`/`reducer.ts`/`context.ts`/
   `<Name>Provider.tsx`/`hooks.ts`. No `*-context.tsx` megafiles, no barrels.
+- Route modules: `app/api/**` per AGENTS.md **Route Module Structure**. Judge:
+  thin `route.ts` (parse/validate → stream only), one concern per file
+  (`config`/`rate-limit`/`sessions`/`sse`/`context`/`stream`). route.ts
+  >150 lines, business logic in route.ts, concern mixing, new concern without
+  dedicated file → REJECT.
 
 ### 3. Tailwind & Design
 
@@ -165,7 +170,7 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
   filters) → user-friendly messages. No raw SDK errors leaked.
 - Token budget: System prompt + history within model context limits. Reject
   unbounded growth.
-- Security: `OPENROUTER_API_KEY` server-only. Rate limiting on `/api/judge`. No
+- Security: `OPEN_ROUTER_API_KEY` server-only. Rate limiting on `/api/judge`. No
   user data persisted.
 
 ### 9. RSC Audit (SPEC.md §1)
