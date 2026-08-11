@@ -1,7 +1,6 @@
 import type { ManaColor } from "@/shared/lib/constants/colors";
 import type { PlayerId } from "@/features/player-zone/types/player";
 import type { PlayerState } from "@/features/player-zone/state/types";
-import type { Citation } from "@/features/ai-judge/lib/types";
 
 // ============================================================================
 // CONFIGURATION & TYPES
@@ -39,7 +38,6 @@ export interface GameStateRecord {
 export interface ChatMessageRecord {
   readonly role: "system" | "user";
   readonly content: string;
-  readonly citations?: Citation[];
 }
 
 /* §9.9 — Store 3: persisted AI Judge chat, keyed `chat-v${version}`.

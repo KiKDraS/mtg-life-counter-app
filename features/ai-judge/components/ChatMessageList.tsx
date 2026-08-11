@@ -5,14 +5,7 @@ import type {
   ChatMessage,
   JudgeErrorEvent,
 } from "@/features/ai-judge/hooks/use-judge-chat";
-import type { Citation } from "@/features/ai-judge/lib/types";
 import { MarkdownText } from "@/features/ai-judge/components/MarkdownText";
-
-/** DESIGN §6.4.2 — pill label: rule → "CR 702.12a", card → "Card: Reanimate". */
-const citationLabel = (citation: Citation): string =>
-  citation.type === "rule"
-    ? `CR ${citation.ruleId}`
-    : `Card: ${citation.name}`;
 
 interface ChatMessageListProps {
   readonly messages: ChatMessage[];
@@ -67,25 +60,6 @@ export function ChatMessageList({
               <MarkdownText content={message.content} />
             )}
           </div>
-
-          {/* DESIGN §6.4.2 — footnote pills under the system bubble. */}
-          {message.role === "system" && message.citations?.length ? (
-            <div className="flex max-w-[75%] flex-wrap gap-1 self-start">
-              {message.citations.map((citation, citationIndex) => (
-                <details
-                  key={citationIndex}
-                  className="inline-block border border-white/25 bg-ui-overlay px-2 py-0.5 text-caption text-ui-textLight"
-                >
-                  <summary className="cursor-pointer list-none select-none">
-                    {citationLabel(citation)}
-                  </summary>
-                  <p className="max-w-[60ch] pt-1 text-body-sm text-ui-textLight/80">
-                    {citation.excerpt}
-                  </p>
-                </details>
-              ))}
-            </div>
-          ) : null}
         </Fragment>
       ))}
 

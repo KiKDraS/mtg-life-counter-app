@@ -4,7 +4,7 @@
 
 # AI Judge — E2E Test Plan (specs/ai-judge.spec.md)
 
-Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target file: `tests/e2e/ai-judge.spec.ts` (single spec, 22 tests — TC-AJ-22 is `test.fixme` blocked, see §1.15; describe blocks per area). Config: baseURL `http://localhost:3000`, chromium, 1 worker, viewport 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state each test; dev machine has NO OpenRouter key → route 503s — **every test MUST mock `**/api/judge`**, never hit real route.
+Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target file: `tests/e2e/ai-judge.spec.ts` (single spec, 20 tests; describe blocks per area). Config: baseURL `http://localhost:3000`, chromium, 1 worker, viewport 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state each test; dev machine has NO OpenRouter key → route 503s — **every test MUST mock `**/api/judge`**, never hit real route.
 
 ## Contract sources
 DESIGN.md §6.4 (chat window), §6.4.0 (offline), §6.4.1 (chips). SPEC.md §9.5 (SSE), §9.8 (gameContext), §9.9 (session), §9.10 (UI/offline).

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { judgeChat, isOffline, type JudgeChatCallbacks } from "@/features/ai-judge/lib/client";
-import type { Citation, JudgeEvent } from "@/features/ai-judge/lib/types";
+import type { JudgeEvent } from "@/features/ai-judge/lib/types";
 import {
   loadChat,
   pruneChats,
@@ -19,8 +19,6 @@ const MISCONFIGURED_COPY = "AI Judge unavailable";
 export interface ChatMessage {
   readonly role: "user" | "system";
   readonly content: string;
-  /** DESIGN §6.4.2 — footnote pills under the answer, from the `done` event. */
-  readonly citations?: Citation[];
 }
 
 /** SPEC §9.5 — error SSE event shape surfaced as the error bubble. */
@@ -227,11 +225,12 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
           streamTextRef.current += content;
           setStreamText(streamTextRef.current);
         },
-        onDone: (event) => {
+        onDone: () => {
+          /* ponytail: done event still carries citations (API contract) —
+             ignored client-side, answer text only. */
           pushMessage({
             role: "system",
             content: streamTextRef.current,
-            citations: event.citations,
           });
           setStreamText("");
           setIsStreaming(false);
