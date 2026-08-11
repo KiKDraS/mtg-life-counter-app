@@ -10,8 +10,12 @@
 import { openRouter } from "./config";
 import {
   ConnectionError,
+  EdgeNetworkTimeoutResponseError,
   OpenRouterError,
-  RequestTimeoutError,
+  ProviderOverloadedResponseError,
+  RequestTimeoutResponseError,
+  ResponseValidationError,
+  SDKValidationError,
 } from "@openrouter/sdk/models/errors";
 import type { ChatStreamChunk } from "@openrouter/sdk/models";
 import type { Usage } from "@/features/ai-judge/lib/types";
@@ -51,19 +55,37 @@ const sleep = (ms: number): Promise<void> =>
 export const isAsyncIterable = <T>(value: unknown): value is AsyncIterable<T> =>
   value !== null && typeof value === "object" && Symbol.asyncIterator in value;
 
+/** SDK error class in the {@link classifyFailure} tables. */
+type ErrorClass = new (...args: never[]) => Error;
+
+/** Retryable: provider-side timeout/overload or connection loss (SPEC §9.6). */
+const RETRYABLE_ERRORS: readonly ErrorClass[] = [
+  RequestTimeoutResponseError,
+  EdgeNetworkTimeoutResponseError,
+  ProviderOverloadedResponseError,
+  ConnectionError,
+];
+
+/** Permanent: malformed request/output — retrying reproduces the failure. */
+const PERMANENT_ERRORS: readonly ErrorClass[] = [
+  SDKValidationError,
+  ResponseValidationError,
+];
+
 /**
  * @description Classify a model failure for fallback routing (SPEC §9.6):
- * timeout → "timeout"; 4xx → "permanent" (no fallback); 5xx, request timeout,
- * connection error, anything else → "retryable".
+ * timeout → "timeout"; 4xx → "permanent" (no fallback); 5xx, provider
+ * timeout/overload, connection error, anything else → "retryable". SDK
+ * validation errors → "permanent" (same request fails again).
  * @param err The thrown error from a model call.
  * @returns The FailureKind for the error.
  */
 export const classifyFailure = (err: unknown): FailureKind => {
   if (err instanceof StreamTimeoutError) return "timeout";
+  if (RETRYABLE_ERRORS.some((Ctor) => err instanceof Ctor)) return "retryable";
+  if (PERMANENT_ERRORS.some((Ctor) => err instanceof Ctor)) return "permanent";
   if (err instanceof OpenRouterError)
     return err.statusCode >= 500 ? "retryable" : "permanent";
-  if (err instanceof RequestTimeoutError || err instanceof ConnectionError)
-    return "retryable";
   return "retryable";
 };
 
