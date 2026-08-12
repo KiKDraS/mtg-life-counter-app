@@ -152,17 +152,3 @@ incrementally with their specs and tests — see the roadmap above for what's
 next.
 
 ---
-
-## Tech stack
-
-| Layer | Choice |
-| ----- | ------ |
-| Framework | Next.js 16 (App Router, RSC default) |
-| UI | React 19, Tailwind CSS 4, native `<dialog>` |
-| Language | TypeScript 5 (strict) |
-| AI | OpenRouter SDK, SSE streaming, RAG retrieval |
-| Data | IndexedDB (offline-first persistence) |
-| Data sources | Scryfall API, mtg.wtf Comprehensive Rules |
-| QA | Playwright (17 E2E specs) |
-| Packaging | pnpm, ESLint |
-| Deployment | Vercel, PWA (manifest + service worker) |
