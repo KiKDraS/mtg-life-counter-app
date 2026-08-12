@@ -64,6 +64,7 @@ luminance. WCAG 4.5:1.
 | Token                 | Hex                | Usage                                        |
 | --------------------- | ------------------ | -------------------------------------------- |
 | BG overlay            | `#1a1a1a`          | Commander damage & counters overlay BG       |
+| Splash cover          | `#292A2A`          | Extended splash hydration cover (§4.6)       |
 | Belt / AI Judge       | `#000000`          | Spellbook belt, AI Judge modal backdrop      |
 | Modal BG              | `rgba(0,0,0,0.80)` | Config modals                                |
 | Danger red            | `#D50000`          | Life ≤ 0, commander ≥ 21                     |

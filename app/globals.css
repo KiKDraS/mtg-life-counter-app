@@ -17,6 +17,7 @@
   /* UI & shell colors (§2.2) */
   --color-ui-overlay: #1A1A1A;
   --color-ui-belt: #000000;
+  --color-ui-splash: #292A2A;
   --color-ui-danger: #D50000;
   --color-ui-textLight: #FAF8F5;
   --color-ui-textDark: #1A1A1A;
@@ -58,3 +59,5 @@ dialog::backdrop {
     font-size: clamp(1.5rem, 3vw, 2.5rem);
   }
 }
+
+@custom-variant pwa (@media (display-mode: standalone));
