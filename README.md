@@ -74,7 +74,7 @@ table, phones face-up, game state changing every few seconds:
 - Initial life presets (20/30/40/60) or custom, one-tap restart
 - State persists in IndexedDB — survives reloads, works fully offline
 
-**AI Judge** (`/api/judge`)
+**AI Judge**
 - Streaming chat (SSE) with incremental rendering and typing indicator
 - RAG pipeline over the official Comprehensive Rules (mtg.wtf) + Scryfall
   card data and rulings, with inline rule citations (`CR 702.12a`)
