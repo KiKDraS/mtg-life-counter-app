@@ -56,20 +56,25 @@
 
 ## Suite 2: Spellbook Belt (§5)
 
-### TC-2.1: M logo opens belt with 4 icons
+> Note: ⬇️ Install App renders only after the browser fires
+> `beforeinstallprompt` (installability gate, SPEC §8.6 — Chrome/Edge desktop
+> only; not iOS Safari). Manual verification therefore requires such a
+> browser; elsewhere the icon is correctly absent and the belt shows 4 icons.
+
+### TC-2.1: M logo opens belt with 5 icons
 
 **Description:** Tapping the MTG logo expands the belt.
 
 **Steps:**
 1. Navigate to app (fresh 2-player state — belt closed)
-2. Verify belt icons are **not** visible (no Restart/Initial Life/AI Judge/Players buttons)
+2. Verify belt icons are **not** visible (no Restart/Initial Life/AI Judge/Players/Install App buttons)
 3. Tap/clicks the M logo (`Open Spellbook Menu` label)
 4. Wait for CSS transition (300ms)
 
 **Expected Results:**
 - Belt expands to full width with black background
-- 4 icon buttons visible:
-  - **Left side** (near→far): ⟳ Restart Life, ⚙️ Initial Life
+- 5 icon buttons visible:
+  - **Left side** (near→far): ⟳ Restart Life, ⚙️ Initial Life, ⬇️ Install App (renders only after `beforeinstallprompt` — installability gate SPEC §8.6; in browsers without the event, 4 icons, Install App absent by design)
   - **Right side** (near→far): ⚖️ AI Judge, 👥 Players
 - Hidden checkbox `#spellbook-toggle` is `checked`
 - M logo remains centered, z-index 50
@@ -87,7 +92,7 @@
 
 **Expected Results:**
 - Belt collapses: width → 0, height → 0, opacity → 0
-- 4 icon buttons no longer visible
+- 5 icon buttons no longer visible
 - `#spellbook-toggle` is `unchecked`
 
 ---
@@ -120,6 +125,9 @@
 - Initial Life button: `aria-label="Initial Life"`
 - AI Judge button: `aria-label="AI Judge"`
 - Players button: `aria-label="Players"`
+- Install App button: `aria-label="Install App"` (present only after
+  `beforeinstallprompt` — installability gate SPEC §8.6; absent by design in
+  browsers that never fire the event)
 
 ---
 

@@ -288,6 +288,28 @@ gradient.
 | `["w","u","b", "r"]`      | `w(0%,25%), u(25%,50%), b(50%,75%), r(75%, 100%)`            |
 | `["w","u","b", "r", "g"]` | `w(0%,20%), u(20%,40%), b(40%,60%), r(60%,80%), g(80%,100%)` |
 
+### 8.6 ⬇️ Install App (PWA)
+
+| Property          | Value                                            |
+| ----------------- | ------------------------------------------------ |
+| Trigger           | Spellbook belt, left-far — DESIGN.md §5.2        |
+| Opens modal?      | No — native browser install prompt               |
+| Resets game?      | No                                               |
+
+- **Purpose:** Trigger native PWA install from browser mode. No server
+  involvement, no forced prompts, no analytics.
+- **Installability gate (binding):** button renders ONLY after
+  `beforeinstallprompt` captured (handler `preventDefault()`s, stores
+  prompt). No event (iOS Safari, unsupported browser, already installed) →
+  button absent.
+- **Standalone:** hidden via CSS `pwa:` variant (`display-mode: standalone`)
+  — installed users never see it.
+- **Tap:** `deferredPrompt.prompt()` → `await userChoice` → clear stored
+  prompt (single-use per platform spec).
+- **`appinstalled`:** button removed immediately.
+- **Belt:** tap collapses belt via shared `MenuActionButton` behavior (§8).
+  PWA requirement: manifest + `sw.js` already served (§9.10, §9.11).
+
 ---
 
 ## 9. AI Judge

@@ -5,6 +5,7 @@ import RestartGame from "@/shared/components/icons/player-actions/RestartGame";
 import LifeSettings from "@/shared/components/icons/player-actions/LifeSettings";
 import CallJudge from "@/shared/components/icons/player-actions/CallJudge";
 import SelectPlayers from "@/shared/components/icons/player-actions/SelectPlayers";
+import BrowserUpdated from "@/shared/components/icons/BrowserUpdated";
 import mtgLogo from "@/features/spellbook/images/mtg-logo.png";
 
 import { RestartGameAction } from "./menu-actions/RestartGameAction";
@@ -13,7 +14,9 @@ import { CallJudgeAction } from "./menu-actions/CallJudgeAction";
 import { SelectPlayersAction } from "./menu-actions/SelectPlayersAction";
 import { InitialLifeModal } from "./modals/initial-life/InitialLifeModal";
 import { PlayerSelectorModal } from "./modals/player-selector/PlayerSelectorModal";
+import { InstallAppAction } from "./menu-actions/InstallAppAction";
 import { JudgeModal } from "@/features/ai-judge/components/JudgeModal";
+import { PropsWithChildren } from "react";
 
 const BTN_SIZE = "size-7 md:size-10 transition-all cursor-pointer";
 
@@ -26,8 +29,13 @@ const AI_JUDGE_MODAL_ID = "ai-judge-modal";
  * Structural wrapper for grouping action buttons in the belt.
  * Keeps the main menu JSX DRY and semantic. (Server Component)
  */
-function ActionGroup({ children }: { readonly children: React.ReactNode }) {
-  return <div className="flex items-center gap-6">{children}</div>;
+function ActionGroup({
+  children,
+  className,
+}: PropsWithChildren<{ className?: string }>) {
+  return (
+    <div className={cn("flex items-center gap-6", className)}>{children}</div>
+  );
 }
 
 /**
@@ -79,21 +87,27 @@ export function SpellbookMenu() {
           "peer-checked:h-18 peer-checked:w-full peer-checked:opacity-100 peer-checked:visible",
         )}
       >
-        <div className="flex w-full items-center justify-between px-6 max-w-130">
-          <ActionGroup>
-            <RestartGameAction>
-              <RestartGame className={BTN_SIZE} />
-            </RestartGameAction>
+        <div className="flex w-full items-center justify-center sm:justify-between pe-6 ps-0 pwa:px-6 pwa:justify-between max-w-130">
+          <div className="pwa:hidden">
+            <InstallAppAction>
+              <BrowserUpdated className={cn(BTN_SIZE, "animate-pulse")} />
+            </InstallAppAction>
+          </div>
 
+          <ActionGroup className="gap-1 sm:gap-6 pwa:gap-6">
             <SetLifeAction>
               <LifeSettings className={BTN_SIZE} />
             </SetLifeAction>
+
+            <RestartGameAction>
+              <RestartGame className={BTN_SIZE} />
+            </RestartGameAction>
           </ActionGroup>
 
           {/* Center gap reserved for the logo */}
-          <div className="size-14" />
+          <div className="size-14 mx-1 sm:mx-0 sm:w-0" />
 
-          <ActionGroup>
+          <ActionGroup className="sm:w-[calc(50%-(--spacing(14)))]">
             <CallJudgeAction>
               <CallJudge className={BTN_SIZE} />
             </CallJudgeAction>
