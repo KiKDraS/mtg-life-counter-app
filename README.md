@@ -166,33 +166,3 @@ next.
 | QA | Playwright (17 E2E specs) |
 | Packaging | pnpm, ESLint |
 | Deployment | Vercel, PWA (manifest + service worker) |
-
-## Getting started
-
-```bash
-pnpm install
-pnpm dev
-```
-
-Open [http://localhost:3000](http://localhost:3000). For the AI Judge, set
-`OPEN_ROUTER_API_KEY` and `OPEN_ROUTER_MODEL` in `.env.local` (see
-`SPEC.md` §9.2 for the full config).
-
-```bash
-pnpm lint          # ESLint
-pnpm build         # production build
-pnpm exec playwright test   # E2E suite
-```
-
-## Repository structure
-
-```
-app/          # App Router — RSC default
-features/     # game-shell, player-zone, spellbook, ai-judge, persistence
-shared/       # components, lib (cn, constants, icons)
-public/       # PWA assets, service worker
-tests/        # Playwright E2E suite
-DESIGN.md     # Design contract (visual + interaction)
-SPEC.md       # Behavior + data model contract
-.opencode/    # Agent system (agents, skills)
-```
