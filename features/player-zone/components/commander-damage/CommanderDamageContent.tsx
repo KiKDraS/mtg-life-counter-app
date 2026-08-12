@@ -68,7 +68,13 @@ export function CommanderDamageContent() {
         Commander Damage
       </h2>
 
-      <div className={cn("grid w-full max-w-md", GRID_COLS, "gap-4")}>
+      <div
+        className={cn(
+          "grid w-full max-w-md justify-items-center",
+          GRID_COLS,
+          "gap-4",
+        )}
+      >
         {damageColumns.map((col) => (
           <CommanderDamageColumn
             key={col.pid}
