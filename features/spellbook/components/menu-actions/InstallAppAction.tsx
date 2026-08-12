@@ -44,7 +44,9 @@ export function InstallAppAction({ children }: Readonly<PropsWithChildren>) {
   };
 
   // SPEC §8.6 installability gate — no event → no button.
-  if (!installPrompt) return null;
+  // ponytail: dev-only bypass — http: (localhost or LAN IP) shows icon even
+  // without a prompt so the UI can be tested off-device; click no-ops.
+  if (!installPrompt && window.location.protocol !== "http:") return null;
 
   return (
     <MenuActionButton ariaLabel="Install App" onClick={handleInstall}>
