@@ -8,8 +8,8 @@
 _Life tracking at dice speed — plus an AI rules judge that settles disputes
 without anyone leaving the table._
 
-[Live Demo](https://your-demo-link.com) • [Features](#key-features) •
-[Architecture](#architecture--agent-system)
+[Live Demo](https://mtg-life-counter-app-alpha.vercel.app/) •
+[Features](#key-features) • [Architecture](#architecture--agent-system)
 
 </div>
 

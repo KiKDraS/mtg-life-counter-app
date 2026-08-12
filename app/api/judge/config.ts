@@ -39,6 +39,7 @@ export const openRouter = new OpenRouter({
   apiKey: env.apiKey,
   // Ranking metadata for OpenRouter's leaderboard (SPEC §9.2); APP_URL
   // overrides the default deploy URL when running elsewhere.
-  httpReferer: process.env.APP_URL ?? "https://mtg-life-counter-app.vercel.app",
+  httpReferer:
+    process.env.APP_URL ?? "https://mtg-life-counter-app-alpha.vercel.app/",
   appTitle: "MTG Life Counter",
 });
