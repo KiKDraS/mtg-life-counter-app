@@ -296,7 +296,8 @@ Tap M → black belt expands full width. M stays centered. 4 icons spread:
 
 - **Left (near→far):** ⟳ Restart Life, ⚙️ Initial Life
 - **Right (near→far):** ⚖️ AI Judge, 👥 Players
-- **Close:** Tap M or outside → icons collapse, belt retracts.
+- **Close:** Tap M or outside → icons collapse, belt retracts. Tapping any
+  action icon also collapses the belt.
 
 | Icon | Action       | Side        | Modal?       |
 | ---- | ------------ | ----------- | ------------ |
