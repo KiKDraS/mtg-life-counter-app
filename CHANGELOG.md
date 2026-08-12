@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1] - 2026-08-12
+
+### Changed
+
+- README: live demo link → alpha deployment
+- AI Judge httpReferer default → alpha deployment URL
+
 ## [1.0.0] - 2026-08-12
 
 ### Added
