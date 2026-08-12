@@ -87,7 +87,7 @@ export function SpellbookMenu() {
           "peer-checked:h-18 peer-checked:w-full peer-checked:opacity-100 peer-checked:visible",
         )}
       >
-        <div className="flex w-full items-center justify-center sm:justify-between pe-6 ps-0 pwa:px-6 pwa:justify-between max-w-130">
+        <div className="flex w-full items-center justify-center sm:justify-between pe-6 ps-0 [&:not(:has(.animate-pulse))]:px-6 pwa:px-6 [&:not(:has(.animate-pulse))_>_*:nth-child(2)]:gap-6 pwa:justify-between max-w-130">
           <div className="pwa:hidden">
             <InstallAppAction>
               <BrowserUpdated className={cn(BTN_SIZE, "animate-pulse")} />
