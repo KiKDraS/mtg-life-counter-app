@@ -338,6 +338,18 @@ const closeButton = (page: Page): Locator =>
  * ─────────────────────────────────────────────── */
 
 test.describe("AI Judge", () => {
+  test.beforeEach(async ({ page }) => {
+    // SpeedInsights script only exists on Vercel — 404s on local prod build
+    // (next start); stub it so zero-console-error assertions stay meaningful.
+    await page.route("**/_vercel/**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/javascript",
+        body: "",
+      }),
+    );
+  });
+
   test("TC-AJ-01: Modal opens from belt with input", async ({ page }) => {
     // 1. Run open-modal prelude (goto /, open belt, click "AI Judge")
     await openJudgeModal(page);

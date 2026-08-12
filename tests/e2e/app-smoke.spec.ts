@@ -115,6 +115,22 @@ function consoleErrors(page: Page): string[] {
  * ─────────────────────────────────────────────── */
 
 test.describe("RSC / Architecture / PWA Smoke", () => {
+  // Block SW: once clients.claim() controls the page, SW-forwarded fetches
+  // bypass page.route(), so the SpeedInsights stub below would not apply on
+  // reloads. These tests exercise RSC/board behavior, not offline.
+  test.use({ serviceWorkers: "block" });
+  test.beforeEach(async ({ page }) => {
+    // SpeedInsights script only exists on Vercel — 404s on local prod build
+    // (next start); stub it so zero-console-error assertions stay meaningful.
+    await page.route("**/_vercel/**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/javascript",
+        body: "",
+      }),
+    );
+  });
+
   test("SM-01: App loads — zero console errors, title, 2 zones (GameShell split sanity)", async ({
     page,
   }) => {
