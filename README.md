@@ -143,12 +143,4 @@ patterns:
   only retrieved, cited context into the prompt — the model answers from the
   rules, not from memory
 
-### How it's being updated
-
-Every change follows the same pipeline: plan → branch (`feature/*`) → build →
-audit → full Playwright E2E pass → PR → merge → release (`release/*` → `main`
-→ back-merge). Nothing merges without the automated QA gate. Features land
-incrementally with their specs and tests — see the roadmap above for what's
-next.
-
 ---
