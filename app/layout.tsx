@@ -6,6 +6,7 @@ import { PropsWithChildren } from "react";
 import { LockPortrait } from "@/features/lock-portrait/LockPortrait";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import SWRegister from "./SWRegister";
+import { ExtendedSplashScreen } from "@/features/extended-splash-screen/ExtendedSplashScreen";
 
 const archivo = Archivo({
   subsets: ["latin"],

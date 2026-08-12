@@ -58,3 +58,17 @@ dialog::backdrop {
     font-size: clamp(1.5rem, 3vw, 2.5rem);
   }
 }
+
+.fade-out-screen {
+  background-color: transparent;
+  width: 0;
+  height: 0;
+
+  transition: background-color 2s ease, width 1s ease 1s, height 1s ease 1s;
+
+  img {
+    width: 0;
+    height: 0;
+    transition: width 0.1s ease 0.1s, height 0.1s ease 0.1s;
+  }
+}
