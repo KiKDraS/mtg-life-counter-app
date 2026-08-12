@@ -262,12 +262,13 @@ Text readable from table side. Wrapper — interior layout identical.
 
 ### 4.4 Extended Splash
 
-Launch state. Covers hydration hold. Belt visible beneath; zones empty until hydrate.
+Launch state. Covers pre-hydration. Belt visible beneath; zones empty until hydrate.
 
 - **Dialog:** dedicated modal `<dialog>` (`extended-splash`). NOT DialogShell (dismiss paths). Top layer via `showModal()`.
 - **Visual:** fullscreen. bg `#292A2A` = manifest `background_color` (seamless OS-splash → DOM). Centered MTG logo (`mtg-logo.png`) + app name. No animations.
-- **Timing:** opens only when hold >120ms. Fast hydration → never opens.
+- **Timing:** opens at first paint — inline script after dialog in SSR HTML → covers JS load + hydration hold. Opens whenever `!isHydrated`.
 - **Close:** hard cut on `isHydrated`. No Escape (cancel guard). No backdrop close. No ✕.
+- **Page bg:** body `#292A2A` (same token) — seamless under dialog; fallback if inline script blocked (CSP).
 - **Semantics:** `aria-label="Loading game"`, `aria-modal="true"`, `data-testid="extended-splash"`.
 
 ---
