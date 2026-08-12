@@ -6,6 +6,7 @@ import { PropsWithChildren } from "react";
 import { LockPortrait } from "@/features/lock-portrait/LockPortrait";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import SWRegister from "./SWRegister";
+import { InstallPrompt } from "@/shared/components/InstallPrompt";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: Readonly<PropsWithChildren>) {
       <body className="min-h-full flex flex-col">
         <LockPortrait />
         <SWRegister />
+        <InstallPrompt />
         <SpeedInsights />
         {children}
       </body>
