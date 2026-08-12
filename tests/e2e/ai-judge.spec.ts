@@ -310,7 +310,12 @@ function errorCollectors(page: Page): {
   const consoleErrors: string[] = [];
   page.on("pageerror", (err) => pageErrors.push(String(err)));
   page.on("console", (msg) => {
-    if (msg.type() === "error") consoleErrors.push(msg.text());
+    if (msg.type() !== "error") return;
+    // Off-Vercel, SpeedInsights script 404s — benign (PR #122 artifact).
+    if (msg.text().includes("_vercel/speed-insights")) return;
+    if (msg.text() === "Failed to load resource: the server responded with a status of 404 (Not Found)")
+      return;
+    consoleErrors.push(msg.text());
   });
   return { pageErrors, consoleErrors };
 }
