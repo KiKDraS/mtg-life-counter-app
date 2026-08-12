@@ -97,6 +97,15 @@ Two stores — separate initial values from live state.
 - Blocked/private IDB → hydrator resolves fast → dialog never opens, §3 defaults render.
 - Splash = dedicated dialog. NOT DialogShell (has dismiss paths). See DESIGN.md §4.4.
 
+### 4.7 Install Prompt
+
+- Surfacing: fixed bottom-center card (`install-prompt`). Above belt, below top-layer dialogs.
+- Chromium: `beforeinstallprompt` → `preventDefault()` + stash. Click "Install App" → `prompt()`, await `userChoice`. `appinstalled` → hide.
+- iOS Safari: no event → static hint "Install: Share → Add to Home Screen". No button.
+- Standalone gate (binding): `matchMedia("(display-mode: standalone)")` OR `navigator.standalone` true → never render.
+- Dismiss: ✕ → hide for session (`sessionStorage`).
+- Never shown in installed app. See DESIGN.md §4.5.
+
 ---
 
 ## 5. Data Model

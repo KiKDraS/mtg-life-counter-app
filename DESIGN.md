@@ -270,6 +270,17 @@ Launch state. Covers hydration hold. Belt visible beneath; zones empty until hyd
 - **Close:** hard cut on `isHydrated`. No Escape (cancel guard). No backdrop close. No ✕.
 - **Semantics:** `aria-label="Loading game"`, `aria-modal="true"`, `data-testid="extended-splash"`.
 
+### 4.5 Install Prompt
+
+PWA installability surfacing. Card bottom-center. Hidden when installed.
+
+- **Element:** fixed bottom-center card. `data-testid="install-prompt"`. Above belt, below top-layer dialogs.
+- **Visual:** bg `#292A2A`, mana-accent border, Archivo. Button "Install App" (mana-green). ✕ dismiss top-right.
+- **Chromium:** `beforeinstallprompt` → `preventDefault()` + stash event. Button → `prompt()`, await `userChoice`. Hide on outcome + `appinstalled`.
+- **iOS Safari:** no event → hint only: "Install: Share → Add to Home Screen". No button.
+- **Standalone gate:** `display-mode: standalone` OR `navigator.standalone` → never render. `appinstalled` → hide.
+- **Dismiss:** ✕ → session-scoped hide (`sessionStorage`).
+
 ---
 
 ## 5. CENTRAL SPELLBOOK MENU
