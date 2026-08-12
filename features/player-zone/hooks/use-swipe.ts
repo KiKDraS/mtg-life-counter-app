@@ -106,6 +106,8 @@ export function useSwipe(
      * Native vertical scroll ('pan-y') for normal/upside-down players.
      * Native horizontal scroll ('pan-x') for sideways players, because their
      * vertical visual axis aligns with the screen's horizontal axis.
+     * Overlay dialogs set their own rotation-matched touch-action so the
+     * close-axis swipe is never swallowed (see CountersContent).
      */
     const isSideways = rotation === 90 || rotation === -90;
     const previousTouchAction = el.style.touchAction;
@@ -122,11 +124,30 @@ export function useSwipe(
       };
     };
 
-    const handlePointerUp = (e: PointerEvent) => {
+    /*
+     * Gesture end — shared by pointerup AND pointercancel.
+     *
+     * The browser fires pointercancel when it claims or aborts the drag for
+     * native panning (scroll containers, touch-action pans). On rotated slots
+     * the swipe-close axis can align with a native-pan axis, so a claimed
+     * gesture would otherwise be swallowed.
+     *
+     * Chromium quirk: aborted drags fire pointercancel with (0,0) coordinates
+     * (no final position) — evaluating from the start point would produce a
+     * huge, direction-random delta. Those cancels carry no gesture data, so
+     * skip them. Legit swipes always end in pointerup: the close axis is
+     * never a claimable pan on its slot (CountersContent matches the dialog
+     * touch-action to the rotation).
+     */
+    const handleGestureEnd = (e: PointerEvent) => {
       const gesture = stateRef.current.gesture;
       if (!gesture) return;
 
       stateRef.current.gesture = null;
+
+      if (e.type === "pointercancel" && e.clientX === 0 && e.clientY === 0) {
+        return;
+      }
 
       // Raw physical vectors on the screen
       const rawDistanceX = e.clientX - gesture.startX;
@@ -146,23 +167,23 @@ export function useSwipe(
       }
     };
 
-    const handleCancel = () => {
+    const handleLeave = () => {
       stateRef.current.gesture = null;
     };
 
     const eventOptions: AddEventListenerOptions = { passive: true };
 
     el.addEventListener("pointerdown", handlePointerDown, eventOptions);
-    el.addEventListener("pointerup", handlePointerUp, eventOptions);
-    el.addEventListener("pointercancel", handleCancel, eventOptions);
-    el.addEventListener("pointerleave", handleCancel, eventOptions);
+    el.addEventListener("pointerup", handleGestureEnd, eventOptions);
+    el.addEventListener("pointercancel", handleGestureEnd, eventOptions);
+    el.addEventListener("pointerleave", handleLeave, eventOptions);
 
     return () => {
       el.style.touchAction = previousTouchAction;
       el.removeEventListener("pointerdown", handlePointerDown);
-      el.removeEventListener("pointerup", handlePointerUp);
-      el.removeEventListener("pointercancel", handleCancel);
-      el.removeEventListener("pointerleave", handleCancel);
+      el.removeEventListener("pointerup", handleGestureEnd);
+      el.removeEventListener("pointercancel", handleGestureEnd);
+      el.removeEventListener("pointerleave", handleLeave);
     };
   }, [ref, rotation]); // Re-binds physics if the player slot orientation changes
 }
