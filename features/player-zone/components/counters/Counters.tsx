@@ -30,7 +30,7 @@ export function Counters({ id }: CountersProps) {
           dialogId={id}
           className="gap-4 py-1 px-2 @[250px]/zone:gap-8 @[250px]/zone:px-6"
         >
-          <CountersContent customCounterId={customCounterId} />
+          <CountersContent dialogId={id} customCounterId={customCounterId} />
         </OverlaySurface>
       </DialogShell>
 
