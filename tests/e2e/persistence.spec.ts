@@ -122,7 +122,12 @@ async function openBelt(page: Page): Promise<void> {
 }
 
 async function closeBelt(page: Page): Promise<void> {
-  await page.getByLabel("Open Spellbook Menu").click();
+  // Idempotent: action taps now auto-collapse the belt (DESIGN §5.2), so only
+  // toggle the M logo when the belt is actually open — clicking it when the
+  // belt already closed would RE-OPEN it.
+  if (await belt(page).isChecked()) {
+    await page.getByLabel("Open Spellbook Menu").click();
+  }
   await expect(belt(page)).not.toBeChecked();
   // Belt container animates h-18 → h-0 over 300ms (CSS checkbox hack); wait
   // for the wrapper to reach 0px height so row geometry is settled before
@@ -892,16 +897,20 @@ test.describe("PERS-12 — game-init vs game-state split: exact schemas", () => 
       )
       .toBe(true);
 
-    // 2. openBelt → Initial Life → 30; → Players → 4 players; P2 color Blue
+    // 2. openBelt → Initial Life → 30; re-open belt → Players → 4 players; P2 color Blue
     await openBelt(page);
     await page.getByRole("button", { name: "Initial Life" }).click();
     await page.getByRole("button", { name: "Set initial life to 30" }).click();
     await expect(page.locator("dialog#initial-life-modal")).not.toBeVisible();
+    // The Initial Life tap auto-collapsed the belt (DESIGN §5.2) — re-open it
+    // before tapping the next belt action.
+    await openBelt(page);
     await page.getByRole("button", { name: "Players" }).click();
     await page.getByRole("button", { name: "4 players" }).click();
     await expect(page.locator("dialog#player-selector-modal")).not.toBeVisible();
-    // Belt stays open after modal actions — close before touching zone buttons
-    // (the open belt's full-screen dismissal label intercepts zone clicks).
+    // Both action taps auto-collapse the belt (DESIGN §5.2); closeBelt is now
+    // an idempotent no-op toggle that waits for the collapse to settle before
+    // touching zone buttons.
     await closeBelt(page);
     await zone(page, 2).getByRole("button", { name: "Change color" }).click();
     const picker = page.locator('dialog[id="color-picker-1"]');

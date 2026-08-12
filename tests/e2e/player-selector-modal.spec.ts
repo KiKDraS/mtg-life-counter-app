@@ -40,7 +40,12 @@ async function openPlayersModal(page: Page): Promise<void> {
 }
 
 async function closeBelt(page: Page): Promise<void> {
-  await page.getByLabel("Open Spellbook Menu").click();
+  // Idempotent: action taps now auto-collapse the belt (DESIGN §5.2), so only
+  // toggle the M logo when the belt is actually open — clicking it when the
+  // belt already closed would RE-OPEN it.
+  if (await page.locator("#spellbook-toggle").isChecked()) {
+    await page.getByLabel("Open Spellbook Menu").click();
+  }
   await expect(page.locator("#spellbook-toggle")).not.toBeChecked();
   // Belt container animates h-18 → h-0 over 300ms (CSS checkbox hack); wait
   // for the wrapper to reach 0px height so row geometry is settled before
@@ -183,8 +188,9 @@ test.describe("Player Selector Modal", () => {
     await page.getByRole("button", { name: "4 players" }).click();
     await expect(page.getByRole("region", { name: /^Player \d:/ })).toHaveCount(4);
 
-    // 2. Open Players modal and select 2
-    await page.getByRole("button", { name: "Players" }).click();
+    // 2. Open Players modal and select 2 (the "4 players" tap auto-collapsed
+    //    the belt — re-open it before tapping the belt's Players button)
+    await openPlayersModal(page);
     await page.getByRole("button", { name: "2 players" }).click();
 
     // expect: Modal closes

@@ -75,9 +75,7 @@ test.describe("Restart Life", () => {
     await expect(lifeTotal(zone(page, 1))).toHaveText("30");
     await expect(lifeTotal(zone(page, 2))).toHaveText("30");
 
-    // Belt stays open after modal closes — close it before interacting with zones
-    await page.getByLabel("Open Spellbook Menu").click();
-    await expect(belt(page)).not.toBeChecked();
+    // Belt auto-collapsed on the Initial Life tap (DESIGN §5.2) — no manual close needed
 
     // 2. Tap - on Player 1 three times
     const p1Minus = zone(page, 1).getByRole("button", { name: "-1 life" });
@@ -137,9 +135,7 @@ test.describe("Restart Life", () => {
     await expect(lifeTotal(zone(page, 1))).toHaveText("40");
     await expect(lifeTotal(zone(page, 2))).toHaveText("40");
 
-    // Belt stays open after restart — close it before interacting with zones
-    await page.getByLabel("Open Spellbook Menu").click();
-    await expect(belt(page)).not.toBeChecked();
+    // Belt auto-collapsed on the Restart Life tap (DESIGN §5.2) — no manual close needed
 
     // 7. Reopen Counters overlay for Player 1
     await swipeOn(zone(page, 1), "left");
