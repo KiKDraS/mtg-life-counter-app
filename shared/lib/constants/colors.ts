@@ -25,6 +25,7 @@ export type ManaColor = keyof typeof MANA;
 /* ── UI & shell colors (§2.2) ── */
 export const UI = {
   overlay: "#1A1A1A" as const, // Commander damage & counters overlay bg
+  splash: "#292A2A" as const, // Extended splash hydration cover (§2.2)
   belt: "#000000" as const, // Spellbook belt, AI Judge modal
   danger: "#D50000" as const, // Life ≤ 0, commander damage ≥ 21
   textLight: "#FAF8F5" as const, // Text on dark backgrounds

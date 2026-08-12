@@ -60,6 +60,9 @@ async function swipeOn(
   const cy = box.y + box.height / 2;
   const targetX = direction === "left" ? cx - distance : cx + distance;
   const page = locator.page();
+  // §4.6 splash cover is pointer-events:auto until hydration removes it — a
+  // raw mouse.down on the overlay swallows the gesture. Wait it out first.
+  await expect(page.locator("#extended-splash-screen")).toHaveCount(0);
   await page.mouse.move(cx, cy);
   await page.mouse.down();
   await page.mouse.move(targetX, cy);
@@ -74,6 +77,9 @@ async function holdButton(
   const box = await visibleBox(button);
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
+  // §4.6 splash cover is pointer-events:auto until hydration removes it — a
+  // raw mouse.down on the overlay swallows the press. Wait it out first.
+  await expect(page.locator("#extended-splash-screen")).toHaveCount(0);
   await page.mouse.move(cx, cy);
   await page.mouse.down();
   await page.waitForTimeout(ms);

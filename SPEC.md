@@ -87,6 +87,27 @@ Two stores — separate initial values from live state.
 - No render blocking — defaults active until hydration.
 - Device-local. No accounts. No cloud sync.
 
+### 4.6 Extended Splash (hydration cover)
+
+- Purpose: suppress state flicker — SSR §3 defaults frame vs hydrated
+  IndexedDB values (§4.5). Cover hides transition, never blanks UI
+  permanently.
+- `ExtendedSplashScreen` renders fixed overlay `#extended-splash-screen`
+  (z-9999, bg `#292A2A`, centered app icon). SSR-included → covers first
+  paint.
+- Mounted inside `GameProvider` (GameShell) — needs `isHydrated` signal.
+- `HideSplashScreenHandler` — client leaf sibling of overlay. Effect on
+  `gameCtx.state.isHydrated` (first flush included): `pointer-events-none` +
+  `opacity-100`→`opacity-0` (300ms CSS transition) → element removed at 310ms.
+- No user dismiss paths: no tap/backdrop/Escape handlers. Close via effect
+  only.
+- PWA (standalone): splash hidden (`pwa:` variant — `display-mode:
+  standalone` media query). Native OS splash covers launch. Browser mode:
+  splash active (§4.6 rules above).
+- Re-run after removal → no-op (element gone).
+- Fast hydration (no/blocked IDB, §4.5): hydrator resolves → cover hides on
+  first effect flush.
+
 ---
 
 ## 5. Data Model

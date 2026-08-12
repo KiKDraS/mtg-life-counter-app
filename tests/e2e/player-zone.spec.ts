@@ -40,6 +40,9 @@ async function holdButton(page: Page, button: Locator, ms: number): Promise<void
   const box = await visibleBox(button);
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
+  // §4.6 splash cover is pointer-events:auto until hydration removes it — a
+  // raw mouse.down on the overlay swallows the press. Wait it out first.
+  await expect(page.locator("#extended-splash-screen")).toHaveCount(0);
   await page.mouse.move(cx, cy);
   await page.mouse.down();
   await page.waitForTimeout(ms);
@@ -137,14 +140,26 @@ test.describe("Player Zone — Life Display & Tap Adjustment", () => {
     await expect(p2Life).toHaveText("40");
 
     // 2. Assert computed typography on each life <p>
+    //    Note: hydration (HYDRATE) remounts PlayerRow keyed on
+    //    version-isHydrated — the SSR <p> a one-shot evaluate grabbed could be
+    //    detached mid-test (getComputedStyle then returns "" → NaN). Poll with
+    //    a fresh locator resolution instead of single-shot evaluate.
     for (const life of [p1Life, p2Life]) {
-      const fontSize = await life.evaluate(
-        (el) => parseFloat(getComputedStyle(el).fontSize),
-      );
-      expect(fontSize).toBeGreaterThanOrEqual(64);
+      await expect
+        .poll(async () => {
+          const fs = await life.evaluate(
+            (el) => parseFloat(getComputedStyle(el).fontSize),
+          );
+          return Number.isFinite(fs) ? fs : 0;
+        })
+        .toBeGreaterThanOrEqual(64);
       await expect(life).toHaveCSS("font-weight", "900");
-      const fontFamily = await life.evaluate((el) => getComputedStyle(el).fontFamily);
-      expect(fontFamily).toContain("Archivo");
+      await expect
+        .poll(async () => {
+          const ff = await life.evaluate((el) => getComputedStyle(el).fontFamily);
+          return ff;
+        })
+        .toContain("Archivo");
     }
   });
 
@@ -213,8 +228,11 @@ test.describe("Player Zone — Hold Acceleration & Press Feedback", () => {
   });
 
   test("3.4. Press feedback overlays the column with 8% black on pointer down", async ({ page }) => {
-    // 1. Navigate to `/`
+    // 1. Navigate to `/`; wait for the §4.6 splash cover to clear — while it
+    //    is up (pointer-events: auto, z-9999) a raw mouse.down lands on the
+    //    overlay, never on the button, so :active can't engage.
     await page.goto("/");
+    await expect(page.locator("#extended-splash-screen")).toHaveCount(0);
 
     const p1 = zone(page, 1);
     const button = p1.getByRole("button", { name: "+1 life" });
@@ -223,11 +241,10 @@ test.describe("Player Zone — Hold Acceleration & Press Feedback", () => {
     await expect(button).toHaveCSS("transition-property", /box-shadow/);
     await expect(button).toHaveCSS("transition-duration", "0.15s");
 
-    // At rest, no inset shadow overlay
-    const restShadow = await button.evaluate((el) =>
-      getComputedStyle(el).boxShadow,
-    );
-    expect(restShadow).toBe("none");
+    // At rest, no inset shadow overlay. toHaveCSS auto-retries AND re-resolves
+    // the locator every attempt — immune to the hydration remount detaching
+    // the SSR element mid-test (a raw evaluate on a detached node yields "").
+    await expect(button).toHaveCSS("box-shadow", "none");
 
     // Press down to trigger :active state
     const box = await visibleBox(button);
@@ -236,26 +253,19 @@ test.describe("Player Zone — Hold Acceleration & Press Feedback", () => {
     await page.mouse.move(cx, cy);
     await page.mouse.down();
 
-    // Wait for the 150ms fade-in transition to complete
-    await page.waitForTimeout(200);
-
-    // During :active, the box-shadow inset overlay is applied
-    const activeShadow = await button.evaluate((el) =>
-      getComputedStyle(el).boxShadow,
+    // During :active, the box-shadow inset overlay is applied (150ms fade-in;
+    // the rgab(0,0,0,0.08) alpha only matches once the fade completes —
+    // retried automatically while the press is held)
+    await expect(button).toHaveCSS("box-shadow", /inset/);
+    await expect(button).toHaveCSS(
+      "box-shadow",
+      /rgba\(0, 0, 0, 0\.08\)/,
     );
-    expect(activeShadow).toContain("inset");
-    expect(activeShadow).toContain("rgba(0, 0, 0, 0.08)");
 
     await page.mouse.up();
 
-    // Wait for the 150ms fade-out transition to complete
-    await page.waitForTimeout(200);
-
-    // After release, box-shadow returns to none
-    const releasedShadow = await button.evaluate((el) =>
-      getComputedStyle(el).boxShadow,
-    );
-    expect(releasedShadow).toBe("none");
+    // After release, box-shadow fades back to none (150ms fade-out)
+    await expect(button).toHaveCSS("box-shadow", "none");
   });
 });
 
@@ -569,6 +579,9 @@ async function swipeOn(
   const cy = box.y + box.height / 2;
   const targetX = direction === "left" ? cx - distance : cx + distance;
   const page = locator.page();
+  // §4.6 splash cover is pointer-events:auto until hydration removes it — a
+  // raw mouse.down on the overlay swallows the gesture. Wait it out first.
+  await expect(page.locator("#extended-splash-screen")).toHaveCount(0);
   await page.mouse.move(cx, cy);
   await page.mouse.down();
   await page.mouse.move(targetX, cy);

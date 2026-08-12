@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from "react";
 import { GameInner } from "./GameInner";
 import { GameProvider } from "@/features/game-shell/state/GameProvider";
+import { ExtendedSplashScreen } from "../extended-splash-screen/ExtendedSplashScreen";
 
 /**
  * @description
@@ -12,6 +13,7 @@ import { GameProvider } from "@/features/game-shell/state/GameProvider";
 export function GameShell({ children }: Readonly<PropsWithChildren>) {
   return (
     <GameProvider>
+      <ExtendedSplashScreen />
       <GameInner>{children}</GameInner>
     </GameProvider>
   );
