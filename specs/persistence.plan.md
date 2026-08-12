@@ -61,8 +61,10 @@ async function resetIndexedDB(page: Page): Promise<void> {
 }
 ```
 
-- DB name: `mtg-life-counter`, version 1. Stores: `game-init` (key `"init"`),
-  `game-state` (key `"state"`).
+- DB name: `mtg-life-counter`, **version 2** (v2 added `ai-judge-chat`; stores
+  `game-init` (key `"init"`), `game-state` (key `"state"`), `ai-judge-chat`
+  (key `chat-v<version>`)). **Do NOT pass a version to `indexedDB.open` from tests —
+  `open(name, 1)` on the v2 DB fails with `VersionError` (verified live).**
 
 ### Reading IDB from tests
 
@@ -74,7 +76,7 @@ would otherwise race it):
 async function readIdb<T>(page: Page, store: string, key: string): Promise<T | undefined> {
   return page.evaluate(async ({ store, key }) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      const req = indexedDB.open("mtg-life-counter", 1);
+      const req = indexedDB.open("mtg-life-counter"); // NO version arg — DB is v2; open(name, 1) throws VersionError
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
@@ -100,11 +102,14 @@ async function readIdb<T>(page: Page, store: string, key: string): Promise<T | u
   overlay. Reuse the `openBelt`/`closeBelt`/`swipeOn`/`swipeY`/`zone`/`lifeTotal`/
   `counterValue` helpers verbatim from `tests/e2e/app-smoke.spec.ts` /
   `tests/e2e/player-selector-modal.spec.ts`.
-- **Hydration is async after `goto`/reload.** SSR paints §3 defaults first, then the
-  hydrator restores. `expect(...).toHaveText()` auto-retries, so a flash of 40 before 37
-  is harmless. BUT when the expected value equals the SSR default (e.g. restart-to-40),
-  a UI assertion alone can pass pre-hydration — pair it with a store-level assertion
-  (`expect.poll(readIdb)`) to prove hydration actually ran.
+- **Hydration is async after `goto`/reload — and since the §4.6 splash change, player rows
+  render ONLY post-hydration (`isHydrated` gate): SSR = belt + empty zone area, NO rows.**
+  Zone locators auto-wait for the post-hydration mount, so `toHaveCount`/`toHaveText` need no
+  extra polling; there is no more "SSR-default flash" (rows mount once with final restored
+  values — no wrong-value frame). Belt buttons (Restart Life, Players, Initial Life, AI Judge)
+  ARE in SSR, so belt actions can still run before hydration lands (pre-existing race,
+  unchanged). When the expected value equals a §3 default (e.g. restart-to-40), a UI assertion
+  alone can pass without a store rewrite — keep the `expect.poll(readIdb)` pair (PERS-06 step 5).
 - **Zone color = inline `background` style** on the `<section role="region">`; solid color
   assertion via `toHaveCSS("background-color", ...)`: red `rgb(228, 153, 119)`, white
   `rgb(248, 246, 216)`, blue `rgb(193, 215, 233)`, black `rgb(102, 101, 101)`, green
@@ -163,6 +168,13 @@ async function readIdb<T>(page: Page, store: string, key: string): Promise<T | u
    - expect: P1 37, P2 45 (auto-retry tolerates the SSR-default flash)
 4. Read `game-state` again
    - expect: `[37, 45]` unchanged (restore did not overwrite the source)
+
+**Note — splash regression coverage (TC-SPLASH-3):** this reload-restore IS the seeded
+fast-hydration regression test for §4.6. Since the gate, rows mount only post-hydration —
+the `toHaveText` asserts above auto-wait for that mount (no extra poll needed; rows appear
+slightly later than pre-gate SSR). Optionally add one negative splash assert after step 3:
+`getByTestId("extended-splash")` has no `[open]` attribute (fast hydration → splash never
+opens).
 
 ### 3. PERS-03 — Counters persist across reload (defaults + custom, id-collision check)
 
@@ -350,6 +362,134 @@ async function readIdb<T>(page: Page, store: string, key: string): Promise<T | u
    - expect: `game-init` UNCHANGED (`players: 4, initialLife: 30`, colors intact) — setup
      writes only on setup actions; proves the two-store split (§4.1 vs §4.2)
 
+## Extended Splash (SPEC §4.6 / DESIGN §4.4) — shared setup
+
+**Timing model:** GameInner sets a 120ms timer on mount while `isHydrated=false`
+(`SPLASH_DELAY_MS`) → `showModal()` on `#extended-splash`. `HYDRATE` flips `isHydrated` →
+close effect calls `dialog.close()`; rows mount in the same render. Fast hydration
+(<120ms) → timer cleared before firing → dialog never opens. Blocked/private IDB →
+hydrator `catch` resolves fast → never opens (§4.6).
+
+**Selectors:**
+
+| Thing | Selector |
+| --- | --- |
+| Splash dialog | `getByTestId("extended-splash")` (also `#extended-splash`) |
+| Splash open state | `[open]` attribute — `toHaveAttribute("open", "")` / `not.toHaveAttribute("open", "")`; closed dialog is also not visible |
+| Splash semantics | `aria-label="Loading game"`, `aria-modal="true"`, bg `rgb(41, 42, 42)` (#292A2A) |
+
+**Slow-hydration injection (verified live — do NOT simplify):** `page.addInitScript` before
+`reload()` (init scripts re-apply on reload). Delay the FIRST `indexedDB.open` call only, by
+~500ms, deferring the REAL open via `setTimeout` and returning a proxy request. The proxy
+MUST expose accessor properties for `result`/`error` and forward all four handlers
+(`onsuccess`/`onerror`/`onupgradeneeded`/`onblocked`) to the real request once created:
+`idb.ts` reads `request.result` from a closure, so a bare proxy object resolves
+`undefined` → `Promise.all` rejects → silent §3-defaults fallback (verified live — hydration
+looks "successful" but restores nothing). Delaying the CALL (not the success event) keeps the
+v2 upgrade/onsuccess dance intact.
+
+```ts
+await page.addInitScript(() => {
+  const origOpen = window.indexedDB.open.bind(window.indexedDB);
+  let delayed = false;
+  window.indexedDB.open = function (name: string, version?: number) {
+    if (delayed) return origOpen(name, version);
+    delayed = true;
+    let real: IDBOpenDBRequest | null = null;
+    const handlers: Record<string, ((this: IDBRequest) => void) | null> = {};
+    const proxy = {} as IDBOpenDBRequest;
+    (["onsuccess", "onerror", "onupgradeneeded", "onblocked"] as const).forEach((k) => {
+      Object.defineProperty(proxy, k, {
+        set(fn) { handlers[k] = fn; },
+        get() { return handlers[k]; },
+        configurable: true,
+      });
+    });
+    Object.defineProperty(proxy, "result", { get() { return real ? real.result : undefined; }, configurable: true });
+    Object.defineProperty(proxy, "error", { get() { return real ? real.error : null; }, configurable: true });
+    setTimeout(() => {
+      real = origOpen(name, version);
+      (["onsuccess", "onerror", "onupgradeneeded", "onblocked"] as const).forEach((k) => {
+        if (handlers[k]) real[k] = handlers[k].bind(real);
+      });
+    }, 500);
+    return proxy;
+  };
+});
+```
+
+**Timing discipline:** open window ≈ 120ms–~600ms (timer vs delayed hydration). All
+assertions MUST auto-retry (`expect`/`expect.poll`, default 5s timeout) — never hard-wait.
+
+## Test Scenarios (splash)
+
+### 13. TC-SPLASH-1 — Slow hydration: splash covers, cannot be dismissed early, closes on hydration
+
+**Contracts:** SPEC §4.6, DESIGN §4.4.
+**Prerequisites:** clean IDB.
+**File:** `tests/e2e/persistence.spec.ts`
+
+**Seed (PERS-09 pattern — 4 players, distinctive lives):**
+1. `goto("/")`; `openBelt` → `Players` → `4 players`; `closeBelt`
+2. Tap `-1 life` per zone (helper loop, belt verified closed first): P1 ×33, P2 ×27, P3 ×18, P4 ×10
+   - expect: lives 7 / 13 / 22 / 30
+3. `expect.poll(readIdb(page, "game-state", "state"))` → lives `[7, 13, 22, 30]` (write landed before reload)
+
+**Slow hydration + assertions:**
+4. `page.addInitScript(delayWrapper)` (pattern above, 500ms), then `page.reload()`
+5. While hydration is pending (poll, ~120ms window opens):
+   - expect: `getByTestId("extended-splash")` has `[open]` attribute
+   - expect: player regions count 0 (rows gated until hydration — `getByRole("region", { name: /^Player \d:/ })` count 0)
+6. Press `Escape` (`page.keyboard.press("Escape")`)
+   - expect: splash STILL has `[open]` (onCancel guard — DESIGN §4.4: no dismiss path)
+7. Click "outside"/backdrop: `page.mouse.click(5, 5)` (corner), then `page.mouse.click(640, 360)` (viewport center; dialog is fullscreen `h-dvh w-dvw` so both land on dialog surface — no onClick handler)
+   - expect: splash STILL has `[open]` after each click
+8. Poll hydration completion (auto-retry ≤5s; resolves ~500ms after reload):
+   - expect: splash `[open]` gone / not visible
+9. Rows mount once with final values (no wrong-value frame, no §3-default flash):
+   - expect: exactly 4 regions; lives 7 / 13 / 22 / 30
+10. Store proof: `game-state` lives still `[7, 13, 22, 30]` (restore did not overwrite the source)
+
+**Failure conditions:** splash never opens during the slow window; Escape or any click closes
+it early; rows render pre-hydration or with §3 defaults; wrong restored values; splash stays
+open after hydration.
+
+### 14. TC-SPLASH-2 — Fast hydration: splash never opens; §3 defaults render
+
+**Contracts:** SPEC §4.6 ("fast hydration → never opens"), §3 defaults.
+**Prerequisites:** fresh context (empty IDB — default isolation; no init script, no seed).
+**File:** `tests/e2e/persistence.spec.ts`
+
+**Steps:**
+1. `goto("/")`
+2. Negative assert must poll PAST the 120ms threshold — an instant check can pass before the
+   timer would have fired:
+   - `page.waitForTimeout(350)` then expect: `getByTestId("extended-splash")` not visible /
+     no `[open]` attribute
+   - (alternative: `expect.poll(() => splash.evaluate((d) => d.open), { timeout: 1200 }).toBe(false)`
+     — but a bare `.toBe(false)` passes on the first poll; the waitForTimeout form is preferred)
+3. Rows mount with §3 defaults (rows visible ⟹ hydration completed ⟹ timer was cleared):
+   - expect: exactly 2 regions; P1 life 40; P2 life 40
+4. Optional store proof: `game-init` / `game-state` self-seeded defaults (as PERS-01)
+
+**Note:** same never-opens behavior holds on a SEEDED context — TC-SPLASH-3 covers that variant.
+
+### 15. TC-SPLASH-3 — Seeded game + fast hydration: restore regression guard
+
+**Coverage:** PERS-02 (reload-restore) is the existing regression TC — see the note added
+there; it runs this exact scenario against a 2p seed. This TC is the standalone 4p variant.
+
+**Prerequisites:** clean IDB.
+**File:** `tests/e2e/persistence.spec.ts`
+
+**Steps:**
+1. Seed as TC-SPLASH-1 steps 1–3 (4 players, lives 7 / 13 / 22 / 30)
+2. `goto("/")` (reload, NO delay script — fast hydration)
+3. Negative splash assert past the threshold (TC-SPLASH-2 step 2 pattern):
+   - expect: splash never has `[open]`
+4. Rows mount post-hydration (gate — `toHaveCount` auto-waits for the gated mount, no hard wait):
+   - expect: 4 regions; lives 7 / 13 / 22 / 30
+
 ## Notes for the test generator
 
 - One file: `tests/e2e/persistence.spec.ts`, one `test.describe` per PERS-xx section, all
@@ -362,3 +502,30 @@ async function readIdb<T>(page: Page, store: string, key: string): Promise<T | u
 - `+1/-1 <name> counter` and `+1 commander damage` locators become ambiguous when multiple
   rows/columns exist — use `.nth()`/`.first()` (PERS-03 step 7, PERS-04).
 - Belt must be closed (`closeBelt`) before zone taps/swipes (PERS-06, 07, 09, 10).
+- **Splash TCs (13–15):** same file, same local helpers. The delay wrapper (shared setup) is
+  contract-critical — a naive `setTimeout(() => origOpen(...))` returning the raw request
+  silently breaks hydration (verified live); ship the proxy pattern verbatim. Zone taps for
+  seeding: prefer the helper loop with actionability; direct element clicks
+  (`btn.click()` via `locator.evaluate`) are fast but bypass actionability and are only safe
+  with the belt verified closed. All splash assertions auto-retry — no hard waits.
+- **`readIdb`:** opens WITHOUT a version arg — the DB is v2; `open(name, 1)` throws
+  `VersionError` (verified live).
+
+## Splash audit — impact on existing plans (not rewritten)
+
+- **specs/ai-judge.spec.md:** no TC clicks player zones post-load, so the rows gate has no
+  selector impact. TC-AJ-22/23 (reload → belt → AI Judge / Restart Life) touch only SSR-rendered
+  belt buttons — clickable before hydration (pre-existing race, unchanged). Risk: on a machine
+  slow enough that hydration exceeds 120ms the splash (top layer) covers the belt and
+  intercepts `getByLabel("Open Spellbook Menu")` clicks; on CI/dev machines hydration is fast —
+  splash never opens, no change needed. If flakiness ever appears, wait for splash absence or
+  player rows before belt clicks. TC-AJ-24 (blocked IDB) is explicitly compatible: hydrator
+  catch → fast fallback → splash never opens (§4.6).
+- **Belt specs (app-smoke.spec.ts, commander-damage-multiplayer.spec.ts, spellbook-belt.spec.ts
+  and siblings):** same belt-timing note as above; zone-count assertions after `goto` now
+  auto-wait for the post-hydration mount (they already retry). No hard timing assumptions found.
+  Only splash risk is a >120ms hydration hold on a throttled/slow CI worker.
+- **In this plan:** PERS-01–12 zone selectors auto-wait for the gated mount; PERS-01's
+  "exactly 2 regions" right after `goto` retries until hydration — no change needed. PERS-06
+  store-level proof rationale is now stronger (a visible 40 can only be post-hydration), keep
+  it as-is.
