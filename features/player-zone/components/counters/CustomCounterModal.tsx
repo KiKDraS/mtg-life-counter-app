@@ -1,0 +1,91 @@
+"use client";
+
+import { useCallback, useRef } from "react";
+import { DialogShell } from "@/shared/components/DialogShell";
+import { UI } from "@/shared/lib/constants/colors";
+import {
+  usePlayerStateContext,
+} from "@/features/player-zone/state/hooks";
+import { addCounter } from "@/features/player-zone/state/actions";
+
+interface CustomCounterModalProps {
+  readonly id: string;
+}
+
+/**
+ * §6.6 Modal for naming a custom counter.
+ *
+ * Reads context directly — no onSubmit callback needed.
+ * Closes natively via DOM ID on the parent dialog.
+ *
+ * @see DESIGN.md §6.6
+ */
+export function CustomCounterModal({ id }: CustomCounterModalProps) {
+  const { dispatch } = usePlayerStateContext();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const submit = useCallback(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    const value = input.value.trim();
+    if (!value) return;
+    /* Timestamp id — persisted ids like `custom-1` survive reload; a monotonic
+       counter would restart at 1 and collide after a session reset. */
+    const seqId = `custom-${Date.now().toString(36)}`;
+    dispatch(addCounter(seqId, value));
+    input.value = "";
+    (document.getElementById(id) as HTMLDialogElement | null)?.close();
+  }, [dispatch, id]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        submit();
+      }
+    },
+    [submit],
+  );
+
+  return (
+    <DialogShell
+      id={id}
+      ariaLabelledBy="custom-counter-title"
+      className="bg-black/35"
+    >
+      {/* ponytail: sr-only h2 restores the dialog's accessible name (aria-labelledby target) */}
+      <h2 id="custom-counter-title" className="sr-only font-bold">
+        Custom Counter
+      </h2>
+      {/* pointer-events-none: clicks pass through to <dialog> for backdrop detection.
+          pointer-events-auto on the card below catches interactions normally. */}
+      <div className="flex h-full flex-col items-center justify-center px-2 @[250px]/zone:px-4 pointer-events-none">
+        <div
+          className="w-full max-w-sm rounded-lg p-4 @[250px]/zone:p-6 pointer-events-auto"
+          style={{ backgroundColor: UI.overlay }}
+        >
+          <input
+            ref={inputRef}
+            type="text"
+            maxLength={35}
+            autoFocus
+            placeholder="Counter name"
+            aria-label="Counter name"
+            onKeyDown={handleKeyDown}
+            className="mb-4 w-full rounded border-0 bg-white/10 px-3 py-2 text-body font-medium placeholder:text-white/50 focus:outline-none"
+            style={{ color: UI.textLight }}
+          />
+
+          <button
+            type="button"
+            onClick={submit}
+            className="w-full border-0 text-body font-medium"
+            style={{ color: UI.textLight }}
+          >
+            + Add
+          </button>
+        </div>
+      </div>
+    </DialogShell>
+  );
+}

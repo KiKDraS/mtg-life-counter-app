@@ -1,0 +1,42 @@
+import { useLifeAdjustment } from "@/features/player-zone/hooks/use-life-adjustment";
+import { adjustLife } from "@/features/player-zone/state/actions";
+import { usePlayerStateContext } from "@/features/player-zone/state/hooks";
+import { LifeSign } from "@/features/player-zone/types/life";
+import { cn } from "@/shared/lib/cn";
+
+/**
+ * @description
+ * Reusable life adjustment button (+ / -).
+ * Encapsulates the hold-to-accelerate hook and context dispatch.
+ */
+export function LifeAdjustmentButton({
+  delta,
+  label,
+  ariaLabel,
+  style,
+}: {
+  readonly delta: LifeSign;
+  readonly label: string;
+  readonly ariaLabel: string;
+  readonly style?: React.CSSProperties;
+}) {
+  const { dispatch } = usePlayerStateContext();
+  const adjustment = useLifeAdjustment((d) => dispatch(adjustLife(d)));
+
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      className={cn(
+        "flex h-full w-full items-center justify-center text-4xl font-bold leading-none",
+        "select-none touch-manipulation",
+        "transition-shadow duration-150 active:shadow-[inset_0_0_0_9999px_rgba(0,0,0,0.08)]",
+        "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current",
+      )}
+      style={style}
+      {...adjustment(delta)}
+    >
+      {label}
+    </button>
+  );
+}

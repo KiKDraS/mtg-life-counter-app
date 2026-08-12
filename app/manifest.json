@@ -1,0 +1,26 @@
+{
+  "name": "MTG Life Counter",
+  "short_name": "Life Counter",
+  "description": "Magic: The Gathering life counter — track life totals for Commander and other formats",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "theme_color": "#292A2A",
+  "background_color": "#292A2A",
+  "display": "standalone"
+}

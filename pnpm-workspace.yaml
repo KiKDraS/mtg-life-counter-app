@@ -1,6 +1,10 @@
 allowBuilds:
+  "@openrouter/sdk": true
   sharp: true
   unrs-resolver: true
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+minimumReleaseAge: 1440 # Security guard for release updates > 24hs
+minimumReleaseAgeExclude:
+  - '@openrouter/sdk@1.2.24'

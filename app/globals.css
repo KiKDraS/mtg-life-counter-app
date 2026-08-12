@@ -1,26 +1,63 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Color tokens — mirror lib/constants/colors.ts.
+ * Update that file first when DESIGN.md §2 changes, then copy here.
+ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Mana identity colors (§2.1) */
+  --color-mana-w: #F8F6D8;
+  --color-mana-u: #C1D7E9;
+  --color-mana-b: #666565;
+  --color-mana-r: #E49977;
+  --color-mana-g: #A3C095;
+  --color-mana-c: #CAC5C0;
+
+  /* UI & shell colors (§2.2) */
+  --color-ui-overlay: #1A1A1A;
+  --color-ui-belt: #000000;
+  --color-ui-splash: #292A2A;
+  --color-ui-danger: #D50000;
+  --color-ui-textLight: #FAF8F5;
+  --color-ui-textDark: #1A1A1A;
+  --color-ui-iconDark: #0D0F0F;
+  --color-ui-iconLight: #FAF8F5;
+
+  /* Typography (§3.2 / §3.3) */
+  --font-sans: var(--font-archivo);
+  --font-mono: var(--font-archivo);
+  --text-life: clamp(3.5rem, 15vw, 6rem);
+  --text-display: clamp(2.5rem, 6vw, 5rem);
+  --text-heading: clamp(1.8rem, 3vw, 2.8rem);
+  --text-body: 1rem;
+  --text-body-sm: 0.875rem;
+  --text-caption: 0.75rem;
+  --leading-none: 0.9;
+  --leading-tight: 1.1;
+  --leading-base: 1.4;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Native dialog reset (§6.1) ── */
+dialog {
+  border: none;
+  padding: 0;
+  max-width: unset;
+  max-height: unset;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+@container zone (height <=150px) {
+  .zone-max-h-150-top {
+    top: calc(var(--spacing) * 2);
+    right: calc(var(--spacing) * 2);
+    padding: calc(var(--spacing) * .45);
+    bottom: auto;
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+@custom-variant pwa (@media (display-mode: standalone));
