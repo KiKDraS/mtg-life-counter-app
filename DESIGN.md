@@ -283,31 +283,36 @@ M logo: 56×56px (≥44px min touch target). Fixed screen center. Z-index: 50.
 
 ### 5.2 Interaction — Boxer Belt
 
-Tap M → black belt expands full width. M stays centered. 4 icons spread:
+Tap M → black belt expands full width. M stays centered. 5 icons spread:
 
 ```
          ╔═══ player zones above ═══╗
 ┌══════════════════════════════════════┐
 │  ██████████████████████████████████  │  Black belt, ~72px
-│  █  ⚙️    ⟳    ● M ●    ⚖️    👥  █  │
+│  █  ⬇️  ⚙️  ⟳   ● M ●   ⚖️  👥  █  │
 │  ██████████████████████████████████  │
 └══════════════════════════════════════┘
          ╚═══ player zones below ═══╝
 ```
 
-- **Left (near→far):** ⟳ Restart Life, ⚙️ Initial Life
+- **Left (near→far):** ⟳ Restart Life, ⚙️ Initial Life, ⬇️ Install App
 - **Right (near→far):** ⚖️ AI Judge, 👥 Players
 - **Close:** Tap M or outside → icons collapse, belt retracts. Tapping any
   action icon also collapses the belt.
 
-| Icon | Action       | Side        | Modal?       |
-| ---- | ------------ | ----------- | ------------ |
-| ⟳    | Restart Life | Left, near  | No — instant |
-| ⚙️   | Initial Life | Left, far   | Yes — modal  |
-| ⚖️   | AI Judge     | Right, near | Yes — modal  |
-| 👥   | Players      | Right, far  | Yes — modal  |
+| Icon | Action       | Side        | Modal?        |
+| ---- | ------------ | ----------- | ------------- |
+| ⟳    | Restart Life | Left, near  | No — instant  |
+| ⚙️   | Initial Life | Left, mid   | Yes — modal   |
+| ⬇️   | Install App  | Left, far   | No — native   |
+| ⚖️   | AI Judge     | Right, near | Yes — modal   |
+| 👥   | Players      | Right, far  | Yes — modal   |
 
-Gameplay (⟳, ⚖️) near center. Setup (⚙️, 👥) outer edges.
+Gameplay (⟳, ⚖️) near center. Setup (⚙️, 👥, ⬇️) outer edges.
+
+**Install App (⬇️):** PWA install helper. Hidden in standalone mode (`pwa:`
+variant — `display-mode: standalone`) and absent until browser fires
+`beforeinstallprompt`. Behavior contract: SPEC.md §8.6.
 
 ---
 

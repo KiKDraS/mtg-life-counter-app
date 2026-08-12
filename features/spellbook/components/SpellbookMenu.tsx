@@ -5,6 +5,7 @@ import RestartGame from "@/shared/components/icons/player-actions/RestartGame";
 import LifeSettings from "@/shared/components/icons/player-actions/LifeSettings";
 import CallJudge from "@/shared/components/icons/player-actions/CallJudge";
 import SelectPlayers from "@/shared/components/icons/player-actions/SelectPlayers";
+import BrowserUpdated from "@/shared/components/icons/BrowserUpdated";
 import mtgLogo from "@/features/spellbook/images/mtg-logo.png";
 
 import { RestartGameAction } from "./menu-actions/RestartGameAction";
@@ -13,6 +14,7 @@ import { CallJudgeAction } from "./menu-actions/CallJudgeAction";
 import { SelectPlayersAction } from "./menu-actions/SelectPlayersAction";
 import { InitialLifeModal } from "./modals/initial-life/InitialLifeModal";
 import { PlayerSelectorModal } from "./modals/player-selector/PlayerSelectorModal";
+import { InstallAppAction } from "./menu-actions/InstallAppAction";
 import { JudgeModal } from "@/features/ai-judge/components/JudgeModal";
 
 const BTN_SIZE = "size-7 md:size-10 transition-all cursor-pointer";
@@ -81,13 +83,19 @@ export function SpellbookMenu() {
       >
         <div className="flex w-full items-center justify-between px-6 max-w-130">
           <ActionGroup>
-            <RestartGameAction>
-              <RestartGame className={BTN_SIZE} />
-            </RestartGameAction>
+            <div className="pwa:hidden">
+              <InstallAppAction>
+                <BrowserUpdated className={cn(BTN_SIZE, "animate-pulse")} />
+              </InstallAppAction>
+            </div>
 
             <SetLifeAction>
               <LifeSettings className={BTN_SIZE} />
             </SetLifeAction>
+
+            <RestartGameAction>
+              <RestartGame className={BTN_SIZE} />
+            </RestartGameAction>
           </ActionGroup>
 
           {/* Center gap reserved for the logo */}
