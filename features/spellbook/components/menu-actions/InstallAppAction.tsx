@@ -15,8 +15,14 @@ interface BeforeInstallPromptEvent extends Event {
 export function InstallAppAction({ children }: Readonly<PropsWithChildren>) {
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
+  // ponytail: dev-only bypass — http: (localhost/LAN IP) shows icon without a
+  // prompt so the UI can be tested off-device; click no-ops. SPEC §8.6 dev exception.
+  const [isHttpOrigin, setIsHttpOrigin] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time client-only check; no re-render cascade possible
+    setIsHttpOrigin(window.location.protocol === "http:");
+
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setInstallPrompt(event as BeforeInstallPromptEvent);
@@ -44,9 +50,8 @@ export function InstallAppAction({ children }: Readonly<PropsWithChildren>) {
   };
 
   // SPEC §8.6 installability gate — no event → no button.
-  // ponytail: dev-only bypass — http: (localhost or LAN IP) shows icon even
-  // without a prompt so the UI can be tested off-device; click no-ops.
-  if (!installPrompt && window.location.protocol !== "http:") return null;
+  // Dev exception (§8.6): http: origin shows icon even without a prompt.
+  if (!installPrompt && !isHttpOrigin) return null;
 
   return (
     <MenuActionButton ariaLabel="Install App" onClick={handleInstall}>

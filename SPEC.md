@@ -302,6 +302,8 @@ gradient.
   `beforeinstallprompt` captured (handler `preventDefault()`s, stores
   prompt). No event (iOS Safari, unsupported browser, already installed) →
   button absent.
+- **Dev exception:** `http:` origin (localhost/LAN dev) renders button
+  without event — dev/test aid; tap no-ops. Prod https gate binding.
 - **Standalone:** hidden via CSS `pwa:` variant (`display-mode: standalone`)
   — installed users never see it.
 - **Tap:** `deferredPrompt.prompt()` → `await userChoice` → clear stored
