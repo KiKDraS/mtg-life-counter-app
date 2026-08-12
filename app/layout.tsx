@@ -31,7 +31,8 @@ export default function RootLayout({ children }: Readonly<PropsWithChildren>) {
       <head>
         <meta name="apple-mobile-web-app-title" content="Life Counter" />
       </head>
-      <body className="min-h-full flex flex-col">
+      {/* §4.4 — inline bg: seamless OS-splash → DOM before CSS loads (CSP-safe). */}
+      <body className="min-h-full flex flex-col bg-[#292A2A]" style={{ backgroundColor: "#292A2A" }}>
         <LockPortrait />
         <SWRegister />
         <SpeedInsights />
