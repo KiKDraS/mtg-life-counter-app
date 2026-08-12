@@ -556,6 +556,9 @@ test.describe("AI Judge", () => {
     // expect: load counter === 0 (no reloads so far)
     expect(loads).toBe(0);
 
+    // expect: URL snapshot before offline (used to prove no reload happened)
+    const urlBeforeOffline = page.url();
+
     // 2. context.setOffline(true)
     await page.context().setOffline(true);
 
@@ -578,7 +581,7 @@ test.describe("AI Judge", () => {
     // expect: input enabled
     await expect(input(page)).toBeEnabled();
     // expect: no reload happened: URL unchanged, load counter === 0
-    expect(page.url()).toBe("http://localhost:3000/");
+    expect(page.url()).toBe(urlBeforeOffline);
     expect(loads).toBe(0);
 
     // 4. Post-online send: type "Back online" + Enter (FULL mock active)

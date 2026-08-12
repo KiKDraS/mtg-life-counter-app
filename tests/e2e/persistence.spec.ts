@@ -1,4 +1,5 @@
-// spec: specs/persistence.plan.md — IndexedDB persistence (SPEC §3/§4/§5/§8)
+// spec: specs/persistence.plan.md — IndexedDB persistence (SPEC §3/§4/§5/§8,
+// §4.6 extended splash)
 // seed: tests/seed.spec.ts
 
 import { test, expect, type Locator, type Page } from "@playwright/test";
@@ -18,12 +19,14 @@ async function readIdb<T>(
 ): Promise<T | undefined> {
   return page.evaluate(async ({ store, key }) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      const req = indexedDB.open("mtg-life-counter", 2);
-      // Mirrors features/persistence/idb.ts openDb(): if this helper opens the
-      // DB before the app's post-mount hydrator does, `onupgradeneeded` MUST
-      // create the stores — otherwise a version-2 DB with zero object stores
-      // is created and the app's same-version open can never fire the upgrade
-      // event again (permanently poisoned for the whole context).
+      // NO version arg — the DB is v2 (idb.ts DB_VERSION); open(name, 1)
+      // throws VersionError (verified live). If this helper opens before the
+      // app's post-mount hydrator does, `onupgradeneeded` MUST create the
+      // stores: a v1 DB with zero object stores would make every read throw
+      // NotFoundError, and expect.poll fails on a throw (verified live). The
+      // app's same-version v2 open then upgrades v1→v2 with a contains-guarded
+      // onupgradeneeded, so the stores are never double-created.
+      const req = indexedDB.open("mtg-life-counter");
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains("game-init")) {
@@ -233,6 +236,107 @@ async function persistedLives(
   return rec?.playerStates.map((ps) => ps.life);
 }
 
+/* ── §4.6 Extended Splash helpers (SPEC §4.6 / DESIGN §4.4) ── */
+
+const splash = (page: Page) => page.getByTestId("extended-splash");
+
+/**
+ * §4.6 slow-hydration injection (plan-verified pattern — do NOT simplify).
+ * Delays only the FIRST `indexedDB.open` call by 500ms, deferring the REAL
+ * open via setTimeout and returning a proxy request. The proxy MUST expose
+ * accessor properties for `result`/`error` and forward all four handlers
+ * (onsuccess/onerror/onupgradeneeded/onblocked) to the real request once
+ * created: idb.ts reads `request.result` from a closure, so a bare proxy
+ * object resolves `undefined` → `Promise.all` rejects → silent §3-defaults
+ * fallback (hydration looks "successful" but restores nothing). Delaying the
+ * CALL (not the success event) keeps the v2 upgrade/onsuccess dance intact.
+ * The wrapper is restored after the first call (guarded by the `delayed`
+ * flag). Installed via addInitScript so it re-applies on reload().
+ */
+async function installSlowHydration(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const origOpen = window.indexedDB.open.bind(window.indexedDB);
+    let delayed = false;
+    window.indexedDB.open = function (name: string, version?: number) {
+      if (delayed) return origOpen(name, version);
+      delayed = true;
+      let real: IDBOpenDBRequest | null = null;
+      const handlers: Record<
+        string,
+        ((this: IDBOpenDBRequest, ev: Event) => void) | null
+      > = {};
+      const proxy = {} as IDBOpenDBRequest;
+      (
+        ["onsuccess", "onerror", "onupgradeneeded", "onblocked"] as const
+      ).forEach((k) => {
+        Object.defineProperty(proxy, k, {
+          set(fn) {
+            handlers[k] = fn;
+          },
+          get() {
+            return handlers[k];
+          },
+          configurable: true,
+        });
+      });
+      Object.defineProperty(proxy, "result", {
+        get() {
+          return real ? real.result : undefined;
+        },
+        configurable: true,
+      });
+      Object.defineProperty(proxy, "error", {
+        get() {
+          return real ? real.error : null;
+        },
+        configurable: true,
+      });
+      setTimeout(() => {
+        const next = origOpen(name, version);
+        real = next;
+        (
+          ["onsuccess", "onerror", "onupgradeneeded", "onblocked"] as const
+        ).forEach((k) => {
+          if (handlers[k]) next[k] = handlers[k]!.bind(next);
+        });
+      }, 500);
+      return proxy;
+    };
+  });
+}
+
+/**
+ * Seed shared by TC-SPLASH-1/3 (§13 steps 1–3): 4 players, distinctive lives
+ * 7 / 13 / 22 / 30, with the game-state write polled before any reload.
+ */
+async function seed4pDistinctLives(page: Page): Promise<void> {
+  await gotoApp(page);
+  await openBelt(page);
+  await page.getByRole("button", { name: "Players" }).click();
+  await page.getByRole("button", { name: "4 players" }).click();
+  await expect(page.locator("dialog#player-selector-modal")).not.toBeVisible();
+  await closeBelt(page);
+  // Tap -1 life per zone (belt verified closed first): P1 ×33, P2 ×27,
+  // P3 ×18, P4 ×10 → 7 / 13 / 22 / 30
+  const taps = [
+    [1, 33],
+    [2, 27],
+    [3, 18],
+    [4, 10],
+  ] as const;
+  for (const [n, count] of taps) {
+    const minus = zone(page, n).getByRole("button", { name: "-1 life" });
+    for (let i = 0; i < count; i++) await minus.click();
+  }
+  // expect: lives 7 / 13 / 22 / 30
+  await expect(lifeTotal(zone(page, 1))).toHaveText("7");
+  await expect(lifeTotal(zone(page, 2))).toHaveText("13");
+  await expect(lifeTotal(zone(page, 3))).toHaveText("22");
+  await expect(lifeTotal(zone(page, 4))).toHaveText("30");
+  // 3. Write must land before the reload that follows
+  await expect.poll(() => persistedLives(page)).toEqual([7, 13, 22, 30]);
+}
+
 /* ───────────────────────────────────────────────
  * PERS-01 — Clean first load shows §3 defaults and self-seeds both stores
  * ─────────────────────────────────────────────── */
@@ -294,6 +398,12 @@ test.describe("PERS-02 — Life persists across reload (both players)", () => {
     // expect: P1 37, P2 45 (auto-retry tolerates the SSR-default flash)
     await expect(lifeTotal(zone(page, 1))).toHaveText("37");
     await expect(lifeTotal(zone(page, 2))).toHaveText("45");
+
+    // §4.6 splash regression (this reload-restore IS the seeded fast-hydration
+    // regression TC — standalone 4p variant in TC-SPLASH-3): rows are visible
+    // above ⟹ hydration completed ⟹ the 120ms timer was cleared before firing
+    // ⟹ splash never opened.
+    await expect(splash(page)).not.toHaveAttribute("open", "");
 
     // 4. Read game-state again
     // expect: [37, 45] unchanged (restore did not overwrite the source)
@@ -948,5 +1058,128 @@ test.describe("PERS-12 — game-init vs game-state split: exact schemas", () => 
       initialLife: 30,
       playerColors: { "0": ["r"], "1": ["u"], "2": ["r"], "3": ["r"] },
     });
+  });
+});
+
+/* ───────────────────────────────────────────────
+ * TC-SPLASH-1 — Slow hydration: splash covers, cannot be dismissed early,
+ * closes on hydration (SPEC §4.6 / DESIGN §4.4)
+ * ─────────────────────────────────────────────── */
+
+test.describe("TC-SPLASH-1 — Slow hydration: splash covers, cannot be dismissed early", () => {
+  test("Splash blocks Escape and backdrop clicks, closes on hydration, rows restore", async ({
+    page,
+  }) => {
+    // 1-3. Seed (PERS-09 pattern — 4 players, distinctive lives 7/13/22/30)
+    await seed4pDistinctLives(page);
+
+    // 4. Slow hydration: delay the FIRST indexedDB.open by 500ms (init script
+    //    re-applies on reload), then reload. Open window ≈ 120ms–~600ms — all
+    //    assertions below auto-retry (never hard-wait).
+    await installSlowHydration(page);
+    await page.reload();
+
+    // 5. While hydration is pending:
+    // expect: splash has [open]
+    await expect(splash(page)).toHaveAttribute("open", "");
+    // expect: player regions count 0 (rows gated until hydration — §4.6)
+    await expect(page.getByRole("region", { name: /^Player \d:/ })).toHaveCount(
+      0,
+    );
+
+    // 6. Escape must NOT dismiss — onCancel guard, no dismiss path (§4.4)
+    await page.keyboard.press("Escape");
+    await expect(splash(page)).toHaveAttribute("open", "");
+
+    // 7. Backdrop/corner clicks must NOT dismiss — fullscreen h-dvh w-dvw
+    //    dialog with no onClick handler, so both clicks land on the dialog
+    //    surface (Playwright can't click ::backdrop directly)
+    await page.mouse.click(5, 5);
+    await expect(splash(page)).toHaveAttribute("open", "");
+    await page.mouse.click(640, 360);
+    await expect(splash(page)).toHaveAttribute("open", "");
+
+    // 8. Hydration completes (~500ms after reload) → splash closes
+    await expect(splash(page)).not.toHaveAttribute("open", "");
+
+    // 9. Rows mount once with final values (no wrong-value frame, no
+    //    §3-default flash)
+    await expect(page.getByRole("region", { name: /^Player \d:/ })).toHaveCount(
+      4,
+    );
+    await expect(lifeTotal(zone(page, 1))).toHaveText("7");
+    await expect(lifeTotal(zone(page, 2))).toHaveText("13");
+    await expect(lifeTotal(zone(page, 3))).toHaveText("22");
+    await expect(lifeTotal(zone(page, 4))).toHaveText("30");
+
+    // 10. Store proof: restore did not overwrite the source
+    await expect.poll(() => persistedLives(page)).toEqual([7, 13, 22, 30]);
+  });
+});
+
+/* ───────────────────────────────────────────────
+ * TC-SPLASH-2 — Fast hydration: splash never opens; §3 defaults render
+ * (SPEC §4.6 "fast hydration → never opens", §3)
+ * ─────────────────────────────────────────────── */
+
+test.describe("TC-SPLASH-2 — Fast hydration: splash never opens; §3 defaults render", () => {
+  test("Cold visit renders defaults without ever showing the splash", async ({
+    page,
+  }) => {
+    // 1. Navigate to / (fresh context, empty IDB — no init script, no seed)
+    await page.goto("/");
+
+    // 2. Negative assert must poll PAST the 120ms threshold — an instant check
+    //    can pass before the timer would have fired (plan: waitForTimeout form
+    //    preferred; a bare expect.poll(...).toBe(false) passes on the first
+    //    poll)
+    await page.waitForTimeout(350);
+    await expect(splash(page)).not.toHaveAttribute("open", "");
+
+    // 3. Rows mount with §3 defaults (rows visible ⟹ hydration completed ⟹
+    //    timer was cleared)
+    await expect(page.getByRole("region", { name: /^Player \d:/ })).toHaveCount(
+      2,
+    );
+    await expect(lifeTotal(zone(page, 1))).toHaveText("40");
+    await expect(lifeTotal(zone(page, 2))).toHaveText("40");
+
+    // 4. Store proof: app self-seeded the default record (§4.1, as PERS-01)
+    await expect.poll(() => readInit(page)).toEqual({
+      players: 2,
+      initialLife: 40,
+      playerColors: { "0": ["r"], "1": ["r"] },
+    });
+  });
+});
+
+/* ───────────────────────────────────────────────
+ * TC-SPLASH-3 — Seeded game + fast hydration: restore regression guard
+ * (PERS-02 is the 2p variant; this is the standalone 4p one)
+ * ─────────────────────────────────────────────── */
+
+test.describe("TC-SPLASH-3 — Seeded game + fast hydration: restore regression guard", () => {
+  test("Seeded 4p reload never opens the splash and restores 7/13/22/30", async ({
+    page,
+  }) => {
+    // 1. Seed as TC-SPLASH-1 steps 1-3 (4 players, lives 7/13/22/30)
+    await seed4pDistinctLives(page);
+
+    // 2. Fast hydration reload (NO delay script)
+    await page.goto("/");
+
+    // 3. Negative splash assert past the threshold (TC-SPLASH-2 step 2 pattern)
+    await page.waitForTimeout(350);
+    await expect(splash(page)).not.toHaveAttribute("open", "");
+
+    // 4. Rows mount post-hydration (gate — toHaveCount auto-waits for the
+    //    gated mount, no hard wait)
+    await expect(page.getByRole("region", { name: /^Player \d:/ })).toHaveCount(
+      4,
+    );
+    await expect(lifeTotal(zone(page, 1))).toHaveText("7");
+    await expect(lifeTotal(zone(page, 2))).toHaveText("13");
+    await expect(lifeTotal(zone(page, 3))).toHaveText("22");
+    await expect(lifeTotal(zone(page, 4))).toHaveText("30");
   });
 });
