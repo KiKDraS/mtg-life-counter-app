@@ -45,13 +45,11 @@ in-game utility.
 
 ## Core Differentiators
 
-> [!IMPORTANT]  
 > **Typographic Brutalism for Tabletop Readability**  
 > Built with Archivo Black 900 numerals and custom WUBRG color identities.
 > Features no window chrome or screen noise — rendering life totals clearly
 > across dark rooms and wide angles.
 
-> [!NOTE]  
 > **Ground-Truth AI Rules Judge**  
 > An inline LLM judge powered by a RAG pipeline over the official Comprehensive
 > Rules and Scryfall card data. Mid-game disputes are answered in seconds with

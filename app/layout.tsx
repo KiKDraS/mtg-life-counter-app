@@ -4,6 +4,8 @@ import { cn } from "@/shared/lib/cn";
 import "./globals.css";
 import { PropsWithChildren } from "react";
 import { LockPortrait } from "@/features/lock-portrait/LockPortrait";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import SWRegister from "./SWRegister";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -31,6 +33,8 @@ export default function RootLayout({ children }: Readonly<PropsWithChildren>) {
       </head>
       <body className="min-h-full flex flex-col">
         <LockPortrait />
+        <SWRegister />
+        <SpeedInsights />
         {children}
       </body>
     </html>

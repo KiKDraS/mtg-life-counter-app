@@ -165,18 +165,24 @@ test.describe("RSC / Architecture / PWA Smoke", () => {
     expect(manifest.orientation).toBe("portrait");
     // expect: display 'standalone'
     expect(manifest.display).toBe("standalone");
-    // expect: icons 192 + 512 maskable
+    // expect: icons 192 + 512 maskable (purpose may be "any maskable" — check token, per pwa.plan.md)
     const sizes = (manifest.icons ?? []).map(
       (icon: { sizes?: string; purpose?: string }) => ({
         sizes: icon.sizes,
-        purpose: icon.purpose,
+        purposes: (icon.purpose ?? "").split(/\s+/),
       }),
     );
     expect(sizes).toContainEqual(
-      expect.objectContaining({ sizes: "192x192", purpose: "maskable" }),
+      expect.objectContaining({
+        sizes: "192x192",
+        purposes: expect.arrayContaining(["maskable"]),
+      }),
     );
     expect(sizes).toContainEqual(
-      expect.objectContaining({ sizes: "512x512", purpose: "maskable" }),
+      expect.objectContaining({
+        sizes: "512x512",
+        purposes: expect.arrayContaining(["maskable"]),
+      }),
     );
 
     // 2. read <link rel=manifest> on /
