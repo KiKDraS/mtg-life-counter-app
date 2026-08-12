@@ -1,6 +1,6 @@
 "use client";
 
-import { PropsWithChildren, useMemo } from "react";
+import { PropsWithChildren, useEffect, useMemo } from "react";
 import { PlayerRow } from "./PlayerRow";
 import { useGameStateContext } from "@/features/game-shell/state/hooks";
 import { PlayerStatesRegistry } from "@/features/persistence/player-states-registry";
@@ -14,6 +14,9 @@ const TOP_ROW_COUNT_MAP: Record<number, number> = {
   5: 3, // 3 up, 2 down
   6: 3, // 3 up, 3 down
 };
+
+/** §4.6 — splash opens only when hydration hold exceeds this (ms). */
+const SPLASH_DELAY_MS = 120;
 
 /**
  * @description
@@ -52,6 +55,26 @@ export function GameInner({ children }: Readonly<PropsWithChildren>) {
       bottomSlots: slots.slice(splitIndex),
     };
   }, [playerCount]);
+
+  /* §4.6 — timer cover: hydration hold >120ms → open splash. Fast hydration
+     clears the timer before it fires → dialog never opens. */
+  useEffect(() => {
+    if (state.isHydrated) return;
+    const timer = setTimeout(() => {
+      (document.getElementById("extended-splash") as HTMLDialogElement | null)
+        ?.showModal();
+    }, SPLASH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [state.isHydrated]);
+
+  /* §4.6 — hard cut: hydration done → close splash if open. */
+  useEffect(() => {
+    if (!state.isHydrated) return;
+    const dialog = document.getElementById(
+      "extended-splash",
+    ) as HTMLDialogElement | null;
+    if (dialog?.open) dialog.close();
+  }, [state.isHydrated]);
 
   return (
     <PlayerStatesRegistry>

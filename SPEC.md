@@ -91,10 +91,10 @@ Two stores — separate initial values from live state.
 ### 4.6 Extended Splash (hydration cover)
 
 - Player zones render ONLY post-hydration (`isHydrated` gate). SSR = belt + empty zone area.
-- Inline script after dialog opens it at first paint (HTML parse, pre-hydration). SplashDialog declarative `open={!isHydrated}` — matches script's `showModal()` at hydration (no mismatch), closes when HYDRATE lands (React removes `open` → dialog closes).
+- Hold >120ms → `extended-splash` modal dialog opens (top layer).
 - Hydrated → dialog closes. Rows mount once: final count + restored values. No wrong-value frame, no layout jump.
 - No dismiss paths: Escape prevented (`cancel` guard), no backdrop handler. Close only via hydration.
-- Blocked/private IDB → hydrator resolves fast → dialog still covers until `isHydrated`, then closes.
+- Blocked/private IDB → hydrator resolves fast → dialog never opens, §3 defaults render.
 - Splash = dedicated dialog. NOT DialogShell (has dismiss paths). See DESIGN.md §4.4.
 
 ---
