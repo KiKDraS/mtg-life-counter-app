@@ -165,8 +165,7 @@ test.describe("Counters Overlay", () => {
     await expect(lifeTotal(zone(page, 1))).toHaveText("40");
     await expect(lifeTotal(zone(page, 2))).toHaveText("40");
 
-    // Belt stays open after restart — close it before interacting with zones
-    await page.getByLabel("Open Spellbook Menu").click();
+    // Belt auto-collapsed on the Restart Life tap (DESIGN §5.2) — no manual close needed
 
     // 3. Reopen Counters overlay
     await swipeOn(zone(page, 1), "left");

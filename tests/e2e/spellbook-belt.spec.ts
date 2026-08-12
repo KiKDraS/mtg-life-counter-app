@@ -100,4 +100,76 @@ test.describe("Spellbook Belt — Open/Close & ARIA", () => {
     await expect(page.getByRole("button", { name: "AI Judge" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Players" })).toBeVisible();
   });
+
+  test("TC-2.5: Tapping Restart Life collapses the belt", async ({ page }) => {
+    // 1. Open belt via M logo
+    await page.goto("/");
+    await page.getByLabel("Open Spellbook Menu").click();
+    await expect(belt(page)).toBeChecked();
+
+    // 2. Tap ⟳ Restart Life (no modal — instant action)
+    await page.getByRole("button", { name: "Restart Life" }).click();
+
+    // expect: Checkbox is unchecked (belt collapsed — DESIGN §5.2)
+    await expect(belt(page)).not.toBeChecked();
+    // expect: no dialog opened
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  test("TC-2.6: Tapping Initial Life collapses the belt", async ({ page }) => {
+    // 1. Open belt via M logo
+    await page.goto("/");
+    await page.getByLabel("Open Spellbook Menu").click();
+    await expect(belt(page)).toBeChecked();
+
+    // 2. Tap ⚙️ Initial Life
+    await page.getByRole("button", { name: "Initial Life" }).click();
+
+    // expect: Checkbox is unchecked (belt collapsed — DESIGN §5.2)
+    await expect(belt(page)).not.toBeChecked();
+    // expect: modal opened
+    await expect(page.locator("dialog#initial-life-modal")).toBeVisible();
+
+    // 3. Close the modal via Escape before the next case
+    await page.keyboard.press("Escape");
+    await expect(page.locator("dialog#initial-life-modal")).not.toBeVisible();
+  });
+
+  test("TC-2.7: Tapping AI Judge collapses the belt", async ({ page }) => {
+    // 1. Open belt via M logo
+    await page.goto("/");
+    await page.getByLabel("Open Spellbook Menu").click();
+    await expect(belt(page)).toBeChecked();
+
+    // 2. Tap ⚖️ AI Judge
+    await page.getByRole("button", { name: "AI Judge", exact: true }).click();
+
+    // expect: Checkbox is unchecked (belt collapsed — DESIGN §5.2)
+    await expect(belt(page)).not.toBeChecked();
+    // expect: modal opened
+    await expect(page.locator("#ai-judge-modal")).toBeVisible();
+
+    // 3. Close the modal via Escape
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#ai-judge-modal")).not.toBeVisible();
+  });
+
+  test("TC-2.8: Tapping Players collapses the belt", async ({ page }) => {
+    // 1. Open belt via M logo
+    await page.goto("/");
+    await page.getByLabel("Open Spellbook Menu").click();
+    await expect(belt(page)).toBeChecked();
+
+    // 2. Tap 👥 Players
+    await page.getByRole("button", { name: "Players" }).click();
+
+    // expect: Checkbox is unchecked (belt collapsed — DESIGN §5.2)
+    await expect(belt(page)).not.toBeChecked();
+    // expect: modal opened
+    await expect(page.locator("dialog#player-selector-modal")).toBeVisible();
+
+    // 3. Close the modal via Escape
+    await page.keyboard.press("Escape");
+    await expect(page.locator("dialog#player-selector-modal")).not.toBeVisible();
+  });
 });
