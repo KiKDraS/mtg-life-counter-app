@@ -101,6 +101,9 @@ Two stores — separate initial values from live state.
   `opacity-100`→`opacity-0` (300ms CSS transition) → element removed at 310ms.
 - No user dismiss paths: no tap/backdrop/Escape handlers. Close via effect
   only.
+- PWA (standalone): splash hidden (`pwa:` variant — `display-mode:
+  standalone` media query). Native OS splash covers launch. Browser mode:
+  splash active (§4.6 rules above).
 - Re-run after removal → no-op (element gone).
 - Fast hydration (no/blocked IDB, §4.5): hydrator resolves → cover hides on
   first effect flush.
