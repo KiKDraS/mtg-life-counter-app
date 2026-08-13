@@ -5,6 +5,7 @@ import "./globals.css";
 import { PropsWithChildren } from "react";
 import { LockPortrait } from "@/features/lock-portrait/LockPortrait";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import SWRegister from "./SWRegister";
 
 const archivo = Archivo({
@@ -34,8 +35,9 @@ export default function RootLayout({ children }: Readonly<PropsWithChildren>) {
       <body className="min-h-full flex flex-col">
         <LockPortrait />
         <SWRegister />
-        <SpeedInsights />
         {children}
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
