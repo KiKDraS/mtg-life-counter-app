@@ -170,14 +170,10 @@ test.describe("Counters Overlay — Layout & Content", () => {
     expect(xs.size).toBe(2);
   });
 
-  // fixme: APP BUG — the [+] button renders at the overlay's TOP-LEFT
-  // (measured x/y ≈14 at 1280×720) instead of bottom-right. Branch replaced
-  // `fixed right-2 bottom-2` (+ .zone-max-h-150-top container rule) with
-  // `absolute right-[clamp(...)] bottom-[clamp(...)]`, which now anchors to a
-  // top-left positioned ancestor instead of the dialog. Violates DESIGN §7.4
-  // ("New counter (+): Bottom-right"); button is also 28.8×28.8px < §8.3
-  // 44×44 touch target. Tracked for @frontend-dev — skip until fixed.
-  test.fixme("1.3. [+] button renders at bottom-right", async ({ page }) => {
+  // DESIGN §7.4: [+] anchors bottom-right of the dialog via rotation-aware
+  // ADD_BUTTON_POSITION (clamped inset ≤ 1.5rem = 24px < 80px tolerance),
+  // sized ≥44×44 via w/h clamp floor 2.75rem (§8.3).
+  test("1.3. [+] button renders at bottom-right", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone to open Counters overlay
     await page.goto("/");
     await swipeOn(zone(page, 1), "left");
