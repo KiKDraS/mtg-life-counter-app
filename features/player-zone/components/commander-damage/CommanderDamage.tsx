@@ -21,12 +21,13 @@ interface CommanderDamageProps {
  */
 export function CommanderDamage({ id }: CommanderDamageProps) {
   return (
-    <DialogShell id={id} ariaLabelledBy="commander-damage-title">
-      <OverlaySurface
-        dialogId={id}
-        className="gap-[8cqmin] px-[6cqmin] overflow-hidden"
-      >
-        <CommanderDamageContent />
+    <DialogShell
+      id={id}
+      ariaLabelledBy="commander-damage-title"
+      className="overflow-y-auto scrollbar-none"
+    >
+      <OverlaySurface dialogId={id} className="gap-[8cqmin] px-[6cqmin]">
+        <CommanderDamageContent dialogId={id} />
       </OverlaySurface>
     </DialogShell>
   );
