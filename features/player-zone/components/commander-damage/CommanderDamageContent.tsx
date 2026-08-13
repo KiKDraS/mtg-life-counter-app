@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { zoneStylesFor } from "@/features/player-zone/utils/zone-styles";
 import { DEFAULT_PLAYER_COLOR } from "@/features/player-zone/constants/player";
 import { usePlayerStateContext } from "@/features/player-zone/state/hooks";
@@ -9,6 +9,10 @@ import { CommanderDamageColumn } from "./CommanderDamageColumn";
 import type { PlayerId } from "@/features/player-zone/types/player";
 import { COMMANDER_LETHAL_DAMAGE } from "../../constants/commander";
 import { cn } from "@/shared/lib/cn";
+
+interface CommanderDamageContentProps {
+  readonly dialogId: string;
+}
 
 /**
  * @description
@@ -21,9 +25,26 @@ import { cn } from "@/shared/lib/cn";
  *
  * @see DESIGN.md §7.3, SPEC.md §5–6
  */
-export function CommanderDamageContent() {
-  const { state } = usePlayerStateContext();
+export function CommanderDamageContent({
+  dialogId,
+}: CommanderDamageContentProps) {
+  const { state, playerZoneRotation } = usePlayerStateContext();
   const { state: gameState } = useGameStateContext();
+
+  /*
+   * Rotation-matched touch-action on the dialog (Chromium resolves it in
+   * screen space, ignoring the zone's rotate transform). Without this, the
+   * swipe-close axis ends up as a claimable/aborted pan and the browser
+   * swallows the gesture with a (0,0) pointercancel.
+   */
+  useEffect(() => {
+    const dialog = document.getElementById(
+      dialogId,
+    ) as HTMLDialogElement | null;
+    if (!dialog) return;
+    const isSideways = playerZoneRotation === 90 || playerZoneRotation === -90;
+    dialog.style.touchAction = isSideways ? "pan-x" : "pan-y";
+  }, [dialogId, playerZoneRotation]);
 
   const { playerCount, playerColors } = gameState;
   const { commanderDamage } = state;
@@ -56,8 +77,8 @@ export function CommanderDamageContent() {
 
   const ITEM_WIDTH =
     (playerCount >= 4 && state.playerId === 0) || state.playerId === 5
-      ? "w-[30%]"
-      : "w-[45%]";
+      ? "w-[30%] min-w-[140px]"
+      : "w-[45%] min-w-[140px]";
 
   const JUSTIFY_CLASS =
     playerCount <= 4 || (playerCount >= 4 && state.playerId === 0)
@@ -78,6 +99,7 @@ export function CommanderDamageContent() {
           "flex w-full max-w-lg flex-wrap items-center",
           JUSTIFY_CLASS,
           "gap-[clamp(1rem,5cqmin,2rem)]",
+          "py-4",
         )}
       >
         {damageColumns.map((col) => (

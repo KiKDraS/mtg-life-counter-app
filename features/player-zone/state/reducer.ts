@@ -32,21 +32,24 @@ export function playerReducer(
       );
 
       if (idx !== -1) {
-        nextCommanderDamage[idx] = {
-          ...nextCommanderDamage[idx],
-          value: nextCommanderDamage[idx].value + action.delta,
+        const prev = nextCommanderDamage[idx].value;
+        const next = Math.max(0, prev + action.delta);
+        const applied = next - prev;
+        nextCommanderDamage[idx] = { ...nextCommanderDamage[idx], value: next };
+        return {
+          ...state,
+          commanderDamage: nextCommanderDamage,
+          life: state.life - applied,
         };
-      } else {
-        nextCommanderDamage.push({
-          playerId: action.commanderPlayerId,
-          value: action.delta,
-        });
       }
 
       return {
         ...state,
-        commanderDamage: nextCommanderDamage,
-        life: state.life - action.delta,
+        commanderDamage: [
+          ...nextCommanderDamage,
+          { playerId: action.commanderPlayerId, value: Math.max(0, action.delta) },
+        ],
+        life: state.life - Math.max(0, action.delta),
       };
     }
 

@@ -55,7 +55,7 @@ async function swipeOn(
 
 function counterValue(dlg: Locator, name: string): Locator {
   const btn = dlg.getByRole("button", { name: `+1 ${name} counter` });
-  return btn.locator("xpath=./preceding-sibling::*[@aria-live='polite']");
+  return btn.locator("xpath=../preceding-sibling::*[@aria-live='polite']");
 }
 
 async function openBelt(page: Page): Promise<void> {

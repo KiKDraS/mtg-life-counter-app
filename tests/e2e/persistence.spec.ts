@@ -205,9 +205,9 @@ async function swipeY(
   await page.mouse.up();
 }
 
-/** Value span preceding the `+1 <name> counter` button in the Counters overlay. */function counterValue(dlg: Locator, name: string): Locator {
+/** Value span preceding the `+1 <name> counter` button group in the Counters overlay. */function counterValue(dlg: Locator, name: string): Locator {
   const btn = dlg.getByRole("button", { name: `+1 ${name} counter` });
-  return btn.locator("xpath=./preceding-sibling::*[@aria-live='polite']");
+  return btn.locator("xpath=../preceding-sibling::*[@aria-live='polite']");
 }
 
 /** Same as counterValue, but pinned to the nth row — needed when two rows
@@ -216,7 +216,7 @@ function counterValueAt(dlg: Locator, name: string, index: number): Locator {
   const btn = dlg
     .getByRole("button", { name: `+1 ${name} counter` })
     .nth(index);
-  return btn.locator("xpath=./preceding-sibling::*[@aria-live='polite']");
+  return btn.locator("xpath=../preceding-sibling::*[@aria-live='polite']");
 }
 
 /** Builds the §3 default PlayerState record for a fresh game. */

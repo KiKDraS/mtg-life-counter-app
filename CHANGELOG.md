@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.3] - 2026-08-13
+
+### Added
+
+- Splash screen covers PWA standalone launch with body scroll lock (#139/#140)
+- Commander damage decrement [−] button with hold-to-repeat and floor-0 clamp; life restored by applied delta (#141)
+
+### Fixed
+
+- Commander damage overlay swipe-to-close when content scrolls on small devices — dialog-level scroll + rotation-matched touch-action (Counters pattern), min-width anti-shrink; CDP-touch regression coverage (OVF-01..04)
+
+- Test suite: 209 passing
+
 ## [1.0.2] - 2026-08-13
 
 ### Added
