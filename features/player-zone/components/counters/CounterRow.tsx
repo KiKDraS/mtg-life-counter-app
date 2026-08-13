@@ -99,7 +99,7 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center justify-center gap-[clamp(0.25rem,10cqmin,1.75rem)]">
       {renderIcon()}
 
       {/* Value */}

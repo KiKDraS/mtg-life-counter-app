@@ -26,10 +26,7 @@ export function Counters({ id }: CountersProps) {
         ariaLabelledBy="counters-title"
         className="overflow-y-auto scrollbar-none"
       >
-        <OverlaySurface
-          dialogId={id}
-          className="gap-4 py-1 px-2 @[250px]/zone:gap-8 @[250px]/zone:px-6"
-        >
+        <OverlaySurface dialogId={id} className="gap-[8cqmin] px-[6cqmin]">
           <CountersContent dialogId={id} customCounterId={customCounterId} />
         </OverlaySurface>
       </DialogShell>

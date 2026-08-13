@@ -21,5 +21,4 @@ export const POISON_LETHAL = 10;
 export const COUNTER_SVG_SIZE =
   "w-[14cqmin] h-[14cqmin] min-w-6 min-h-6 max-w-14 max-h-14";
 
-export const TEXT_CLASSES =
-  "text-heading @[250px]/zone:text-display font-black leading-none tabular-nums";
+export const TEXT_CLASSES = "text-heading font-black leading-none tabular-nums";
