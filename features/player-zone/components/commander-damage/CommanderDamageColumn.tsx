@@ -2,7 +2,10 @@
 
 import { useCallback } from "react";
 import { useLifeAdjustment } from "@/features/player-zone/hooks/use-life-adjustment";
-import { INCREMENT_LIFE } from "@/features/player-zone/constants/life";
+import {
+  INCREMENT_LIFE,
+  DECREMENT_LIFE,
+} from "@/features/player-zone/constants/life";
 import { UI } from "@/shared/lib/constants/colors";
 import PlaneswalkerSymbol from "@/shared/components/icons/PlaneswalkerSymbol";
 import { usePlayerStateContext } from "@/features/player-zone/state/hooks";
@@ -73,19 +76,35 @@ export function CommanderDamageColumn({
         {damage}
       </span>
 
-      {/* [+] button */}
-      <button
-        type="button"
-        aria-label="+1 commander damage"
-        className={cn(
-          "text-heading font-black tabular-nums focus-visible:outline-0 select-none touch-manipulation",
-          "inline-block text-center leading-tight",
-        )}
-        style={{ color: UI.textLight }}
-        {...adjustment(INCREMENT_LIFE)}
-      >
-        +
-      </button>
+      <div className="flex items-center justify-center gap-[clamp(0.25rem,4cqmin,.75rem)]">
+        {/* [−] button */}
+        <button
+          type="button"
+          aria-label="-1 commander damage"
+          className={cn(
+            "text-heading font-black tabular-nums focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white select-none touch-manipulation",
+            "inline-block text-center leading-tight",
+          )}
+          style={{ color: UI.textLight }}
+          {...adjustment(DECREMENT_LIFE)}
+        >
+          −
+        </button>
+
+        {/* [+] button */}
+        <button
+          type="button"
+          aria-label="+1 commander damage"
+          className={cn(
+            "text-heading font-black tabular-nums focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white select-none touch-manipulation",
+            "inline-block text-center leading-tight",
+          )}
+          style={{ color: UI.textLight }}
+          {...adjustment(INCREMENT_LIFE)}
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 }

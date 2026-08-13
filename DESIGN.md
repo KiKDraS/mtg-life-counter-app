@@ -553,7 +553,7 @@ each commander deals to current player.
 ```
 ┌──────────────────────┐
 │   ┌──────┐           │
-│   │  ⚔️  │  12  [+]  │  Pill (commander player's color) + symbol + total + + button
+│   │  ⚔️  │  12  [-]  [+]  │  Pill (commander player's color) + symbol + total + −/+ buttons
 │   └──────┘           │
 └──────────────────────┘
 ```
@@ -564,7 +564,8 @@ columns for playerId 0 (own commander), 1, 2, 3 (opponents).
 - **Pill:** Rounded. Commander owner's mana color. `PlaneswalkerSymbol` inside
   (white fill).
 - **Total:** Archivo Bold. Text per luminance.
-- **+ button:** Tap +1, hold ±10 after 1s. Borderless.
+- **[−]/[+] buttons:** Tap ±1, hold ±10 after 1s. Borderless. Decrement
+  floors at 0.
 - **Wrap:** flex-wrap. 4p+ player 0 + player 5: 30% width (3/row). Else: 45% (2/row).
 - **Life reduction:** Each commander damage point also −1 life.
   `adjustCommanderDamage(+3)` → life -3.
@@ -624,7 +625,7 @@ Life/display/heading tokens = cqmin (§3.2): scale to zone container, not viewpo
 ### 8.3 Touch Targets
 
 All interactive: ≥44×44px (48×48px preferred). Overlay compact glyph
-controls (commander damage [+], counter ±, add-counter [+]) exempt: ≥28px
+controls (commander damage [−]/[+], counter ±, add-counter [+]) exempt: ≥28px
 (1.8rem `--text-heading` floor), scale via cqmin.
 
 ---
