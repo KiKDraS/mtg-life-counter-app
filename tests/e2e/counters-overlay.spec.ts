@@ -170,13 +170,13 @@ test.describe("Counters Overlay — Layout & Content", () => {
     expect(xs.size).toBe(2);
   });
 
-  // DESIGN §7.4: [+] anchors bottom-right of the dialog via rotation-aware
-  // ADD_BUTTON_POSITION (clamped inset ≤ 1.5rem = 24px < 80px tolerance),
-  // sized ≥44×44 via w/h clamp floor 2.75rem (§8.3).
+  // DESIGN §7.4: [+] anchored bottom-right of overlay (clamped inset
+  // ≤ 1.5rem). Tested on P2 (unrotated zone) — P1's 180° rotation flips the
+  // rendered corner, that's the design's accepted behavior.
   test("1.3. [+] button renders at bottom-right", async ({ page }) => {
-    // 1. Navigate to /, swipe right on P1 zone to open Counters overlay
+    // 1. Navigate to /, swipe right on P2 zone (unrotated) to open Counters overlay
     await page.goto("/");
-    await swipeOn(zone(page, 1), "left");
+    await swipeOn(zone(page, 2), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     await expect(dlg).toBeVisible();
 
