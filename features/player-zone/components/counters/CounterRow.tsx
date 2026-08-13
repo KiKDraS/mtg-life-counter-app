@@ -99,7 +99,7 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
   };
 
   return (
-    <div className="flex items-center justify-center gap-[clamp(0.25rem,10cqmin,1.75rem)]">
+    <div className="flex items-center justify-center gap-[clamp(0.25rem,10cqmin,1.25rem)]">
       {renderIcon()}
 
       {/* Value */}
@@ -112,27 +112,29 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
         {counter.value}
       </span>
 
-      {/* [-] button */}
-      <button
-        type="button"
-        aria-label={`-1 ${accessibleName} counter`}
-        className={BORDERLESS_BTN_CLASS}
-        style={LIGHT_TEXT_STYLE}
-        {...adjustment(DECREMENT_COUNTER)}
-      >
-        −
-      </button>
+      <div className="flex items-center justify-center gap-[clamp(0.25rem,4cqmin,.75rem)]">
+        {/* [-] button */}
+        <button
+          type="button"
+          aria-label={`-1 ${accessibleName} counter`}
+          className={BORDERLESS_BTN_CLASS}
+          style={LIGHT_TEXT_STYLE}
+          {...adjustment(DECREMENT_COUNTER)}
+        >
+          −
+        </button>
 
-      {/* [+] button */}
-      <button
-        type="button"
-        aria-label={`+1 ${accessibleName} counter`}
-        className={BORDERLESS_BTN_CLASS}
-        style={LIGHT_TEXT_STYLE}
-        {...adjustment(INCREMENT_COUNTER)}
-      >
-        +
-      </button>
+        {/* [+] button */}
+        <button
+          type="button"
+          aria-label={`+1 ${accessibleName} counter`}
+          className={BORDERLESS_BTN_CLASS}
+          style={LIGHT_TEXT_STYLE}
+          {...adjustment(INCREMENT_COUNTER)}
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 }

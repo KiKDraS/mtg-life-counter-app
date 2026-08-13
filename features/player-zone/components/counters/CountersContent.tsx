@@ -53,7 +53,7 @@ export function CountersContent({
       <div
         className={cn(
           "flex w-full max-w-lg flex-wrap items-center justify-start",
-          "gap-[6cqmin]",
+          "gap-[10cqmin]",
         )}
       >
         {state.counters.map((counter) => (
