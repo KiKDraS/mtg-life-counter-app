@@ -174,9 +174,10 @@ test.describe("Counters Overlay — Layout & Content", () => {
   // ≤ 1.5rem). Tested on P2 (unrotated zone) — P1's 180° rotation flips the
   // rendered corner, that's the design's accepted behavior.
   test("1.3. [+] button renders at bottom-right", async ({ page }) => {
-    // 1. Navigate to /, swipe right on P2 zone (unrotated) to open Counters overlay
+    // 1. Navigate to /, swipe right on P2 zone (unrotated) to open Counters
+    // overlay (SW-01: 0° slot — physical right = Counters)
     await page.goto("/");
-    await swipeOn(zone(page, 2), "left");
+    await swipeOn(zone(page, 2), "right");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     await expect(dlg).toBeVisible();
 
