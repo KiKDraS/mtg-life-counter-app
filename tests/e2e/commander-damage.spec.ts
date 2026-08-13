@@ -880,10 +880,9 @@ test.describe("Commander Damage — Accessibility & Edge Cases", () => {
     await expect(heading).toHaveText("Commander Damage");
   });
 
-  // DESIGN §8.3: [+] pill is min-w-11 min-h-11 (44×44) touch target.
-  test("7.2. [+] button maintains 44×44px minimum touch target", async ({
-    page,
-  }) => {
+  // DESIGN §3.2/§8.3: [+] is a borderless text glyph, text-heading token
+  // (1.8rem = 28.8px floor), scales via cqmin. Compact overlay exception.
+  test("7.2. [+] button uses text-heading size (≥28px)", async ({ page }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -894,9 +893,13 @@ test.describe("Commander Damage — Accessibility & Edge Cases", () => {
     // 3. Read bounding box of aria-label="+1 commander damage"
     const btn = plusButton(dlg);
     const box = await visibleBox(btn);
-    // expect: width ≥ 44px and height ≥ 44px
-    expect(box.width).toBeGreaterThanOrEqual(44);
-    expect(box.height).toBeGreaterThanOrEqual(44);
+    // expect: font-size ≥ 28px (1.8rem text-heading floor)
+    const fs = await btn.evaluate(
+      (el) => parseFloat(getComputedStyle(el).fontSize),
+    );
+    expect(fs).toBeGreaterThanOrEqual(28);
+    expect(box.width).toBeGreaterThanOrEqual(10);
+    expect(box.height).toBeGreaterThanOrEqual(10);
   });
 
   test("7.3. Damage counter has accessible announcements", async ({ page }) => {

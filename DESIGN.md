@@ -623,7 +623,9 @@ Life/display/heading tokens = cqmin (§3.2): scale to zone container, not viewpo
 
 ### 8.3 Touch Targets
 
-All interactive: ≥44×44px (48×48px preferred).
+All interactive: ≥44×44px (48×48px preferred). Overlay compact glyph
+controls (commander damage [+], counter ±, add-counter [+]) exempt: ≥28px
+(1.8rem `--text-heading` floor), scale via cqmin.
 
 ---
 

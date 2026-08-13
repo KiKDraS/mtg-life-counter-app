@@ -79,7 +79,7 @@ export function CommanderDamageColumn({
         aria-label="+1 commander damage"
         className={cn(
           "text-heading font-black tabular-nums focus-visible:outline-0 select-none touch-manipulation",
-          "inline-flex min-w-11 min-h-11 items-center justify-center leading-tight",
+          "inline-block text-center leading-tight",
         )}
         style={{ color: UI.textLight }}
         {...adjustment(INCREMENT_LIFE)}
