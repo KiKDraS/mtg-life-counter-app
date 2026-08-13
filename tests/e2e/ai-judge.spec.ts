@@ -311,8 +311,9 @@ function errorCollectors(page: Page): {
   page.on("pageerror", (err) => pageErrors.push(String(err)));
   page.on("console", (msg) => {
     if (msg.type() !== "error") return;
-    // Off-Vercel, SpeedInsights script 404s — benign (PR #122 artifact).
-    if (msg.text().includes("_vercel/speed-insights")) return;
+    // Off-Vercel, Vercel scripts 404 — benign (PR #122 artifact; Analytics
+    // added by feature/vercel-analytics, same self-host 404).
+    if (msg.text().includes("_vercel/")) return;
     if (msg.text() === "Failed to load resource: the server responded with a status of 404 (Not Found)")
       return;
     consoleErrors.push(msg.text());

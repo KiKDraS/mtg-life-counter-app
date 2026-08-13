@@ -213,13 +213,13 @@ test.describe("PWA — manifest, SW, offline", () => {
     page,
   }) => {
     test.setTimeout(60_000);
-    // fixme: requires prod build (see header note) — against `pnpm dev` the SW
-    // runtime-cache misses: HMR recompiles churn the hashed /_next chunk URLs
+    // Requires prod build (see header note): against `pnpm dev` the SW
+    // runtime-cache misses — HMR recompiles churn the hashed /_next chunk URLs
     // between the online precache pass and the offline reload, so the offline
     // shell loads zero JS/CSS. The page stays an inert SSR snapshot: the splash
     // cover never hides (no hydration → no §4.6 handler) and the +1 click is a
-    // no-op, so life never moves off 40. Passes against pnpm build && pnpm start.
-    test.fixme();
+    // no-op, so life never moves off 40. Runs green against pnpm build && pnpm start.
+    // Un-fixme'd by QA loop 2026-08-12: loop runs against the prod build.
     // 1. fresh context; install + activate SW, precache "/", app interactive
     await setupOnline(page);
 
