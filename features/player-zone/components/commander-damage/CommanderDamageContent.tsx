@@ -56,8 +56,8 @@ export function CommanderDamageContent() {
 
   const ITEM_WIDTH =
     (playerCount >= 4 && state.playerId === 0) || state.playerId === 5
-      ? "w-[30%]"
-      : "w-[45%]";
+      ? "w-[30%] min-w-[140px]"
+      : "w-[45%] min-w-[140px]";
 
   const JUSTIFY_CLASS =
     playerCount <= 4 || (playerCount >= 4 && state.playerId === 0)
@@ -78,6 +78,7 @@ export function CommanderDamageContent() {
           "flex w-full max-w-lg flex-wrap items-center",
           JUSTIFY_CLASS,
           "gap-[clamp(1rem,5cqmin,2rem)]",
+          "overflow-auto scrollbar-none py-4",
         )}
       >
         {damageColumns.map((col) => (
