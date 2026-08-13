@@ -209,9 +209,7 @@ test.describe("Install App action", () => {
       }),
     ).toHaveCount(1);
 
-    // (b) served CSS carries the standalone media rule. The media block may
-    // hold further .pwa\:* rules after .pwa\:hidden (e.g. pwa:justify-between),
-    // so do not require the block to end right after display:none.
+    // (b) served CSS carries the standalone media rule
     const hrefs = await page
       .locator('head link[rel="stylesheet"]')
       .evaluateAll((links) =>
@@ -223,8 +221,12 @@ test.describe("Install App action", () => {
         hrefs.map(async (href) => (await page.request.get(href)).text()),
       )
     ).join("\n");
+    // The media block groups ALL pwa: rules (hidden, justify-between, gap-6,
+    // px-6...), so the regex must allow arbitrary content between the rule and
+    // the block's closing brace — exact adjacency broke once a second pwa:
+    // class was added.
     expect(css).toMatch(
-      /@media\s*\(display-mode:\s*standalone\)\s*\{\s*\.pwa\\:hidden\s*\{\s*display:\s*none\s*\}/,
+      /@media\s*\(display-mode:\s*standalone\)\s*\{[\s\S]*?\.pwa\\:hidden\s*\{\s*display:\s*none\s*\}[\s\S]*?\}/,
     );
 
     // expect: belt layout intact — other 4 buttons still visible
