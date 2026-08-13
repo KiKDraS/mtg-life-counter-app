@@ -106,14 +106,15 @@ async function swipeY(
 
 /**
  * Returns errors collected so far for the given page.
- * Skips the SpeedInsights 404 pair: off-Vercel, `/_vercel/speed-insights/script.js`
- * 404s (generic resource error + strict-MIME refusal) — benign, PR #122 artifact.
+ * Skips the Vercel script 404 pair: off-Vercel, `/_vercel/{speed-insights,insights}/script.js`
+ * 404s (generic resource error + strict-MIME refusal) — benign, PR #122
+ * artifact; Web Analytics added by feature/vercel-analytics, same self-host 404.
  */
 function consoleErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on("console", (msg) => {
     if (msg.type() !== "error") return;
-    if (msg.text().includes("_vercel/speed-insights")) return;
+    if (msg.text().includes("_vercel/")) return;
     if (msg.text() === "Failed to load resource: the server responded with a status of 404 (Not Found)")
       return;
     errors.push(msg.text());

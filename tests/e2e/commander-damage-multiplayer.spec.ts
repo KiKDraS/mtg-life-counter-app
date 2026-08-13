@@ -150,8 +150,15 @@ test.describe("Commander Damage — 5/6-Player Grids", () => {
     // expect: 5 +1 commander damage buttons
     await expect(plusButtons(dlg)).toHaveCount(5);
 
-    // expect: grid has grid-cols-3 class for P1 on 5p
-    await expect(dlg.locator(".grid").first()).toHaveClass(/grid-cols-3/);
+    // expect: grid wraps 3 per row for P1 on 5p (flex-wrap w-[30%] items
+    // replace grid-cols-3 — assert the wrap behaviorally: 5 pills, 2 rows)
+    const pillYs = new Set<number>();
+    for (let i = 0; i < 5; i++) {
+      const box = await commanderPills(dlg).nth(i).boundingBox();
+      if (!box) throw new Error("pill not visible");
+      pillYs.add(Math.round(box.y));
+    }
+    expect(pillYs.size).toBe(2);
 
     // expect: all damage counters read 0
     await expectAllDamageZero(dlg, 5);
@@ -211,8 +218,15 @@ test.describe("Commander Damage — 5/6-Player Grids", () => {
     await expect(commanderPills(dlg)).toHaveCount(6);
     // expect: 6 +1 commander damage buttons
     await expect(plusButtons(dlg)).toHaveCount(6);
-    // expect: grid-cols-3 for P6 on 6p
-    await expect(dlg.locator(".grid").first()).toHaveClass(/grid-cols-3/);
+    // expect: grid wraps 3 per row for P6 on 6p (flex-wrap w-[30%] items
+    // replace grid-cols-3 — assert the wrap behaviorally: 6 pills, 2 rows)
+    const pillYs = new Set<number>();
+    for (let i = 0; i < 6; i++) {
+      const box = await commanderPills(dlg).nth(i).boundingBox();
+      if (!box) throw new Error("pill not visible");
+      pillYs.add(Math.round(box.y));
+    }
+    expect(pillYs.size).toBe(2);
 
     // 2. tap the LAST column + button twice (P6's own commander)
     const lastPlus = plusButtons(dlg).last();

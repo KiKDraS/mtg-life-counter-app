@@ -177,8 +177,9 @@ test.describe("Counters Overlay", () => {
     // expect: Custom counter "Lore" absent
     await expect(dlg.locator('[aria-label="Lore counter"]')).toHaveCount(0);
 
-    // expect: Only 4 default counters present
-    const counterRows = dlg.locator("div.grid > div");
+    // expect: Only 4 default counters present (rows = aria-live value spans;
+    // layout is flex-wrap since the counters UI polish)
+    const counterRows = dlg.locator('[aria-live="polite"]');
     await expect(counterRows).toHaveCount(4);
 
     // expect: Default counters all reset to 0
