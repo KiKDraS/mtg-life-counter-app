@@ -330,8 +330,10 @@ test.describe("Commander Damage — 5/6-Player Grids", () => {
     // expect: badge text 'Commander Damage Lethal' visible under P1 life (life > 0)
     await expect(zone(page, 1).getByText("Commander Damage Lethal")).toBeVisible();
 
-    // expect: no [-] button exists in any column (no UI to reduce damage)
-    await expect(dlg.getByRole("button", { name: /-/ })).toHaveCount(0);
+    // expect: one [-] button per column (5 columns → 5 buttons) to reduce damage
+    await expect(
+      dlg.getByRole("button", { name: "-1 commander damage" }),
+    ).toHaveCount(5);
   });
 
   test("CD-06: Commander pill color follows owner's color picker selection (color sync regression)", async ({

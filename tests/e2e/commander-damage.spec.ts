@@ -633,7 +633,7 @@ test.describe("Commander Damage — Lethal State", () => {
     );
   });
 
-  test("5.3. Recovery from lethal state when damage drops below 21 is not possible via UI", async ({
+  test("5.3. Lethal state persists after close; [-] button exists for recovery", async ({
     page,
   }) => {
     // 1. Navigate to `/`
@@ -646,9 +646,11 @@ test.describe("Commander Damage — Lethal State", () => {
       await plusButton(dlg).click();
     }
 
-    // 3. Note: The overlay has no [-] button to reduce commander damage (by design)
-    // expect: There is no way within the overlay to reduce commander damage
-    await expect(dlg.getByRole("button", { name: /-/ })).toHaveCount(0);
+    // 3. The overlay now has a [-] button to reduce commander damage
+    // expect: There is at least one [-] button per column to reduce damage
+    await expect(
+      dlg.getByRole("button", { name: "-1 commander damage" }),
+    ).not.toHaveCount(0);
 
     // 4. Escape to close
     await page.keyboard.press("Escape");
@@ -941,9 +943,11 @@ test.describe("Commander Damage — Accessibility & Edge Cases", () => {
     await btn.focus();
     await expect(btn).toBeFocused();
 
-    // 4. Press Tab twice — focus leaves the dialog (show() has no focus trap).
-    //    First Tab moves to the second [+] button (still inside), second Tab exits.
+    // 4. Press Tab three times — focus leaves the dialog (show() has no focus
+    //    trap). Each column now has [−] and [+] buttons: first Tab moves to
+    //    the second column's [−], second Tab to its [+], third Tab exits.
     //    The SpellbookMenu's toggle input sits between P1 and P2 in DOM order.
+    await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     await expect(
