@@ -166,6 +166,10 @@ interface PlayerState {
 - `CommanderDamage.playerId` = commander owner's identity.
 - ≥21 damage from any single commander → lethal.
 - Each damage point also −1 life: `adjustCommanderDamage(+3)` → life −3.
+- Decrement supported (undo/error correction): `adjustCommanderDamage(-2)` →
+  damage −2, life +2. Damage floors at 0 — never negative. Life restored
+  ONLY by applied delta (`max(0, value + delta) − value`), so a − at 0
+  changes nothing.
 
 ---
 
