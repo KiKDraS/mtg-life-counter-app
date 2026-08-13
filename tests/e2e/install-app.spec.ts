@@ -209,7 +209,9 @@ test.describe("Install App action", () => {
       }),
     ).toHaveCount(1);
 
-    // (b) served CSS carries the standalone media rule
+    // (b) served CSS carries the standalone media rule. The media block may
+    // hold further .pwa\:* rules after .pwa\:hidden (e.g. pwa:justify-between),
+    // so do not require the block to end right after display:none.
     const hrefs = await page
       .locator('head link[rel="stylesheet"]')
       .evaluateAll((links) =>
@@ -222,7 +224,7 @@ test.describe("Install App action", () => {
       )
     ).join("\n");
     expect(css).toMatch(
-      /@media\s*\(display-mode:\s*standalone\)\s*\{\s*\.pwa\\:hidden\s*\{\s*display:\s*none\s*\}\s*\}/,
+      /@media\s*\(display-mode:\s*standalone\)\s*\{\s*\.pwa\\:hidden\s*\{\s*display:\s*none\s*\}/,
     );
 
     // expect: belt layout intact — other 4 buttons still visible

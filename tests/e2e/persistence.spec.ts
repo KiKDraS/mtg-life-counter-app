@@ -383,8 +383,9 @@ test.describe("PERS-03 — Counters persist across reload (defaults + custom, id
     await expect(customDlg).not.toBeVisible();
     // expect: 2 pills matching [aria-label="Lore counter"] (ids must not clash)
     await expect(counters.locator('[aria-label="Lore counter"]')).toHaveCount(2);
-    // expect: counters grid rows = 6 (4 defaults + 2 custom)
-    await expect(counters.locator("div.grid > div")).toHaveCount(6);
+    // expect: counters grid rows = 6 (4 defaults + 2 custom; rows = aria-live
+    // value spans — layout is flex-wrap since the counters UI polish)
+    await expect(counters.locator('[aria-live="polite"]')).toHaveCount(6);
     // expect: two type:"custom" entries with different ids, both name "Lore"
     await expect
       .poll(() =>
@@ -863,8 +864,9 @@ test.describe("PERS-11 — Same player count selection still resets", () => {
     await expect(counters).toBeVisible();
     // expect: "Lore" gone — custom counters cleared on common reset (§8.1)
     await expect(counters.locator('[aria-label="Lore counter"]')).toHaveCount(0);
-    // expect: exactly 4 default counter rows, all at 0
-    await expect(counters.locator("div.grid > div")).toHaveCount(4);
+    // expect: exactly 4 default counter rows, all at 0 (rows = aria-live
+    // value spans — layout is flex-wrap since the counters UI polish)
+    await expect(counters.locator('[aria-live="polite"]')).toHaveCount(4);
     for (const name of ["poison", "energy", "experience", "time"]) {
       await expect(counterValue(counters, name)).toHaveText("0");
     }

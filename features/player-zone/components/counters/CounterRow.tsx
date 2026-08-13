@@ -28,6 +28,7 @@ interface CounterRowProps {
  */
 const BORDERLESS_BTN_CLASS = cn(
   TEXT_CLASSES,
+  "flex min-w-11 min-h-11 items-center justify-center",
   "select-none touch-manipulation focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white",
 );
 

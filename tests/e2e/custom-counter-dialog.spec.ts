@@ -169,8 +169,9 @@ test.describe("Custom Counter Dialog — Modal", () => {
     await expect(countersDlg).toBeVisible();
 
     // 4. Count the counter rows
-    // expect: Still 4 default counters (poison, energy, experience, time) — no custom counter added
-    const counterRows = countersDlg.locator("div.grid > div");
+    // expect: Still 4 default counters (poison, energy, experience, time) — no
+    // custom counter added (rows = aria-live value spans)
+    const counterRows = countersDlg.locator('[aria-live="polite"]');
     await expect(counterRows).toHaveCount(4);
   });
 
@@ -192,8 +193,8 @@ test.describe("Custom Counter Dialog — Modal", () => {
     await expect(customDlg).not.toBeVisible();
     // expect: No new counter appears in grid
     await expect(countersDlg).toBeVisible();
-    // Verify still 4 counters
-    const counterRows = countersDlg.locator("div.grid > div");
+    // Verify still 4 counters (rows = aria-live value spans)
+    const counterRows = countersDlg.locator('[aria-live="polite"]');
     await expect(counterRows).toHaveCount(4);
   });
 
@@ -346,8 +347,9 @@ test.describe("Custom Counter Dialog — Modal", () => {
     await expect(countersDlg.locator('[aria-label="Second counter"]')).toBeVisible();
 
     // 3. Verify both counters
-    // expect: Grid shows 6 counters total (4 default + 2 custom)
-    const counterRows = countersDlg.locator("div.grid > div");
+    // expect: Grid shows 6 counters total (4 default + 2 custom; rows =
+    // aria-live value spans — layout is flex-wrap since the counters UI polish)
+    const counterRows = countersDlg.locator('[aria-live="polite"]');
     await expect(counterRows).toHaveCount(6);
     // expect: Each custom counter has correct first-letter pill
     await expect(countersDlg.locator('[aria-label="First counter"]')).toHaveText("F");

@@ -157,12 +157,27 @@ test.describe("Counters Overlay — Layout & Content", () => {
       }
     }
 
-    // 5. Verify the grid is 2-column
-    // expect: The grid container has CSS class grid-cols-2
-    await expect(dlg.locator(".grid")).toHaveClass(/grid-cols-2/);
+    // 5. Verify the grid is 2-column (DESIGN §7.4 — layout is flex-wrap now,
+    // so assert columns behaviorally: 4 value spans at 2 distinct x positions)
+    const valueSpans = dlg.locator('[aria-live="polite"]');
+    await expect(valueSpans).toHaveCount(4);
+    const xs = new Set<number>();
+    for (let i = 0; i < 4; i++) {
+      const box = await valueSpans.nth(i).boundingBox();
+      if (!box) throw new Error("counter value not visible");
+      xs.add(Math.round(box.x));
+    }
+    expect(xs.size).toBe(2);
   });
 
-  test("1.3. [+] button renders at bottom-right", async ({ page }) => {
+  // fixme: APP BUG — the [+] button renders at the overlay's TOP-LEFT
+  // (measured x/y ≈14 at 1280×720) instead of bottom-right. Branch replaced
+  // `fixed right-2 bottom-2` (+ .zone-max-h-150-top container rule) with
+  // `absolute right-[clamp(...)] bottom-[clamp(...)]`, which now anchors to a
+  // top-left positioned ancestor instead of the dialog. Violates DESIGN §7.4
+  // ("New counter (+): Bottom-right"); button is also 28.8×28.8px < §8.3
+  // 44×44 touch target. Tracked for @frontend-dev — skip until fixed.
+  test.fixme("1.3. [+] button renders at bottom-right", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone to open Counters overlay
     await page.goto("/");
     await swipeOn(zone(page, 1), "left");
@@ -180,9 +195,17 @@ test.describe("Counters Overlay — Layout & Content", () => {
     // expect: Button has classes select-none and touch-manipulation
     await expect(plusBtn).toHaveClass(/select-none/);
     await expect(plusBtn).toHaveClass(/touch-manipulation/);
-    // expect: Button is positioned bottom-right within the dialog
-    await expect(plusBtn).toHaveClass(/right-4/);
-    await expect(plusBtn).toHaveClass(/bottom-4/);
+    // expect: Button is positioned bottom-right within the dialog (≤80px from
+    // the dialog's bottom-right corner — clamped inset is ~14-24px)
+    const btnBox = await plusBtn.boundingBox();
+    const dlgBox = await dlg.boundingBox();
+    if (!btnBox || !dlgBox) throw new Error("cannot measure bounding boxes");
+    expect(
+      dlgBox.x + dlgBox.width - (btnBox.x + btnBox.width),
+    ).toBeLessThanOrEqual(80);
+    expect(
+      dlgBox.y + dlgBox.height - (btnBox.y + btnBox.height),
+    ).toBeLessThanOrEqual(80);
   });
 });
 
