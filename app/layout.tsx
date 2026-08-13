@@ -32,7 +32,7 @@ export default function RootLayout({ children }: Readonly<PropsWithChildren>) {
       <head>
         <meta name="apple-mobile-web-app-title" content="Life Counter" />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="overflow-y-hidden min-h-full flex flex-col">
         <LockPortrait />
         <SWRegister />
         {children}

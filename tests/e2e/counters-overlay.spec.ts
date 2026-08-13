@@ -67,10 +67,11 @@ async function holdButton(page: Page, button: Locator, ms: number): Promise<void
 }
 
 function counterValue(dlg: Locator, name: string): Locator {
-  // Find the `+1 ${name} counter` button, then return its preceding sibling
-  // value span (`aria-live="polite"` is set on the <span> in CounterRow).
+  // Find the `+1 ${name} counter` button, then return the value span that
+  // precedes the button group (`aria-live="polite"` is set on the <span> in
+  // CounterRow; buttons live in a nested wrapper div).
   const btn = dlg.getByRole("button", { name: `+1 ${name} counter` });
-  return btn.locator("xpath=./preceding-sibling::*[@aria-live='polite']");
+  return btn.locator("xpath=../preceding-sibling::*[@aria-live='polite']");
 }
 
 /* ───────────────────────────────────────────────

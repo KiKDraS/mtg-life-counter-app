@@ -22,7 +22,7 @@ export const ExtendedSplashScreen = () => {
       <HideSplashScreenHandler />
       <div
         id="extended-splash-screen"
-        className="fixed inset-0 z-9999 flex items-center justify-center bg-ui-splash opacity-100 transition-opacity duration-300 ease-in-out motion-reduce:transition-none pwa:hidden"
+        className="fixed inset-0 z-9999 flex items-center justify-center bg-ui-splash opacity-100 transition-opacity duration-300 ease-in-out motion-reduce:transition-none"
       >
         <Image
           src={appleIcon}

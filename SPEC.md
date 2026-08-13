@@ -101,9 +101,11 @@ Two stores — separate initial values from live state.
   `opacity-100`→`opacity-0` (300ms CSS transition) → element removed at 310ms.
 - No user dismiss paths: no tap/backdrop/Escape handlers. Close via effect
   only.
-- PWA (standalone): splash hidden (`pwa:` variant — `display-mode:
-  standalone` media query). Native OS splash covers launch. Browser mode:
-  splash active (§4.6 rules above).
+- All display modes (browser + PWA standalone): splash active. No `pwa:`
+  hiding — covers hydration flicker in standalone too (native OS splash
+  alone insufficient).
+- Scroll lock: `overflow-y-hidden` on `<body>` (layout.tsx). App never
+  scrolls; splash overlay is fixed, no scroll affordance beneath.
 - Re-run after removal → no-op (element gone).
 - Fast hydration (no/blocked IDB, §4.5): hydrator resolves → cover hides on
   first effect flush.
