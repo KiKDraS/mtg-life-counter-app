@@ -28,6 +28,7 @@ interface CounterRowProps {
  */
 const BORDERLESS_BTN_CLASS = cn(
   TEXT_CLASSES,
+  "flex min-w-11 min-h-11 items-center justify-center",
   "select-none touch-manipulation focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white",
 );
 
@@ -99,7 +100,7 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center justify-center gap-[clamp(0.25rem,10cqmin,1.75rem)]">
       {renderIcon()}
 
       {/* Value */}

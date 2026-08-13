@@ -5,9 +5,7 @@ import { useLifeAdjustment } from "@/features/player-zone/hooks/use-life-adjustm
 import { INCREMENT_LIFE } from "@/features/player-zone/constants/life";
 import { UI } from "@/shared/lib/constants/colors";
 import PlaneswalkerSymbol from "@/shared/components/icons/PlaneswalkerSymbol";
-import {
-  usePlayerStateContext,
-} from "@/features/player-zone/state/hooks";
+import { usePlayerStateContext } from "@/features/player-zone/state/hooks";
 import { adjustCommanderDamage } from "@/features/player-zone/state/actions";
 import type { PlayerId } from "@/features/player-zone/types/player";
 import { cn } from "@/shared/lib/cn";
@@ -49,7 +47,7 @@ export function CommanderDamageColumn({
   );
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center justify-center gap-[clamp(0.25rem,4cqmin,1.5rem)]">
       {/* Pill — commander owner's mana color + PlaneswalkerSymbol */}
       <span
         className={cn(
@@ -65,7 +63,7 @@ export function CommanderDamageColumn({
       {/* Damage total */}
       <span
         className={cn(
-          "text-heading @[250px]/zone:text-display font-black tabular-nums",
+          "text-heading font-black tabular-nums",
           "inline-block text-center leading-tight",
         )}
         style={{ color: isLethal ? UI.danger : UI.textLight }}
@@ -80,8 +78,8 @@ export function CommanderDamageColumn({
         type="button"
         aria-label="+1 commander damage"
         className={cn(
-          "text-heading @[250px]/zone:text-display font-black tabular-nums focus-visible:outline-0 select-none touch-manipulation",
-          "inline-block text-center leading-tight",
+          "text-heading font-black tabular-nums focus-visible:outline-0 select-none touch-manipulation",
+          "inline-flex min-w-11 min-h-11 items-center justify-center leading-tight",
         )}
         style={{ color: UI.textLight }}
         {...adjustment(INCREMENT_LIFE)}

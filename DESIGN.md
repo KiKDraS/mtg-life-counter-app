@@ -116,12 +116,14 @@ Life total = hero. All else secondary.
 
 | Token            | Value                        | Weight      | Usage                       |
 | ---------------- | ---------------------------- | ----------- | --------------------------- |
-| `--text-life`    | `clamp(3.5rem, 15vw, 6rem)`  | Black 900   | Life total number           |
-| `--text-display` | `clamp(2.5rem, 6vw, 5rem)`   | Black 900   | Commander damage big number |
-| `--text-heading` | `clamp(1.5rem, 3vw, 2.5rem)` | Bold 700    | Modal titles                |
+| `--text-life`    | `clamp(3.5rem, 15cqmin, 6rem)`  | Black 900   | Life total number           |
+| `--text-display` | `clamp(2.5rem, 6cqmin, 5rem)`   | Black 900   | Commander damage big number |
+| `--text-heading` | `clamp(1.8rem, 3cqmin, 2.8rem)` | Bold 700    | Modal titles                |
 | `--text-body`    | `1rem`                       | Medium 500  | UI labels, buttons          |
 | `--text-body-sm` | `0.875rem`                   | Regular 400 | Captions                    |
 | `--text-caption` | `0.75rem`                    | Regular 400 | Small badges                |
+
+`cqmin` = min(container width, height) — player zone `@container/zone`. Type scales to zone, not viewport.
 
 ### 3.3 Line Heights
 
@@ -563,6 +565,7 @@ columns for playerId 0 (own commander), 1, 2, 3 (opponents).
   (white fill).
 - **Total:** Archivo Bold. Text per luminance.
 - **+ button:** Tap +1, hold ±10 after 1s. Borderless.
+- **Wrap:** flex-wrap. 4p+ player 0 + player 5: 30% width (3/row). Else: 45% (2/row).
 - **Life reduction:** Each commander damage point also −1 life.
   `adjustCommanderDamage(+3)` → life -3.
 - **Lethal:** Any commander ≥21 → current player loses. Value + life total →
@@ -572,7 +575,7 @@ columns for playerId 0 (own commander), 1, 2, 3 (opponents).
 
 ### 7.4 Counters Overlay
 
-Always 2-column grid. BG: `#1a1a1a`.
+Flex-wrap rows, content-sized. BG: `#1a1a1a`.
 
 **Default counters (always present):** ☠️ Poison, ⚡ Energy, ✦ Experience, ⏳
 Time
@@ -593,7 +596,7 @@ Time
   displayed.
 - **Poison Lethal:** 10+ → player loses. Poison value + life total → `#D50000`.
   Zone shows small "Poison Lethal" under life total.
-- **Grid:** 2 columns. Left-to-right, top-to-bottom. Defaults fill rows 1-2.
+- **Grid:** flex-wrap. Left-to-right, top-to-bottom. Defaults first.
 
 ---
 
@@ -608,6 +611,8 @@ Time
 | `md:`   | ≥ 768px  | 2×2 grid for landscape    |
 | `lg:`   | ≥ 1024px | Full 2×3 grid for 6p      |
 | `xl:`   | ≥ 1440px | Larger life, more spacing |
+
+Life/display/heading tokens = cqmin (§3.2): scale to zone container, not viewport. Breakpoints gate layout, not type size.
 
 ### 8.2 Orientation
 

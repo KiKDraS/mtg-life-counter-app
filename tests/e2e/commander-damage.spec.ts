@@ -880,6 +880,7 @@ test.describe("Commander Damage — Accessibility & Edge Cases", () => {
     await expect(heading).toHaveText("Commander Damage");
   });
 
+  // DESIGN §8.3: [+] pill is min-w-11 min-h-11 (44×44) touch target.
   test("7.2. [+] button maintains 44×44px minimum touch target", async ({
     page,
   }) => {

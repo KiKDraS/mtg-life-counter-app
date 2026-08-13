@@ -375,8 +375,9 @@ test.describe("Player Selector Modal", () => {
     await expect(
       countersReopen.locator('[aria-label="Lore counter"]'),
     ).toHaveCount(0);
-    // exactly 4 default counters all at 0
-    const rows = countersReopen.locator("div.grid > div");
+    // exactly 4 default counters all at 0 (rows = aria-live value spans;
+    // layout is flex-wrap since the counters UI polish)
+    const rows = countersReopen.locator('[aria-live="polite"]');
     await expect(rows).toHaveCount(4);
     for (const name of ["poison", "energy", "experience", "time"]) {
       await expect(counterValue(countersReopen, name)).toHaveText("0");

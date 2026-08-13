@@ -147,8 +147,9 @@ test.describe("Restart Life", () => {
     // expect: Custom counter "Lore" absent
     await expect(countersDlg.locator('[aria-label="Lore counter"]')).toHaveCount(0);
 
-    // expect: Only 4 default counters remain
-    const counterRows = countersDlg.locator("div.grid > div");
+    // expect: Only 4 default counters remain (rows = aria-live value spans;
+    // layout is flex-wrap since the counters UI polish)
+    const counterRows = countersDlg.locator('[aria-live="polite"]');
     await expect(counterRows).toHaveCount(4);
   });
 

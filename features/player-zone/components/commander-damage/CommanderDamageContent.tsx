@@ -54,10 +54,15 @@ export function CommanderDamageContent() {
     });
   }, [playerCount, playerColors, commanderDamage]);
 
-  const GRID_COLS =
-    (playerCount > 4 && state.playerId === 0) || state.playerId === 5
-      ? "grid-cols-3"
-      : "grid-cols-2";
+  const ITEM_WIDTH =
+    (playerCount >= 4 && state.playerId === 0) || state.playerId === 5
+      ? "w-[30%]"
+      : "w-[45%]";
+
+  const JUSTIFY_CLASS =
+    playerCount <= 4 || (playerCount >= 4 && state.playerId === 0)
+      ? "justify-start"
+      : "justify-center";
 
   /*
    * 2. Pure Declarative UI
@@ -70,20 +75,21 @@ export function CommanderDamageContent() {
 
       <div
         className={cn(
-          "grid w-full max-w-md justify-items-center",
-          GRID_COLS,
-          "gap-4",
+          "flex w-full max-w-lg flex-wrap items-center",
+          JUSTIFY_CLASS,
+          "gap-[clamp(1rem,5cqmin,2rem)]",
         )}
       >
         {damageColumns.map((col) => (
-          <CommanderDamageColumn
-            key={col.pid}
-            commanderPlayerId={col.pid}
-            damage={col.damage}
-            isLethal={col.isLethal}
-            pillBg={col.pillBg}
-            pillFg={col.pillFg}
-          />
+          <div key={col.pid} className={cn("flex justify-center", ITEM_WIDTH)}>
+            <CommanderDamageColumn
+              commanderPlayerId={col.pid}
+              damage={col.damage}
+              isLethal={col.isLethal}
+              pillBg={col.pillBg}
+              pillFg={col.pillFg}
+            />
+          </div>
         ))}
       </div>
     </>
