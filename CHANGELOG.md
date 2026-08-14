@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.4] - 2026-08-14
+
+### Added
+
+- Color picker: every color selection adds to the color array; default `["r"]` no longer replaced — SPEC §8.5.1 (#146)
+
+### Fixed
+
+- Custom counter pill sizing, cqmin wheel, fixed add button (#145)
+
+- Test suite: 201 passing (2 pre-existing PWA-environment failures out of scope)
+
 ## [1.0.3] - 2026-08-13
 
 ### Added
