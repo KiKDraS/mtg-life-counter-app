@@ -12,15 +12,15 @@ interface ColorPickerProps {
 /**
  * §6.5 Color Picker Modal.
  *
- * Portaled to <body> (portalToBody) so the dialog box escapes the rotated
- * player-zone div that would otherwise become its containing block: the dark
- * overlay is full-viewport and unrotated — no overflow, backdrop dismiss
- * works across the whole screen.
+ * Fit-content dialog (§6.5: "Width = fit-content"), bound to the player's
+ * zone — the opener (PlayerZoneInteractive) calls showModal() and centers the
+ * box on the zone's screen rect, so the picker belongs to that player and
+ * never spans the window. Native `::backdrop` (rgba(0,0,0,0.35), §6.1) dims
+ * the rest; backdrop tap / Escape close.
  *
  * The wheel content is wrapped in a rotate(playerZoneRotation) div so the
- * circular layout stays player-upright (same orientation as before, when the
- * zone transform rotated the whole dialog). The wrapper holds only absolute
- * children (0×0 box) → no hit area → taps on empty overlay reach the dialog.
+ * circular layout stays player-upright. The wrapper is sized to the wheel
+ * extent (slot-scaled via cq units) so the dialog box hugs the wheel.
  *
  * Multi-select toggles dispatch live (`ManaActionButton`); ✓ / Colorless /
  * backdrop / Escape close only.
@@ -34,14 +34,14 @@ export function ColorPicker({ id }: ColorPickerProps) {
     <DialogShell
       id={id}
       ariaLabelledBy="color-picker-title"
-      className="items-center justify-center"
-      portalToBody
+      className="-translate-x-1/2 -translate-y-1/2"
+      fitContent
     >
       <h2 id="color-picker-title" className="sr-only">
         Color Picker
       </h2>
       <div
-        className="relative"
+        className="relative aspect-square w-[max(72cqmin,15rem)]"
         style={{ transform: `rotate(${playerZoneRotation}deg)` }}
       >
         <ManaWheel id={id} />

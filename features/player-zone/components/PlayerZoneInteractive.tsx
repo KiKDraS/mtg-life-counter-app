@@ -90,6 +90,19 @@ export function PlayerZoneInteractive({
     getDialog(dialogId)?.show();
   }, []);
 
+  /* §6.5 — Color picker opens modal (native backdrop), centered on the
+     player's zone rect so it stays bound to that zone (fit-content box). */
+  const openColorPicker = useCallback(() => {
+    const dialog = getDialog(ids.colorPicker);
+    if (!dialog) return;
+    const rect = zoneRef.current?.getBoundingClientRect();
+    if (rect) {
+      dialog.style.left = `${rect.left + rect.width / 2}px`;
+      dialog.style.top = `${rect.top + rect.height / 2}px`;
+    }
+    dialog.showModal();
+  }, [ids]);
+
   const handleSwipe = useCallback(
     (targetDialogId: string) => {
       if (getDialog(ids.colorPicker)?.open) return;
@@ -165,7 +178,7 @@ export function PlayerZoneInteractive({
           <button
             type="button"
             aria-label="Change color"
-            onClick={() => openDialog(ids.colorPicker)}
+            onClick={openColorPicker}
             className={cn(
               "w-[18cqmin] h-[18cqmin] max-w-11 max-h-11",
               "absolute right-1 top-1 z-10 flex items-center justify-center rounded-full transition-colors cursor-pointer",
