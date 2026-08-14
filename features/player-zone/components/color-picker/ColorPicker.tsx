@@ -27,7 +27,7 @@ export function ColorPicker({ id }: ColorPickerProps) {
       <h2 id="color-picker-title" className="sr-only">
         Color Picker
       </h2>
-      <div className="relative aspect-square w-[min(90vw,32rem)]">
+      <div className="relative aspect-square w-[min(90cqmin,32rem)]">
         <ManaWheel id={id} />
         <ConfirmButton id={id} />
       </div>
