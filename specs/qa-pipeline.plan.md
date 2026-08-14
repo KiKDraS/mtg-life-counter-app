@@ -167,7 +167,7 @@ MTG Life Counter PWA (Next.js 16 App Router, React 19, Tailwind 4, @playwright/t
 **File:** `tests/e2e/commander-damage-multiplayer.spec.ts`
 
 **Steps:**
-  1. set P2 color to Blue via gear → Blue mana → CheckCircle (zone bg → #C1D7E9)
+  1. set P2 color to Blue: gear → `Colorless mana` (applies `["c"]`, dialog closes) → reopen gear → `Blue mana` → CheckCircle (replaces `["c"]` → `["b"]`; solid blue is only reachable via Colorless-clear per §8.5.1; zone bg → #C1D7E9)
     - expect: P2 zone background solid rgb(193,215,233)
   2. open P1 commander grid (2p or 5p) and read pill background colors
     - expect: column for playerId 1 (P2's commander) pill bg = rgb(193,215,233) (blue)
@@ -350,11 +350,11 @@ MTG Life Counter PWA (Next.js 16 App Router, React 19, Tailwind 4, @playwright/t
 **File:** `tests/e2e/player-zone.spec.ts`
 
 **Steps:**
-  1. set P1 color to White via gear → White → CheckCircle
+  1. set P1 color to White: gear → `Colorless mana` (applies `["c"]`, closes) → reopen gear → `White mana` → CheckCircle (replaces `["c"]` → `["w"]` — solid via Colorless-clear, §8.5.1)
     - expect: zone bg solid rgb(248,246,216) (white)
     - expect: life total color rgb(26,26,26) (dark text)
     - expect: zone section inline text-shadow contains rgba(255,255,255,0.5) (light halo on dark text)
-  2. set P1 color to Black via gear → Black → CheckCircle
+  2. set P1 color to Black: gear → `Colorless mana` (closes) → reopen gear → `Black mana` → CheckCircle (`["c"]` → `["b"]`)
     - expect: zone bg solid rgb(102,101,101) (black)
     - expect: life total color rgb(250,248,245) (light text)
     - expect: zone section inline text-shadow contains rgba(0,0,0,0.4) (dark halo on light text)
@@ -364,16 +364,16 @@ MTG Life Counter PWA (Next.js 16 App Router, React 19, Tailwind 4, @playwright/t
 **File:** `tests/e2e/player-zone.spec.ts`
 
 **Steps:**
-  1. set P1 to White + Blue + Black (w,u,b) via color picker toggles, then CheckCircle
+  1. set P1 to White + Blue + Black (w,u,b): gear → `Colorless mana` (closes) → reopen gear → tap White (replaces `["c"]` → `["w"]`), Blue, Black (add) → CheckCircle
     - expect: zone bg is a to-bottom-right gradient
-    - expect: life total color is rgb(250,248,245) (light — minimax over w+u+b keeps worst-case readable)
-    - expect: life total has non-empty text-shadow (dark halo)
+    - expect: life total color is rgb(26,26,26) (dark — minimax over w+u+b: dark's worst case on the black band beats light's on the white band)
+    - expect: life total has non-empty text-shadow (light halo)
 
 ### 6. Color Picker (SPEC §8.5.1, DESIGN §6.5)
 
 **Seed:** `tests/seed.spec.ts`
 
-#### 6.1. CP-01: Multi-select WYSIWYG — replace default, add, remove, no-op last (regression)
+#### 6.1. CP-01: Multi-select WYSIWYG — add from default, remove, no-op last (regression)
 
 **File:** `tests/e2e/color-picker.spec.ts`
 
@@ -382,17 +382,20 @@ MTG Life Counter PWA (Next.js 16 App Router, React 19, Tailwind 4, @playwright/t
     - expect: dialog color-picker-0 open, Red aria-pressed=true (default [r])
     - expect: 6 mana buttons + Confirm color (CheckCircle) visible
   2. tap White (unselected, default [r])
-    - expect: replace → [w]: Red false, White true
+    - expect: add → [r,w]: Red true, White true (default persists — §8.5.1)
     - expect: dialog stays open
-    - expect: zone bg live solid white rgb(248,246,216)
-  3. tap Blue (unselected, non-default)
-    - expect: add → [w,u]: both true
-    - expect: zone bg live gradient
+    - expect: zone bg live red+white gradient (r rgb(228,153,119) 0–50%, w rgb(248,246,216) 50–100%)
+  3. tap Blue (unselected, multi [r,w])
+    - expect: add → [r,w,u]: all three true
+    - expect: zone bg live gradient (3 equal bands)
   4. tap Blue again (selected, multi)
-    - expect: remove → [w]: Blue false, White true
-    - expect: zone bg back to solid white
-  5. tap White again (selected, single)
-    - expect: no-op: White stays true (cannot remove last)
+    - expect: remove → [r,w]: Blue false, Red+White true
+    - expect: zone bg back to red+white gradient
+  5. tap White again (selected, multi [r,w])
+    - expect: remove → [r]: White false, Red true
+    - expect: zone bg solid red rgb(228,153,119)
+  6. tap Red again (selected, single [r])
+    - expect: no-op: Red stays true (cannot remove last — §8.5.1)
     - expect: zone bg unchanged
 
 #### 6.2. CP-02: Colorless replaces multi-selection and closes immediately (NEW colorless-replace case)
@@ -400,31 +403,31 @@ MTG Life Counter PWA (Next.js 16 App Router, React 19, Tailwind 4, @playwright/t
 **File:** `tests/e2e/color-picker.spec.ts`
 
 **Steps:**
-  1. set P1 to White + Blue (gradient) via toggles (dialog stays open)
-    - expect: [w,u] selected, zone bg gradient
+  1. set P1 to White + Blue via toggles (adds to default → [r,w,u] gradient; dialog stays open)
+    - expect: [r,w,u] selected, zone bg gradient
   2. tap Colorless
     - expect: dialog closes immediately
     - expect: zone bg solid rgb(202,197,192) (#CAC5C0)
-    - expect: reopen picker: Colorless aria-pressed=true, White/Blue/Red false ([c] replaced all)
+    - expect: reopen picker: no WUBRG button pressed, White/Blue/Red false ([c] replaced all; Colorless button carries no aria-pressed)
 
 #### 6.3. CP-03: CheckCircle / Escape / backdrop close without dispatch (regression)
 
 **File:** `tests/e2e/color-picker.spec.ts`
 
 **Steps:**
-  1. open P1 picker; tap Blue (goes live [b]); press Escape
+  1. open P1 picker; tap Blue (goes live [r,u] — adds to default); press Escape
     - expect: dialog closes
-    - expect: zone stays blue rgb(193,215,233) (WYSIWYG — no revert)
+    - expect: zone stays red+blue gradient (r rgb(228,153,119) + u rgb(193,215,233)) (WYSIWYG — no revert)
   2. open P1 picker again; tap Green; tap CheckCircle (Confirm color)
     - expect: dialog closes
-    - expect: zone stays green rgb(163,192,149) (confirm closes only)
+    - expect: zone stays red+green gradient (r rgb(228,153,119) + g rgb(163,192,149)) (confirm closes only)
 
 #### 6.4. CP-04: Gradient hard stops — exact equal bands per color count
 
 **File:** `tests/e2e/color-picker.spec.ts`
 
 **Steps:**
-  1. set P1 to White + Blue, read zone inline style background (el.style.background, not computed)
+  1. set P1 to White + Blue: gear → `Colorless mana` (applies `["c"]`, closes) → reopen → tap White (replaces `["c"]` → `["w"]`) → tap Blue (add → `["w","u"]`); read zone inline style background (el.style.background, not computed)
     - expect: string is linear-gradient(to bottom right, #F8F6D8 0%, #F8F6D8 50%, #C1D7E9 50%, #C1D7E9 100%) (2 equal bands)
   2. add Black → [w,u,b], read inline background
     - expect: stops at 0%, 33.33%, 66.66%, 100% (3 equal bands: #F8F6D8 0-33.33, #C1D7E9 33.33-66.66, #666565 66.66-100)
@@ -436,11 +439,11 @@ MTG Life Counter PWA (Next.js 16 App Router, React 19, Tailwind 4, @playwright/t
 **File:** `tests/e2e/color-picker.spec.ts`
 
 **Steps:**
-  1. set P1 → White, P2 → Blue (separate pickers)
-    - expect: P1 solid white, P2 solid blue
+  1. set P1 → White, P2 → Blue (separate pickers; single taps ADD to default `["r"]` → `["r","w"]` / `["r","u"]` per §8.5.1)
+    - expect: P1 red+white gradient, P2 red+blue gradient
   2. open belt → Restart Life
     - expect: life back to 40
-    - expect: P1 still white, P2 still blue (colors preserved, SPEC §8.1)
+    - expect: P1 still red+white gradient, P2 still red+blue gradient (colors preserved, SPEC §8.1)
   3. reload page (IndexedDB restore)
     - expect: colors + player count restored from game-init/game-state (§4)
 
@@ -453,11 +456,11 @@ MTG Life Counter PWA (Next.js 16 App Router, React 19, Tailwind 4, @playwright/t
 **File:** `tests/e2e/player-selector-modal.spec.ts`
 
 **Steps:**
-  1. set P1 color White; set initial life 30; tap P1 −2 (life 28)
-    - expect: P1 white, life 28
+  1. set P1 color White (picker → `White mana` → `Confirm color`; adds to default → `["r","w"]`); set initial life 30; tap P1 −2 (life 28)
+    - expect: P1 red+white gradient, life 28
   2. open belt → Players → tap 5 players
     - expect: 5 regions
-    - expect: P1 still white with life 30 (common reset with new count)
+    - expect: P1 still red+white gradient with life 30 (common reset with new count)
     - expect: P2–P5 red default, all at 30
   3. open P1 commander grid
     - expect: 5 columns all 0 (array length = new player count)

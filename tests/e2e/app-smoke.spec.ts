@@ -232,16 +232,21 @@ test.describe("RSC / Architecture / PWA Smoke", () => {
     await page.keyboard.press("Escape");
     await expect(page.locator('dialog[id="counters-2"]')).not.toBeVisible();
 
-    // change P2 color to Blue
+    // change P2 color to Blue (adds to default ["r"] → ["r","u"], §8.5.1)
     await zone(page, 2).getByRole("button", { name: "Change color" }).click();
     const picker = page.locator('dialog[id="color-picker-1"]');
     await expect(picker).toBeVisible();
     await picker.getByRole("button", { name: "Blue mana" }).click();
     await picker.getByRole("button", { name: "Confirm color" }).click();
     await expect(picker).not.toBeVisible();
+    // expect: P2 red+blue gradient (Blue ADDS to default ["r"], §8.5.1)
     await expect(zone(page, 2)).toHaveCSS(
-      "background-color",
-      "rgb(193, 215, 233)",
+      "background-image",
+      /^linear-gradient\(to (bottom right|right bottom), rgb\(228, 153, 119\)/,
+    );
+    await expect(zone(page, 2)).toHaveCSS(
+      "background-image",
+      /rgb\(193, 215, 233\)/,
     );
 
     // Restart Life

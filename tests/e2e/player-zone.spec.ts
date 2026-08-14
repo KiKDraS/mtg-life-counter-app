@@ -458,12 +458,17 @@ test.describe("Player Zone — Contrast & Touch Targets", () => {
   test("LC-03: textShadow pairs with minimax text color (light bg halo vs dark bg halo)", async ({
     page,
   }) => {
-    // 1. set P1 color to White via gear → White → CheckCircle
+    // 1. set P1 color to White: gear → Colorless (applies ["c"], closes) →
+    //    reopen gear → White mana → CheckCircle (replaces ["c"] → ["w"] —
+    //    solid via Colorless-clear, §8.5.1)
     await page.goto("/");
     const p1 = zone(page, 1);
     await p1.getByRole("button", { name: "Change color" }).click();
     const picker0 = page.locator('dialog[id="color-picker-0"]');
-    await picker0.getByRole("button", { name: "White mana" }).click();
+    await picker0.getByRole("button", { name: "Colorless mana" }).click();
+    await expect(picker0).not.toBeVisible();
+    await p1.getByRole("button", { name: "Change color" }).click();
+    await picker0.getByRole("button", { name: "White mana" }).click(); // ["c"] → ["w"]
     await picker0.getByRole("button", { name: "Confirm color" }).click();
     await expect(picker0).not.toBeVisible();
 
@@ -516,12 +521,17 @@ test.describe("Player Zone — Contrast & Touch Targets", () => {
   test("LC-04: Multi-color gradient text stays readable (minimax worst-case)", async ({
     page,
   }) => {
-    // 1. set P1 to White + Blue + Black (w,u,b) via color picker toggles, then CheckCircle
+    // 1. set P1 to White + Blue + Black (w,u,b): gear → Colorless (["c"],
+    //    closes) → reopen → White (replaces ["c"] → ["w"]), Blue, Black
+    //    (add) → CheckCircle (§8.5.1)
     await page.goto("/");
     const p1 = zone(page, 1);
     await p1.getByRole("button", { name: "Change color" }).click();
     const picker = page.locator('dialog[id="color-picker-0"]');
-    await picker.getByRole("button", { name: "White mana" }).click(); // ["r"] → ["w"]
+    await picker.getByRole("button", { name: "Colorless mana" }).click();
+    await expect(picker).not.toBeVisible();
+    await p1.getByRole("button", { name: "Change color" }).click();
+    await picker.getByRole("button", { name: "White mana" }).click(); // ["c"] → ["w"]
     await picker.getByRole("button", { name: "Blue mana" }).click(); // ["w"] → ["w","u"]
     await picker.getByRole("button", { name: "Black mana" }).click(); // ["w","u"] → ["w","u","b"]
     await picker.getByRole("button", { name: "Confirm color" }).click();

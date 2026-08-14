@@ -176,15 +176,15 @@
 
 **Steps:**
 1. Open Color Picker for Player 1 (tap gear icon)
-2. Tap White mana symbol → zone preview updates live
+2. Tap White mana symbol → zone preview updates live (adds to default `["r"]` → red+white gradient per §8.5.1)
 3. Tap CheckCircle ✓ → dialog closes
-4. Verify P1 zone background changed from default red to white
+4. Verify P1 zone background changed from default solid red to red+white gradient
 5. Open belt → tap Restart Life
 6. Check Player 1 zone color
 
 **Expected Results:**
 - Life totals reset to initialLife
-- Player 1 zone **remains white** (color preserved)
+- Player 1 zone **remains red+white gradient** (color preserved)
 - `playerColors` state is not affected by `restartGame` action
 
 ---
@@ -404,14 +404,14 @@
 **Description:** Cycling player count preserves custom colors for returning players.
 
 **Steps:**
-1. With 4 players, set P1 to Blue (U), P2 to Black (B)
+1. With 4 players, set P1 to Blue (U), P2 to Black (B) (tap Blue / Black once — colors ADD to default `["r"]` per §8.5.1)
 2. Open Players modal → select 2p
-3. Verify P1=Blue, P2=Black, P3/P4 gone
+3. Verify P1=red+blue gradient, P2=red+black gradient, P3/P4 gone
 4. Open Players modal → select 4p
 
 **Expected Results:**
-- P1 still Blue
-- P2 still Black
+- P1 still red+blue gradient (`["r","u"]`)
+- P2 still red+black gradient (`["r","b"]`)
 - P3, P4 have default colors (newly appended per §8.4.1)
 
 ---
@@ -464,42 +464,35 @@
 
 ---
 
-### TC-6.3: Multi-select — replace default, add non-default
+### TC-6.3: Multi-select — add from default, remove, no-op on last
 
-**Description:** Default `["r"]` replaced on tap. Non-default adds. Remove disallowed on last color.
+**Description:** Default `["r"]` persists on tap — unselected colors ADD. Remove allowed in multi-select, disallowed on last color.
 
 **Steps:**
 1. Open Color Picker for Player 1 (default `["r"]` → Red highlighted)
 2. Tap White mana symbol
 
 **Expected Results:**
-- Red un-highlights, White highlights (`aria-pressed` toggles)
+- Red STAYS highlighted, White highlights (`aria-pressed="true"` on both) — add → `["r","w"]`
 - Dialog stays open (no auto-close)
-- Player 1 zone preview updates to white background (`#F8F6D8`)
+- Player 1 zone preview: red+white gradient (`#E49977` + `#F8F6D8`), NOT solid white
 
-3. Tap Blue mana symbol
-
-**Expected Results:**
-- White stays highlighted, Blue highlights
-- Player 1 zone preview shows White+Blue gradient
-
-4. Tap Blue again
+3. Tap White mana symbol again (selected, multi `["r","w"]`)
 
 **Expected Results:**
-- Blue un-highlights (`aria-pressed="false"`)
-- Player 1 zone returns to solid white
+- White un-highlights (`aria-pressed="false"`) — remove → `["r"]`
+- Player 1 zone preview: back to solid red (`#E49977`)
 
-5. Tap Green
-
-**Expected Results:**
-- White stays highlighted, Green highlights
-- Zone preview: White+Green gradient
-
-6. Tap White mana symbol
+4. Tap Red mana symbol (now the only selected color — `["r"]`)
 
 **Expected Results:**
-- White un-highlights (`aria-pressed="false"`)
-- Zone preview: solid green (`#A3C095`)
+- NO-OP: Red stays highlighted (`aria-pressed="true"`), zone stays solid red (cannot remove last, §8.5.1)
+
+5. Tap Blue mana symbol, then tap Blue again
+
+**Expected Results:**
+- After first tap: Blue highlights, zone preview red+blue gradient (`#E49977` + `#C1D7E9`)
+- After second tap: Blue un-highlights, zone preview back to solid red
 
 ---
 
@@ -509,8 +502,8 @@
 
 **Steps:**
 1. Open Color Picker for Player 1 (default `["r"]`)
-2. Tap White → Red un-highlights, White highlights (dialog stays open)
-3. Tap Blue → both highlighted (dialog stays open, gradient preview)
+2. Tap White → Red STAYS highlighted, White highlights — add `["r","w"]` (dialog stays open)
+3. Tap Blue → all three highlighted — add `["r","w","u"]` (dialog stays open, 3-color gradient preview)
 4. Tap Colorless (C) mana symbol
 
 **Expected Results:**
@@ -519,12 +512,12 @@
 - `PlayerState.color` = `["c"]`
 
 5. Open Color Picker for Player 2 (default `["r"]`)
-6. Tap White → zone preview updates to white (dialog stays open)
+6. Tap White → zone preview updates to red+white gradient (dialog stays open)
 7. Tap CheckCircle ✓
 
 **Expected Results:**
 - Dialog closes
-- Player 2 zone remains white (color already applied)
+- Player 2 zone remains red+white gradient (color already applied)
 
 ---
 
@@ -534,12 +527,12 @@
 
 **Steps:**
 1. Open Color Picker for Player 1
-2. Tap Blue → zone preview updates to blue (dialog stays open)
+2. Tap Blue → zone preview updates to red+blue gradient (dialog stays open)
 3. Click backdrop or press Escape
 
 **Expected Results:**
 - Dialog closes
-- Player 1 remains Blue (applied on tap, no revert)
+- Player 1 remains red+blue gradient (applied on tap, no revert)
 
 ---
 

@@ -104,6 +104,26 @@ const BG = {
   blue: "rgb(193, 215, 233)",
 } as const;
 
+/**
+ * Assert a 2-color equal-band `to bottom right` gradient (exact buildGradient
+ * serialization: duplicated hard stops at 0/50/50/100%). Used wherever a color
+ * ADDS to the default `["r"]` — red always leads (§8.5.1).
+ */
+function expectTwoBandGradient(
+  zoneLocator: Locator,
+  secondRgb: string,
+): Promise<void> {
+  const esc = (s: string) => s.replace(/[()]/g, "\\$&");
+  const red = esc("rgb(228, 153, 119)");
+  const second = esc(secondRgb);
+  return expect(zoneLocator).toHaveCSS(
+    "background-image",
+    new RegExp(
+      `^linear-gradient\\(to (bottom right|right bottom), ${red} 0%, ${red} 50%, ${second} 50%, ${second} 100%\\)`,
+    ),
+  );
+}
+
 /* ── UI helpers (verbatim conventions from app-smoke / player-selector specs) ── */
 
 function zone(page: Page, n: number): Locator {
@@ -493,30 +513,30 @@ test.describe("PERS-05 — Color identity persists across reload", () => {
     await expect(picker).toBeVisible();
 
     // 2. Tap Blue mana, then Confirm color
-    await picker.getByRole("button", { name: "Blue mana" }).click();
+    await picker.getByRole("button", { name: "Blue mana" }).click(); // ["r"] → ["r","u"] (adds to default, §8.5.1)
     await picker.getByRole("button", { name: "Confirm color" }).click();
     await expect(picker).not.toBeVisible();
-    // expect: P1 zone blue (WYSIWYG, §8.5.1)
-    await expect(zone(page, 1)).toHaveCSS("background-color", BG.blue);
+    // expect: P1 zone red+blue gradient (Blue ADDS to default ["r"], §8.5.1)
+    await expectTwoBandGradient(zone(page, 1), BG.blue);
 
-    // 3. Read game-init — blue persists as "u" (MTG WUBRG code, §5)
+    // 3. Read game-init — blue persists as "u" in ["r","u"] (MTG WUBRG code, §5)
     await expect.poll(() => readInit(page)).toEqual({
       players: 2,
       initialLife: 40,
-      playerColors: { "0": ["u"], "1": ["r"] },
+      playerColors: { "0": ["r", "u"], "1": ["r"] },
     });
 
     // 4. Navigate to / (reload)
     await gotoApp(page);
-    // expect: P1 still blue, P2 still red (restored from game-init)
-    await expect(zone(page, 1)).toHaveCSS("background-color", BG.blue);
+    // expect: P1 still red+blue gradient, P2 still red (restored from game-init)
+    await expectTwoBandGradient(zone(page, 1), BG.blue);
     await expect(zone(page, 2)).toHaveCSS("background-color", BG.red);
 
     // 5. Read game-init again — unchanged (color is a setup value, init only)
     await expect.poll(() => readInit(page)).toEqual({
       players: 2,
       initialLife: 40,
-      playerColors: { "0": ["u"], "1": ["r"] },
+      playerColors: { "0": ["r", "u"], "1": ["r"] },
     });
   });
 });
@@ -660,16 +680,16 @@ test.describe("PERS-09 — Player count UP (2→4) resets existing + appends new
   test("4 players persists: colors kept, lives reset, new players appended", async ({
     page,
   }) => {
-    // 1. Navigate to /; set P1 color White
+    // 1. Navigate to /; set P1 color White (adds to default → ["r","w"], §8.5.1)
     await gotoApp(page);
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
     const picker = page.locator('dialog[id="color-picker-0"]');
     await expect(picker).toBeVisible();
-    await picker.getByRole("button", { name: "White mana" }).click();
+    await picker.getByRole("button", { name: "White mana" }).click(); // ["r"] → ["r","w"]
     await picker.getByRole("button", { name: "Confirm color" }).click();
     await expect(picker).not.toBeVisible();
-    // expect: P1 white
-    await expect(zone(page, 1)).toHaveCSS("background-color", BG.white);
+    // expect: P1 red+white gradient (white ADDS to default, §8.5.1)
+    await expectTwoBandGradient(zone(page, 1), BG.white);
 
     // 2. Tap P1 -1 life 2× (38) — dirtied life, to prove reset
     const p1Minus = zone(page, 1).getByRole("button", { name: "-1 life" });
@@ -685,8 +705,8 @@ test.describe("PERS-09 — Player count UP (2→4) resets existing + appends new
     await expect(page.getByRole("region", { name: /^Player \d:/ })).toHaveCount(
       4,
     );
-    // expect: P1 still white, P1/P2 life 40 (existing reset via §8.1)
-    await expect(zone(page, 1)).toHaveCSS("background-color", BG.white);
+    // expect: P1 still red+white gradient, P1/P2 life 40 (existing reset via §8.1)
+    await expectTwoBandGradient(zone(page, 1), BG.white);
     await expect(lifeTotal(zone(page, 1))).toHaveText("40");
     await expect(lifeTotal(zone(page, 2))).toHaveText("40");
     // expect: P3/P4 red default, life 40 (appended — §8.4.1)
@@ -700,7 +720,7 @@ test.describe("PERS-09 — Player count UP (2→4) resets existing + appends new
     await expect.poll(() => readInit(page)).toEqual({
       players: 4,
       initialLife: 40,
-      playerColors: { "0": ["w"], "1": ["r"], "2": ["r"], "3": ["r"] },
+      playerColors: { "0": ["r", "w"], "1": ["r"], "2": ["r"], "3": ["r"] },
     });
     // expect: 4 playerStates, each commanderDamage length 4 (player-count invariant)
     await expect
@@ -715,11 +735,11 @@ test.describe("PERS-09 — Player count UP (2→4) resets existing + appends new
 
     // 5. Navigate to / (reload)
     await gotoApp(page);
-    // expect: 4 regions restored; P1 white; all lives 40
+    // expect: 4 regions restored; P1 red+white gradient; all lives 40
     await expect(page.getByRole("region", { name: /^Player \d:/ })).toHaveCount(
       4,
     );
-    await expect(zone(page, 1)).toHaveCSS("background-color", BG.white);
+    await expectTwoBandGradient(zone(page, 1), BG.white);
     for (const n of [1, 2, 3, 4]) {
       await expect(lifeTotal(zone(page, n))).toHaveText("40");
     }
@@ -924,11 +944,11 @@ test.describe("PERS-12 — game-init vs game-state split: exact schemas", () => 
     await picker.getByRole("button", { name: "Confirm color" }).click();
     await expect(picker).not.toBeVisible();
 
-    // expect: game-init exact record (blue persists as "u")
+    // expect: game-init exact record (blue persists as "u", added to default "r")
     await expect.poll(() => readInit(page)).toEqual({
       players: 4,
       initialLife: 30,
-      playerColors: { "0": ["r"], "1": ["u"], "2": ["r"], "3": ["r"] },
+      playerColors: { "0": ["r"], "1": ["r", "u"], "2": ["r"], "3": ["r"] },
     });
     // expect: game-state = 4 full PlayerState records
     await expect
@@ -960,7 +980,7 @@ test.describe("PERS-12 — game-init vs game-state split: exact schemas", () => 
     await expect.poll(() => readInit(page)).toEqual({
       players: 4,
       initialLife: 30,
-      playerColors: { "0": ["r"], "1": ["u"], "2": ["r"], "3": ["r"] },
+      playerColors: { "0": ["r"], "1": ["r", "u"], "2": ["r"], "3": ["r"] },
     });
   });
 });

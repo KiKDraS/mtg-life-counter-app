@@ -158,18 +158,25 @@ test.describe("Restart Life", () => {
     await page.goto("/");
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
 
-    // Select Red (R) mana symbol
+    // Tap White (W) mana symbol — adds to default ["r"] → ["r","w"] (§8.5.1)
     const colorPicker = page.locator(`dialog[id="color-picker-0"]`);
     await expect(colorPicker).toBeVisible();
-    await colorPicker.getByRole("button", { name: "Red mana" }).click();
+    await colorPicker.getByRole("button", { name: "White mana" }).click();
 
-    // Red is the default §8.5.1 color — a color tap toggles selection but does
-    // not close the picker (only ✓/Colorless/backdrop/Escape close). Confirm.
+    // White ADDS to default ["r"] (red+white gradient preview, §8.5.1); a color
+    // tap does not close the picker (only ✓/Colorless/backdrop/Escape close). Confirm.
     await colorPicker.getByRole("button", { name: "Confirm color" }).click();
 
-    // expect: P1 zone background changes to red
+    // expect: P1 zone background changed from default solid red to red+white gradient
     await expect(colorPicker).not.toBeVisible();
-    await expect(zone(page, 1)).toHaveCSS("background-color", "rgb(228, 153, 119)");
+    await expect(zone(page, 1)).toHaveCSS(
+      "background-image",
+      /^linear-gradient\(to (bottom right|right bottom), rgb\(228, 153, 119\)/,
+    );
+    await expect(zone(page, 1)).toHaveCSS(
+      "background-image",
+      /rgb\(248, 246, 216\)/,
+    );
 
     // 2. Open belt and tap Restart Life
     await openBelt(page);
@@ -178,7 +185,14 @@ test.describe("Restart Life", () => {
     // expect: Life totals reset to 40
     await expect(lifeTotal(zone(page, 1))).toHaveText("40");
 
-    // expect: Player 1 zone remains red (color preserved)
-    await expect(zone(page, 1)).toHaveCSS("background-color", "rgb(228, 153, 119)");
+    // expect: Player 1 zone remains red+white gradient (color preserved)
+    await expect(zone(page, 1)).toHaveCSS(
+      "background-image",
+      /^linear-gradient\(to (bottom right|right bottom), rgb\(228, 153, 119\)/,
+    );
+    await expect(zone(page, 1)).toHaveCSS(
+      "background-image",
+      /rgb\(248, 246, 216\)/,
+    );
   });
 });
