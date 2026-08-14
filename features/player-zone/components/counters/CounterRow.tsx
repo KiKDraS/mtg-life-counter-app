@@ -80,8 +80,10 @@ export function CounterRow({ counter, onAdjust }: CounterRowProps) {
         <span
           className={cn(
             TEXT_CLASSES,
+            COUNTER_SVG_SIZE,
+            "text-center leading-[clamp(1.8rem, 3cqmin, 2.8rem)]",
             "select-none touch-manipulation",
-            "rounded-full uppercase",
+            "rounded-full aspect-square uppercase p-0.5",
           )}
           style={CUSTOM_PILL_STYLE}
           aria-label={`${accessibleName} counter`}

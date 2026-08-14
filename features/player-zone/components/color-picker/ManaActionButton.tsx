@@ -12,7 +12,6 @@ import {
   useGameStateContext,
 } from "@/features/game-shell/state/hooks";
 import { setGamePlayerColor } from "@/features/game-shell/state/actions";
-import { DEFAULT_PLAYER_COLOR } from "@/features/player-zone/constants/player";
 import { MANA_BTN_SIZE } from "../../constants/color";
 
 interface ManaActionButtonProps {
@@ -31,7 +30,7 @@ interface ManaActionButtonProps {
  * Escape close.
  *
  * Toggle rule (SPEC §8.5.1):
- * - Tap unselected: current = default `["r"]` → REPLACE `[color]`; otherwise ADD.
+ * - Tap unselected: ADD `[...cur, color]`; single colorless `["c"]` → REPLACE `[color]`.
  * - Tap selected: single → NO-OP (keep last); multi → REMOVE.
  *
  * @see DESIGN.md §6.5, SPEC.md §8.5.1
@@ -62,10 +61,8 @@ export function ManaActionButton({
       // ponytail: replace colorless with the new color.
       nextColors = [color];
     } else {
-      // ponytail: replace only when escaping default ["r"] (§3), else accumulate.
-      const isDefault =
-        current.length === 1 && current[0] === DEFAULT_PLAYER_COLOR[0];
-      nextColors = isDefault ? [color] : [...current, color];
+      // ponytail: accumulate colors on every unselected tap.
+      nextColors = [...current, color];
     }
     playerDispatch(setColor(nextColors));
     gameDispatch(setGamePlayerColor(state.playerId, nextColors));

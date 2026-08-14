@@ -134,7 +134,8 @@ must keep the `_vercel/speed-insights` 404 filter.
 3. Tap P1 `-1 life` 2×
    - expect: P1 life total "38"
 4. Open P1 color picker → `Blue mana` → `Confirm color`
-   - expect: picker closes; P1 zone bg `rgb(193, 215, 233)`
+   - expect: picker closes; P1 zone bg red+blue gradient (Blue ADDS to default `["r"]` → `["r","u"]`,
+     red `rgb(228, 153, 119)` + blue `rgb(193, 215, 233)`; §8.5.1)
 5. Final overlay + dialog state
    - expect: `#extended-splash-screen` count 0
    - expect: `page.locator("dialog[open]")` count 0

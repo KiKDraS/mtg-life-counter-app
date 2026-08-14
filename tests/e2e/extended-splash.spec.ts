@@ -334,13 +334,18 @@ test.describe("Extended Splash Screen", () => {
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
     const picker = page.locator('dialog[id="color-picker-0"]');
     await expect(picker).toBeVisible();
-    await picker.getByRole("button", { name: "Blue mana" }).click();
+    await picker.getByRole("button", { name: "Blue mana" }).click(); // ["r"] → ["r","u"]
     await picker.getByRole("button", { name: "Confirm color" }).click();
-    // expect: picker closes; P1 zone bg blue (WYSIWYG, §8.5.1)
+    // expect: picker closes; P1 zone bg red+blue gradient (Blue ADDS to default
+    // ["r"] → ["r","u"]; red rgb(228, 153, 119) + blue rgb(193, 215, 233); §8.5.1)
     await expect(picker).not.toBeVisible();
     await expect(zone(page, 1)).toHaveCSS(
-      "background-color",
-      "rgb(193, 215, 233)",
+      "background-image",
+      /^linear-gradient\(to (bottom right|right bottom), rgb\(228, 153, 119\)/,
+    );
+    await expect(zone(page, 1)).toHaveCSS(
+      "background-image",
+      /rgb\(193, 215, 233\)/,
     );
 
     // 5. Final overlay + dialog state

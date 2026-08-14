@@ -53,7 +53,7 @@ export function CountersContent({
       <div
         className={cn(
           "flex w-full max-w-lg flex-wrap items-center justify-start",
-          "gap-[10cqmin]",
+          "gap-[10cqmin] p-2.25",
         )}
       >
         {state.counters.map((counter) => (
@@ -70,7 +70,7 @@ export function CountersContent({
         type="button"
         aria-label="Add custom counter"
         className={cn(
-          "absolute z-40",
+          "fixed z-40",
           "right-[clamp(0.5rem,4cqmin,1.5rem)] bottom-[clamp(0.5rem,4cqmin,1.5rem)]",
           "flex aspect-square items-center justify-center rounded-full",
           "w-[clamp(1.8rem,8cqmin,2.8rem)] text-[clamp(1.5rem,6cqmin,2.25rem)]",

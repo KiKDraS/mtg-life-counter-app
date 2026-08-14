@@ -137,7 +137,7 @@ test.describe("Color Picker", () => {
     ).toHaveAttribute("aria-pressed", "false");
   });
 
-  test("TC-6.3: Multi-select — replace default, add non-default, remove multi, NO-OP last", async ({
+  test("TC-6.3: Multi-select — add from default, remove, no-op on last", async ({
     page,
   }) => {
     await page.goto("/");
@@ -145,7 +145,7 @@ test.describe("Color Picker", () => {
     // Sanity: default Player 1 zone is red (#E49977)
     await expect
       .poll(() => zoneBackground(page, 1))
-      .toContain("rgb(228, 153, 119)");
+      .toMatch(/^none \| rgb\(228, 153, 119\)$/);
 
     // Open Color Picker for Player 1
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
@@ -154,71 +154,92 @@ test.describe("Color Picker", () => {
     const tap = (name: string) =>
       page.getByRole("button", { name: name }).first().click();
 
-    // 1. Tap White: unselected + default (["r"]) → REPLACE → ["w"]
+    // 1. Tap White: unselected + default (["r"]) → ADD → ["r","w"] (default persists, §8.5.1)
     await tap("White mana");
     await expect(
       dialog.getByRole("button", { name: "Red mana" }),
-    ).toHaveAttribute("aria-pressed", "false");
+    ).toHaveAttribute("aria-pressed", "true"); // Red STAYS highlighted
     await expect(
       dialog.getByRole("button", { name: "White mana" }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(dialog).toBeVisible(); // dialog stays open
+    // red+white gradient (#E49977 + #F8F6D8), NOT solid white
     await expect
       .poll(() => zoneBackground(page, 1))
-      .toContain("rgb(248, 246, 216)"); // #F8F6D8 — solid white
+      .toMatch(/gradient.*rgb\(228, 153, 119\).*rgb\(248, 246, 216\)/);
 
-    // 2. Tap Blue: unselected + non-default (["w"]) → ADD → ["w","u"]
+    // 2. Tap Blue: unselected + multi (["r","w"]) → ADD → ["r","w","u"]
     await tap("Blue mana");
+    await expect(
+      dialog.getByRole("button", { name: "Red mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
     await expect(
       dialog.getByRole("button", { name: "White mana" }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(
       dialog.getByRole("button", { name: "Blue mana" }),
     ).toHaveAttribute("aria-pressed", "true");
-    await expect.poll(() => zoneBackground(page, 1)).toContain("gradient");
+    await expect.poll(() => zoneBackground(page, 1)).toContain("gradient"); // 3 equal bands
 
-    // 3. Tap Blue again: selected + multi → REMOVE → ["w"]
+    // 3. Tap Blue again: selected + multi → REMOVE → ["r","w"]
     await tap("Blue mana");
     await expect(
       dialog.getByRole("button", { name: "Blue mana" }),
     ).toHaveAttribute("aria-pressed", "false");
     await expect(
-      dialog.getByRole("button", { name: "White mana" }),
+      dialog.getByRole("button", { name: "Red mana" }),
     ).toHaveAttribute("aria-pressed", "true");
-    await expect
-      .poll(() => zoneBackground(page, 1))
-      .toContain("rgb(248, 246, 216)"); // back to solid white
-
-    // 4. Tap White again: selected + length 1 → NO-OP (cannot remove last)
-    await tap("White mana");
     await expect(
       dialog.getByRole("button", { name: "White mana" }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect
       .poll(() => zoneBackground(page, 1))
-      .toContain("rgb(248, 246, 216)"); // unchanged
+      .toMatch(/gradient.*rgb\(228, 153, 119\).*rgb\(248, 246, 216\)/); // back to red+white gradient
 
-    // 5. Tap Green: unselected + non-default single (["w"]) → ADD → ["w","g"]
+    // 4. Tap White: selected + multi → REMOVE → ["r"]
+    await tap("White mana");
+    await expect(
+      dialog.getByRole("button", { name: "White mana" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      dialog.getByRole("button", { name: "Red mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect
+      .poll(() => zoneBackground(page, 1))
+      .toMatch(/^none \| rgb\(228, 153, 119\)$/); // back to solid red (#E49977)
+
+    // 5. Tap Red: selected + length 1 → NO-OP (cannot remove last, §8.5.1)
+    await tap("Red mana");
+    await expect(
+      dialog.getByRole("button", { name: "Red mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect
+      .poll(() => zoneBackground(page, 1))
+      .toMatch(/^none \| rgb\(228, 153, 119\)$/); // unchanged — solid red
+
+    // 6. Tap Green: unselected + single (["r"]) → ADD → ["r","g"]
     await tap("Green mana");
     await expect(
-      dialog.getByRole("button", { name: "White mana" }),
+      dialog.getByRole("button", { name: "Red mana" }),
     ).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      dialog.getByRole("button", { name: "Green mana" }),
-    ).toHaveAttribute("aria-pressed", "true");
-    await expect.poll(() => zoneBackground(page, 1)).toContain("gradient");
-
-    // 6. Tap White: selected + multi → REMOVE → ["g"] solid green
-    await tap("White mana");
-    await expect(
-      dialog.getByRole("button", { name: "White mana" }),
-    ).toHaveAttribute("aria-pressed", "false");
     await expect(
       dialog.getByRole("button", { name: "Green mana" }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect
       .poll(() => zoneBackground(page, 1))
-      .toContain("rgb(163, 192, 149)"); // #A3C095 — solid green
+      .toMatch(/gradient.*rgb\(228, 153, 119\).*rgb\(163, 192, 149\)/); // red+green gradient
+
+    // 7. Tap Green again: selected + multi → REMOVE → ["r"]
+    await tap("Green mana");
+    await expect(
+      dialog.getByRole("button", { name: "Green mana" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      dialog.getByRole("button", { name: "Red mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect
+      .poll(() => zoneBackground(page, 1))
+      .toMatch(/^none \| rgb\(228, 153, 119\)$/); // solid red again
   });
 
   test("TC-6.4: Colorless closes immediately, CheckCircle closes without dispatch", async ({
@@ -245,16 +266,17 @@ test.describe("Color Picker", () => {
 
     await page.getByRole("button", { name: "White mana" }).first().click();
     await expect(dialog1).toBeVisible(); // toggle does NOT close
+    // White ADDS to default ["r"] → red+white gradient applied live (§8.5.1)
     await expect
       .poll(() => zoneBackground(page, 2))
-      .toContain("rgb(248, 246, 216)"); // white applied live
+      .toMatch(/gradient.*rgb\(228, 153, 119\).*rgb\(248, 246, 216\)/);
 
     await dialog1.getByRole("button", { name: "Confirm color" }).click();
     await expect(dialog1).not.toBeVisible();
-    // Color stays white — Confirm closes only, no dispatch per §8.5.1
+    // Color stays red+white gradient — Confirm closes only, no dispatch per §8.5.1
     await expect
       .poll(() => zoneBackground(page, 2))
-      .toContain("rgb(248, 246, 216)");
+      .toMatch(/gradient.*rgb\(228, 153, 119\).*rgb\(248, 246, 216\)/);
   });
 
   test("TC-6.5: Backdrop/Escape closes — colors already applied (no revert)", async ({
@@ -265,19 +287,20 @@ test.describe("Color Picker", () => {
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
     const dialog = colorPickerDialog(page, 0);
 
-    // Tap Blue: REPLACE from ["r"] → ["b"], goes live, dialog stays open
+    // Tap Blue: ADD from ["r"] → ["r","u"], goes live, dialog stays open
     await page.getByRole("button", { name: "Blue mana" }).first().click();
     await expect(dialog).toBeVisible();
+    // red+blue gradient (#E49977 + #C1D7E9), NOT solid blue
     await expect
       .poll(() => zoneBackground(page, 1))
-      .toContain("rgb(193, 215, 233)"); // #C1D7E9 — solid blue
+      .toMatch(/gradient.*rgb\(228, 153, 119\).*rgb\(193, 215, 233\)/);
 
     // Escape closes; color persists (WYSIWYG — no revert)
     await page.keyboard.press("Escape");
     await expect(dialog).not.toBeVisible();
     await expect
       .poll(() => zoneBackground(page, 1))
-      .toContain("rgb(193, 215, 233)");
+      .toMatch(/gradient.*rgb\(228, 153, 119\).*rgb\(193, 215, 233\)/);
   });
 
   test("CP-02: Colorless replaces multi-selection and closes immediately", async ({
@@ -290,15 +313,15 @@ test.describe("Color Picker", () => {
     const dialog = colorPickerDialog(page, 0);
     const tap = (name: string) =>
       page.getByRole("button", { name: name }).first().click();
-    await tap("White mana"); // ["r"] → ["w"]
-    await tap("Blue mana"); // ["w"] → ["w","u"]
+    await tap("White mana"); // ["r"] → ["r","w"] (adds to default, §8.5.1)
+    await tap("Blue mana"); // ["r","w"] → ["r","w","u"]
     await expect(
       dialog.getByRole("button", { name: "White mana" }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(
       dialog.getByRole("button", { name: "Blue mana" }),
     ).toHaveAttribute("aria-pressed", "true");
-    // expect: [w,u] selected, zone bg gradient
+    // expect: [r,w,u] selected, zone bg gradient
     await expect.poll(() => zoneBackground(page, 1)).toContain("gradient");
 
     // 2. tap Colorless
@@ -331,8 +354,11 @@ test.describe("Color Picker", () => {
     const tap = (name: string) =>
       page.getByRole("button", { name: name }).first().click();
 
-    // 1. set P1 to White + Blue, read inline background
-    await tap("White mana"); // ["r"] → ["w"]
+    // 1. set P1 to White + Blue — Colorless-clear first (["c"], dialog closes),
+    //    then White replaces ["c"] → ["w"], Blue adds → ["w","u"] (§8.5.1)
+    await tap("Colorless mana");
+    await zone(page, 1).getByRole("button", { name: "Change color" }).click();
+    await tap("White mana"); // ["c"] → ["w"] (colorless-clear, §8.5.1)
     await tap("Blue mana"); // ["w"] → ["w","u"]
     // expect: 2 equal bands — linear-gradient(to bottom right, #F8F6D8 0%, #F8F6D8 50%, #C1D7E9 50%, #C1D7E9 100%)
     await expect
