@@ -228,7 +228,7 @@ test.describe("Player Selector Modal", () => {
   test("PS-01: Count UP 2→5 — new players appended with defaults, existing preserved", async ({
     page,
   }) => {
-    // 1. set P1 color White; set initial life 30; tap P1 −2 (life 28)
+    // 1. set P1 color White (adds to default ["r"] → ["r","w"], §8.5.1); set initial life 30; tap P1 −2 (life 28)
     await page.goto("/");
     const p1 = zone(page, 1);
     await p1.getByRole("button", { name: "Change color" }).click();
@@ -236,7 +236,12 @@ test.describe("Player Selector Modal", () => {
     await picker.getByRole("button", { name: "White mana" }).click();
     await picker.getByRole("button", { name: "Confirm color" }).click();
     await expect(picker).not.toBeVisible();
-    await expect(p1).toHaveCSS("background-color", "rgb(248, 246, 216)");
+    // expect: P1 red+white gradient (White ADDS to default ["r"], §8.5.1)
+    await expect(p1).toHaveCSS(
+      "background-image",
+      /^linear-gradient\(to (bottom right|right bottom), rgb\(228, 153, 119\)/,
+    );
+    await expect(p1).toHaveCSS("background-image", /rgb\(248, 246, 216\)/);
 
     await page.getByLabel("Open Spellbook Menu").click();
     await page.getByRole("button", { name: "Initial Life" }).click();
@@ -248,7 +253,7 @@ test.describe("Player Selector Modal", () => {
     const minus = p1.getByRole("button", { name: "-1 life" });
     await minus.click();
     await minus.click();
-    // expect: P1 white, life 28
+    // expect: P1 red+white gradient, life 28
     await expect(lifeTotal(p1)).toHaveText("28");
 
     // 2. open belt → Players → tap 5 players
@@ -258,8 +263,12 @@ test.describe("Player Selector Modal", () => {
     await closeBelt(page);
     // expect: 5 regions
     await expect(page.getByRole("region", { name: /^Player \d:/ })).toHaveCount(5);
-    // expect: P1 still white with life 30 (common reset with new count)
-    await expect(p1).toHaveCSS("background-color", "rgb(248, 246, 216)");
+    // expect: P1 still red+white gradient with life 30 (common reset with new count)
+    await expect(p1).toHaveCSS(
+      "background-image",
+      /^linear-gradient\(to (bottom right|right bottom), rgb\(228, 153, 119\)/,
+    );
+    await expect(p1).toHaveCSS("background-image", /rgb\(248, 246, 216\)/);
     await expect(lifeTotal(p1)).toHaveText("30");
     // expect: P2–P5 red default, all at 30
     for (const n of [2, 3, 4, 5]) {

@@ -108,7 +108,11 @@ async function readIdb<T>(page: Page, store: string, key: string): Promise<T | u
 - **Zone color = inline `background` style** on the `<section role="region">`; solid color
   assertion via `toHaveCSS("background-color", ...)`: red `rgb(228, 153, 119)`, white
   `rgb(248, 246, 216)`, blue `rgb(193, 215, 233)`, black `rgb(102, 101, 101)`, green
-  `rgb(163, 192, 149)`, colorless `rgb(202, 197, 192)`.
+  `rgb(163, 192, 149)`, colorless `rgb(202, 197, 192)`. Multi-color → equal-hard-stop
+  to-bottom-right gradient (assert `el.style.background` / computed `background-image`):
+  e.g. `["r","w"]` = red `rgb(228,153,119)` 0–50% + white `rgb(248,246,216)` 50–100%,
+  `["r","u"]` = red 0–50% + blue `rgb(193,215,233)` 50–100% (§8.5.1: taps on default
+  `["r"]` ADD; solid single color only via Colorless-clear then color).
 - **Swipes are rotation-aware (2p):** P1 is a 180° slot → player-left (Commander Damage)
   = physical **right**; player-right (Counters) = physical **left**. P2 (0°) is the
   reverse. On 4p, P1/P2 top row are ±90° slots → use `swipeY`. (Same helper pattern as
@@ -215,13 +219,14 @@ async function readIdb<T>(page: Page, store: string, key: string): Promise<T | u
 **Steps:**
 1. Navigate to `/`; open P1 color picker (`Change color` → `dialog[id="color-picker-0"]`)
 2. Tap `Blue mana`, then `Confirm color`
-   - expect: picker closes; P1 zone bg `rgb(193, 215, 233)` (WYSIWYG, §8.5.1)
+   - expect: picker closes; P1 zone bg red+blue gradient (Blue ADDS to default `["r"]` → `["r","u"]`,
+     red `rgb(228, 153, 119)` 0–50% + blue `rgb(193, 215, 233)` 50–100%; WYSIWYG, §8.5.1)
 3. Read `game-init`
-   - expect: `playerColors = { "0": ["b"], "1": ["r"] }`
+   - expect: `playerColors = { "0": ["r","u"], "1": ["r"] }`
 4. Navigate to `/` (reload)
-   - expect: P1 still blue, P2 still red (restored from `game-init`)
+   - expect: P1 still red+blue gradient, P2 still red (restored from `game-init`)
 5. Read `game-init` again
-   - expect: unchanged `{"0":["b"],"1":["r"]}` — color is a setup value, written to init only
+   - expect: unchanged `{"0":["r","u"],"1":["r"]}` — color is a setup value, written to init only
 
 ### 6. PERS-06 — Restart (⟳) resets to initial life AND persists the reset
 
@@ -280,19 +285,19 @@ async function readIdb<T>(page: Page, store: string, key: string): Promise<T | u
 **File:** `tests/e2e/persistence.spec.ts`
 
 **Steps:**
-1. Navigate to `/`; set P1 color White (picker → `White mana` → `Confirm color`)
-   - expect: P1 white `rgb(248, 246, 216)`
+1. Navigate to `/`; set P1 color White (picker → `White mana` → `Confirm color`; adds to default → `["r","w"]`)
+   - expect: P1 red+white gradient (`rgb(228, 153, 119)` → `rgb(248, 246, 216)`)
 2. Tap P1 `-1 life` 2× (38) — dirtied life, to prove reset
 3. `openBelt` → `Players` → `4 players`
    - expect: modal closes; 4 regions
-   - expect: P1 still white, P1/P2 life 40 (existing players reset via §8.1 with new count)
+   - expect: P1 still red+white gradient, P1/P2 life 40 (existing players reset via §8.1 with new count)
    - expect: P3/P4 red default, life 40 (appended — §8.4.1)
 4. `closeBelt`; read both stores
-   - expect: `game-init` → `players: 4`, `playerColors` = `{"0":["w"],"1":["r"],"2":["r"],"3":["r"]}`
+   - expect: `game-init` → `players: 4`, `playerColors` = `{"0":["r","w"],"1":["r"],"2":["r"],"3":["r"]}`
    - expect: `game-state` → 4 `playerStates`, each `commanderDamage` length 4 (array length =
      player count invariant, SPEC §5)
 5. Navigate to `/` (reload)
-   - expect: 4 regions restored; P1 white; all lives 40
+   - expect: 4 regions restored; P1 red+white gradient; all lives 40
 
 ### 10. PERS-10 — Player count DOWN (4→2) resets + removes, persists, no leftover data
 
@@ -342,8 +347,8 @@ async function readIdb<T>(page: Page, store: string, key: string): Promise<T | u
    - expect: `game-init` record is EXACTLY `{ players, initialLife, playerColors }` (3 fields — §5)
    - expect: `game-state` record is EXACTLY `{ playerStates }` (1 field — §5)
 2. `openBelt` → `Initial Life` → `30`; → `Players` → `4 players`; set P2 color Blue
-   (picker `color-picker-1` → `Blue mana` → `Confirm color`); `closeBelt`
-   - expect: `game-init` = `{ players: 4, initialLife: 30, playerColors: {"0":["r"],"1":["b"],"2":["r"],"3":["r"]} }`
+   (picker `color-picker-1` → `Blue mana` → `Confirm color`; adds to default → `["r","u"]`); `closeBelt`
+   - expect: `game-init` = `{ players: 4, initialLife: 30, playerColors: {"0":["r"],"1":["r","u"],"2":["r"],"3":["r"]} }`
    - expect: `game-state` = 4 full `PlayerState` records (playerId, life, color, commanderDamage[], counters[])
 3. Tap P1 `-1 life` 2× (28); read both stores
    - expect: `game-state` P1 `life: 28` — live writes go to state only

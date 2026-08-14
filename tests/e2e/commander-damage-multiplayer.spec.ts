@@ -339,12 +339,18 @@ test.describe("Commander Damage — 5/6-Player Grids", () => {
   test("CD-06: Commander pill color follows owner's color picker selection (color sync regression)", async ({
     page,
   }) => {
-    // 1. set P2 color to Blue via gear → Blue mana → CheckCircle
+    // 1. set P2 color to Blue: gear → Colorless (applies ["c"], dialog closes)
+    //    → reopen gear → Blue mana → CheckCircle (replaces ["c"] → ["b"];
+    //    solid blue is only reachable via Colorless-clear per §8.5.1)
     await page.goto("/");
     await zone(page, 2).getByRole("button", { name: "Change color" }).click();
     const picker = page.locator('dialog[id="color-picker-1"]');
     await expect(picker).toBeVisible();
-    await picker.getByRole("button", { name: "Blue mana" }).click();
+    await picker.getByRole("button", { name: "Colorless mana" }).click();
+    await expect(picker).not.toBeVisible();
+    await zone(page, 2).getByRole("button", { name: "Change color" }).click();
+    await expect(picker).toBeVisible();
+    await picker.getByRole("button", { name: "Blue mana" }).click(); // ["c"] → ["b"]
     await picker.getByRole("button", { name: "Confirm color" }).click();
     await expect(picker).not.toBeVisible();
 
