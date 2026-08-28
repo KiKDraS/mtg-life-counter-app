@@ -14,6 +14,8 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 
 **Perf-reliability binding:** read `.opencode/docs/performance-reliability.md`. Gate = reject format `[PERF-REL]`.
 
+**Directive sync:** read `.opencode/docs/directive-sync.md` each invocation. Fresh reads. Gate = reject format `[SYNC]`.
+
 ---
 
 ## Systemic audit checklist
