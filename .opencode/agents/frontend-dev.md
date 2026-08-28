@@ -172,7 +172,7 @@ Deliver across 4 layers:
 
 - **Scryfall client (`shared/lib/services/scryfall.ts`):** Typed client.
   Endpoints, cache, rate, timeouts per SPEC.md §9.3.1. Phase 1: card text for
-  AI Judge RAG. Phase 2 (DESIGN.md §10): card art.
+  AI Judge RAG. Phase 2 (SPEC.md §10 Roadmap): card art.
 - **Game state (`shared/lib/state/game.ts`):** Discriminated union:
   `setup → playing → paused → ended`. Track life, poison, commander damage,
   monarch, initiative. Undo/redo via command stack. Session-local only.

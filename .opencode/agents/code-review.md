@@ -166,6 +166,7 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 - Agent/meta files restating DESIGN/SPEC/AGENTS/docs/skill rules → REJECT.
   Demand pointer ("per DESIGN.md §7.1"), no inline copy.
 - Stale detail: agent-file numbers/behavior ≠ source doc → REJECT. Source wins.
+- Stale §pointer: referenced section doesn't match source heading → REJECT.
 
 ---
 
