@@ -128,25 +128,11 @@ Deliver across 4 layers:
 
 ### 4. Design & aesthetics (DESIGN.md)
 
-- **Bound by DESIGN.md §1–9 + SPEC.md §1–7.** Read before writing code. Color palette,
-  typography, layout grids, modal patterns, gestures, interaction rules = hard
-  constraints.
-- **DESIGN.md overrides generic `frontend-design` rules.** This project's
-  "Typographic Brutalism + Color Identity" aesthetic:
-  - Single font (Archivo, variable 400–900)
-  - Solid block-color zone backgrounds — color = background
-  - Grid-based symmetric layout (2×2, 2×3, etc.)
-  - No player names — color + position identifies
-- **Key interactions (DESIGN.md §7):**
-  - Tap +/- for ±1. Hold for rapid acceleration (±5 → ±10 after 1s).
-  - Swipe left → commander damage overlay. Swipe right → counters overlay
-    (poison, energy, experience, time, custom).
-  - Top-row zones rotate 180° (CSS `rotate(180deg)`).
-  - Spellbook menu: M logo on horizontal line. Tap → black belt expands, action
-    icons spread left/right ("boxer belt"). Tap again to collapse.
-- **Motion (DESIGN.md §1.4):** Minimal, fast. Staggered zone reveal on game
-  start. Swipe overlays use spring physics. Respect `prefers-reduced-motion` →
-  disable swipe animations, instant show/hide.
+- **Bound by DESIGN.md §1–9 + SPEC.md §1–7.** Read before writing code.
+  Aesthetics, palette, type, layout, gestures, modals, motion, a11y = hard
+  constraints. No inline copies — implement per source doc.
+- **DESIGN.md overrides generic `frontend-design` rules.** "Typographic
+  Brutalism + Color Identity" per DESIGN.md §1–4.
 
 ### 5. Accessibility
 
@@ -156,7 +142,7 @@ Deliver across 4 layers:
 - **Keyboard:** All interactive elements reachable + operable via keyboard.
   Visible `focus-visible`.
 - **Forms:** `<label>` associations. Clear error messaging.
-- **Color contrast:** 4.5:1 text, 3:1 large text min.
+- **Color contrast:** per DESIGN.md §9. Auto-select via luminance.
 - **Dynamic text contrast:** Text on computed/variable background (mana colors,
   player zones) → use `textColorFor()` from `shared/lib/text-color-for.ts`.
   Never hardcode text color on MANA/UI backgrounds.
@@ -180,25 +166,18 @@ Deliver across 4 layers:
   ```
 - **Extract bloated JSX.** 2+ view branches → separate file. ~100 line ceiling.
 - **One concern per file.** Layout XOR logic XOR IO. Hooks/utils past 20 lines.
-- **State modules: one concern per file.** `features/<name>/state/` split into
-  `types.ts` / `constants.ts` / `actions.ts` / `reducer.ts` / `context.ts` /
-  `<Name>Provider.tsx` / `hooks.ts`. `createContext` + `useReducer` same file →
-  ESLint `state/no-state-spaghetti` REJECT. No `*-context.tsx` megafiles.
-  Import direct from concern file — no barrels.
+- **State modules:** per AGENTS.md **State Module Structure**.
 
 ### 8. API & data layer
 
-- **Scryfall client (`shared/lib/services/scryfall.ts`):** Typed client —
-  `/cards/search`, `/cards/autocomplete`, `/cards/named`. Cache server-side.
-  Respect rate limit headers. Phase 1: card text for AI Judge RAG. Phase 2
-  (DESIGN.md §10): card art.
+- **Scryfall client (`shared/lib/services/scryfall.ts`):** Typed client.
+  Endpoints, cache, rate, timeouts per SPEC.md §9.3.1. Phase 1: card text for
+  AI Judge RAG. Phase 2 (DESIGN.md §10): card art.
 - **Game state (`shared/lib/state/game.ts`):** Discriminated union:
   `setup → playing → paused → ended`. Track life, poison, commander damage,
   monarch, initiative. Undo/redo via command stack. Session-local only.
-- **PWA (`public/manifest.json`, `public/sw.js`):** Manifest with name, icons,
-  theme color, `display: standalone`. Service worker: network-first for AI
-  Judge, cache-first for static + Scryfall images. Offline fallback. Install
-  prompt from `beforeinstallprompt`.
+- **PWA (`public/manifest.json`, `public/sw.js`):** Install + offline behavior
+  per SPEC.md §8.6 + §9.10/§9.11, DESIGN.md §5.2.
 - **Player customization:** Session-local. Color picker + card art search
   (Scryfall) in React state/localStorage. No server persist, no accounts, no
   auth.

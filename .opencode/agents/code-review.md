@@ -24,10 +24,8 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 
 ### 1. RSC Boundaries
 
-- No async Client Components: zero `async function` in `'use client'` files.
-- No server-only imports in Client Components: no `fs`, `crypto`, DB,
-  `'use server'` in `'use client'` files.
-- Boundary at deepest leaf. Flag page-level `'use client'` unless justified.
+- Verify SPEC.md §1: client-leaf-only, zero async/server-only in `'use client'`,
+  boundary at deepest leaf. Flag deviation.
 
 ### 2. TypeScript
 
@@ -58,36 +56,19 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 - No barrel imports: Flag imports from `index.ts` re-exports. Demand direct
   source import.
 - No catch-all `utils.ts`: Flag. Each util its own file.
-- State modules: `features/**/state/**` mix `createContext` + `useReducer` →
-  REJECT (ESLint `state/no-state-spaghetti`). One concern per file:
-  `types.ts`/`constants.ts`/`actions.ts`/`reducer.ts`/`context.ts`/
-  `<Name>Provider.tsx`/`hooks.ts`. No `*-context.tsx` megafiles, no barrels.
-- Route modules: `app/api/**` per AGENTS.md **Route Module Structure**. Judge:
-  thin `route.ts` (parse/validate → stream only), one concern per file
-  (`config`/`rate-limit`/`sessions`/`sse`/`context`/`stream`). route.ts
-  >150 lines, business logic in route.ts, concern mixing, new concern without
-  dedicated file → REJECT.
+- State modules: per AGENTS.md **State Module Structure**. Mix
+  `createContext` + `useReducer` in one file → REJECT. No barrels.
+- Route modules: per AGENTS.md **Route Module Structure**. route.ts >150 lines,
+  logic in route.ts, concern mixing → REJECT.
 - Cognitive complexity: fn with >4 decision points (if/&&/||/ternary/loop) or
   nesting depth >2 → REJECT. Demand extraction to helpers. ESLint
   `complexity` max 8 enforced on `app/api/judge/**` + `features/ai-judge/**`.
 
 ### 3. Tailwind & Design
 
-- **DESIGN.md overrides** any generic `frontend-design` rules.
-  - Typography: Archivo via `next/font`. Single font, variable weights per §3.
-  - Colors: MTG mana per §2. Text auto-contrast based on luminance.
-  - Layout: Grid-based per §4. Top-row zones 180° rotated. No player names.
-  - Background: Solid block color. Reject texture/gradient additions.
-  - Motion: Minimal, fast per §1.4. Respect `prefers-reduced-motion` → instant
-    show/hide.
-- Utility-first: Flag `@apply` in component code. Only in `globals.css` for base
-  resets.
-- Class composition: Flag raw string concat in `className`. Must use `cn()`.
-  Flag repeated classes across siblings.
-- Responsive: Verify `sm:`, `md:`, `lg:` prefixes.
-- Design tokens: Flag hardcoded hex in `className`/`style`. Must use
-  `var(--color-*)`.
-- Anti-patterns (per §1.5): Player names, purple gradients on white,
+- **DESIGN.md overrides** any generic `frontend-design` rules. Flag deviation
+  from DESIGN.md §1–4 + §9 — compare source doc, no checklist copy.
+- Anti-patterns (per DESIGN.md §1.3): player names, purple gradients on white,
   Inter/Roboto/Arial, centered hero cards, gray-on-gray, rounded cards + soft
   shadows.
 
@@ -147,10 +128,8 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
   all stops guarantee adequate contrast.
 - `prefers-reduced-motion`: Per §9 — disable swipe animations, instant
   show/hide.
-- **DESIGN.md §9 specifics:**
-  - Screen reader: Player zones announce "Player [N]: [X] life" on focus.
-    Buttons announce "+1 life", "-1 life".
-  - Swipe gestures: Button alternatives for keyboard users.
+- **DESIGN.md §9:** verify SR announcements, keyboard swipe alternatives,
+  reduced-motion per source doc.
 
 ### 7. SEO
 
@@ -163,36 +142,30 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 
 ### 8. AI Integration
 
-- OpenRouter SDK: Use `@openrouter/sdk` — no raw `fetch`. ZDR enabled
-  (`zdr: true`). Proper provider routing.
-- Skill compliance: `openrouter-typescript-sdk` is the reference. Verify
-  sdk-package patterns — `chat.send` + chunk streaming, statusCode error
-  mapping (400/401/402/429/503), concurrent text+usage consumption. Reject
-  `@openrouter/agent` (callModel) usage — not a dependency. Reject patterns
-  the skill marks legacy.
-- Prompt quality: System prompt defines MTG judge persona with citation
-  requirement. Structured output. Reject generic "helpful assistant".
-- Citation grounding: Responses include `{ruleId, section, excerpt}`. Reject
-  answers without source.
-- Streaming UX: Chat UI consumes SSE cleanly — progressive render, no layout
-  shift, loading state until first token.
-- Error handling: OpenRouter errors (rate limits, model unavailable, content
-  filters) → user-friendly messages. No raw SDK errors leaked.
-- Token budget: System prompt + history within model context limits. Reject
-  unbounded growth.
-- Security: `OPEN_ROUTER_API_KEY` server-only. Rate limiting on `/api/judge`. No
-  user data persisted.
+- SDK usage per `openrouter-typescript-sdk` skill (load before review). Flag
+  raw `fetch`, `@openrouter/agent`, legacy patterns.
+- Route behavior per SPEC.md §9.5–9.7: SSE contract, fallback routing, persona,
+  structured output, citations. Flag generic personas, unsourced answers, raw
+  JSON leaks.
+- Streaming UX: SSE consumed cleanly — progressive render, no layout shift,
+  loading state until first token.
+- Errors: rate limits, model unavailable, content filters → user-friendly
+  messages. No raw SDK errors leaked.
+- Security: `OPEN_ROUTER_API_KEY` server-only. Rate limit per SPEC.md §9.5.
+  No user data persisted.
 
 ### 9. RSC Audit (SPEC.md §1)
 
-- **Root client check:** Reject top-level/page `'use client'` without direct
-  touch need.
-- **Leaf check:** Confirm swipe/touch/timers isolated in smallest leaf
-  component.
-- **SSR hydration:** Verify SSR matches §2 defaults. Prevent IndexedDB hydration
-  mismatch.
+- Verify root/leaf boundaries + SSR hydration sync per SPEC.md §1. Flag
+  deviation.
 
 ### 10. Contract Compliance — All agents: Read DESIGN.md + SPEC.md. Flag violations.
+
+### 11. Rule References (no copies)
+
+- Agent/meta files restating DESIGN/SPEC/AGENTS/docs/skill rules → REJECT.
+  Demand pointer ("per DESIGN.md §7.1"), no inline copy.
+- Stale detail: agent-file numbers/behavior ≠ source doc → REJECT. Source wins.
 
 ---
 
