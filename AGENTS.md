@@ -39,6 +39,7 @@ work. `@code-review` verifies against both.
 
 Agent files + meta files reference docs/skills/DESIGN/SPEC by pointer. Never
 copy rules into another file — copies go stale. Edit source only.
+DESIGN.md ↔ SPEC.md cross-references: pointer-only, no restated rules.
 
 ---
 
