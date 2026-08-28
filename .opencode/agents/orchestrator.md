@@ -35,16 +35,9 @@ Orchestrator-only. Workflow:
 
 ### Code change protocol
 
-Before codebase change:
-
-1. `.git/` exists? No → stop, ask user. Yes → step 2.
-2. Branch `feature/*` from `develop`
-3. Changes
-4. Commit + push
-5. PR `feature/*` → `develop`
-6. Wait for user approval
-
-Never commit to `develop` or `main` directly.
+Per AGENTS.md **Git Flow** — branch `feature/*` from `develop`, commit + push,
+PR to `develop`, wait user approval. `.git/` missing → stop, ask user. Never
+commit to `develop` or `main` directly.
 
 ---
 
@@ -92,6 +85,7 @@ Audit = `@code-review` → `APPROVED`/`REJECTED`. QA = full Playwright loop (§4
 A→B→C). No merge until both pass (when required).
 
 5. **Branch merge:**
+   - Rule-copies + §-pointer scan clean (per AGENTS.md **Enforcement**).
    - `@release-manager` creates PR.
    - **Stop + Prompt:** Present URL. Wait for "Approved"/"Aprobado".
    - Merge + delete branch.

@@ -39,6 +39,7 @@ work. `@code-review` verifies against both.
 
 Agent files + meta files reference docs/skills/DESIGN/SPEC by pointer. Never
 copy rules into another file — copies go stale. Edit source only.
+DESIGN.md ↔ SPEC.md cross-references: pointer-only, no restated rules.
 
 ---
 
@@ -73,6 +74,11 @@ All merges via PRs only. Branch ops by `@release-manager`.
 
 > This doc + DESIGN.md + SPEC.md are binding contracts. Violations rejected by
 > `@code-review`. Pipeline halts.
+
+Rule-copies check runs on EVERY merge, all types. `@code-review` skipped
+(meta/release)? Orchestrator scans diff for duplicated rules from
+docs/skills/DESIGN/SPEC → rework, no merge. §-pointers must resolve to
+source headings — mismatch → rework.
 
 ## State Module Structure (enforced by ESLint `state/no-state-spaghetti`)
 
