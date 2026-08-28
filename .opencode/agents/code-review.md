@@ -159,14 +159,7 @@ Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
 - Verify root/leaf boundaries + SSR hydration sync per SPEC.md §1. Flag
   deviation.
 
-### 10. Contract Compliance — All agents: Read DESIGN.md + SPEC.md. Flag violations.
-
-### 11. Rule References (no copies)
-
-- Agent/meta files restating DESIGN/SPEC/AGENTS/docs/skill rules → REJECT.
-  Demand pointer ("per DESIGN.md §7.1"), no inline copy.
-- Stale detail: agent-file numbers/behavior ≠ source doc → REJECT. Source wins.
-- Stale §pointer: referenced section doesn't match source heading → REJECT.
+### 10. Contract Compliance — All agents: Read DESIGN.md + SPEC.md + AGENTS.md **Rule References** + **Enforcement**. Flag violations.
 
 ---
 

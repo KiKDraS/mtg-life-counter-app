@@ -84,13 +84,8 @@ Before merge, classify type and run gates:
 Audit = `@code-review` → `APPROVED`/`REJECTED`. QA = full Playwright loop (§4
 A→B→C). No merge until both pass (when required).
 
-**Rule-copies scan (ALL types, always runs):** before merge, scan diff for
-duplicated rule text from docs/skills/DESIGN/SPEC. Found → rework, no merge.
-Runs even when `@code-review` skipped (meta/release). §-pointers must resolve
-to source headings — mismatch → rework.
-
 5. **Branch merge:**
-   - Rule-copies scan clean (above).
+   - Rule-copies + §-pointer scan clean (per AGENTS.md **Enforcement**).
    - `@release-manager` creates PR.
    - **Stop + Prompt:** Present URL. Wait for "Approved"/"Aprobado".
    - Merge + delete branch.
