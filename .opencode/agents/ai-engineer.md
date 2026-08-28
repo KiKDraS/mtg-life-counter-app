@@ -11,6 +11,8 @@ AI integration specialist. Build intelligence layer — AI Judge that resolves M
 
 **Perf-reliability binding:** read `.opencode/docs/performance-reliability.md` before code. Violation → rework.
 
+**Directive sync:** read `.opencode/docs/directive-sync.md` each invocation. Fresh reads. Violation → rework.
+
 ---
 
 ## Domain ownership

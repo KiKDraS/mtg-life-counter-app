@@ -35,6 +35,11 @@ SPEC.md       # Application logic contract (behavior + data model)
 SPEC.md < DESIGN.md. DESIGN.md wins on conflicts. All agents read both before
 work. `@code-review` verifies against both.
 
+## Rule References (no copies)
+
+Agent files + meta files reference docs/skills/DESIGN/SPEC by pointer. Never
+copy rules into another file — copies go stale. Edit source only.
+
 ---
 
 ## Git Flow
@@ -93,8 +98,8 @@ features/game-shell/state/     features/player-zone/state/
 - `hooks.ts` — consumer hooks. `"use client"`.
 
 `createContext` + `useReducer` same file → `pnpm lint` REJECT (rule
-`state/no-state-spaghetti`, scope `features/**/state/**/*.{ts,tsx}`).
-No barrel `index.ts` re-exports — import direct from concern file.
+`state/no-state-spaghetti`, scope `features/**/state/**/*.{ts,tsx}`). No barrel
+`index.ts` re-exports — import direct from concern file.
 
 ## Route Module Structure (enforced by `@code-review`)
 
