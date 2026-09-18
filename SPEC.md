@@ -516,8 +516,8 @@ Player question: {question}
 - `sessionId = aijudge-<version>` — deterministic, same server history across
   reloads.
 - IndexedDB blocked/private mode → memory-only fallback, app stays usable.
-- In-memory token budget: 24k tokens → FIFO prune oldest, keep system prompt +
-  last N turns.
+- In-memory token budget: 10k tokens → FIFO prune oldest, keep system prompt +
+  last N turns. Mirrored client-side char cap (10k × 4 chars).
 
 ### 9.10 UI Contract
 
