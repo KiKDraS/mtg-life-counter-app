@@ -41,6 +41,11 @@ Agent files + meta files reference docs/skills/DESIGN/SPEC by pointer. Never
 copy rules into another file — copies go stale. Edit source only.
 DESIGN.md ↔ SPEC.md cross-references: pointer-only, no restated rules.
 
+**Directive routing:** all agents → AGENTS.md. ≥2 agents → doc in
+`.opencode/docs/` + binding line in each agent file. 1 agent → agent file.
+**Agents defined in `.opencode/agents/*.md` only** — no inline JSON agent
+blocks. Single source. Duplicate definition = violation.
+
 ---
 
 ## Git Flow
