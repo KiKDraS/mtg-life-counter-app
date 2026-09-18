@@ -421,12 +421,16 @@ SSE events:
 { "type": "error", "code": "rate_limited", "message": "The AI Judge is busy. Please wait a moment." }
 ```
 
-- `token.content` = **answer text only**. Model emits JSON
-  `{answer, citations}` (§9.7); server extracts `answer` and streams only its
-  characters. Never raw JSON to client. Extraction failure → fallback: stream
-  raw model output (degraded, still readable).
-- `citations` delivered once in `done` — server contract (UI does not render
-  them; answers carry inline rule refs formatted per DESIGN.md §6.4.1).
+- `token.content` = **answer text only**. Model emits plain-text answer
+  immediately (no JSON wrapper, no reasoning), then `<<<CITATIONS>>>` delimiter
+  + compact JSON citation ids (§9.7). Server streams answer chars as they
+  arrive — nothing buffered, first visible char ≈ first model chunk. Never raw
+  JSON to client. Citations assembly failure → `citations: []` (answer intact).
+- `citations` assembled **server-side** from the model's compact ids: rule
+  excerpts = verbatim retrieved-rule text (§9.4), card excerpts = ruling
+  comment / oracle text (§9.7). Delivered once in `done` — server contract (UI
+  does not render them; answers carry inline rule refs formatted per DESIGN.md
+  §6.4.1).
 - `done.timings` = phase ms from request start: `contextMs` (Scryfall + RAG
   build; parallel max), `scryfallMs` (card lookups), `rulesMs` (rules
   fetch/cache + retrieval), `firstTokenMs` (first model chunk), `firstCharMs`
@@ -472,21 +476,29 @@ Player question: {question}
   Rulings block (existing format) follows it when rulings exist. No card → card
   block omitted.
 
-- Structured output `{answer, citations[]}`. Few-shot 2–3 Q&A pairs in system
-  prompt. Reasoning hidden — final answer only.
+- Output contract: plain-text answer (markdown subset), then a line with the
+  delimiter `<<<CITATIONS>>>`, then ONE compact JSON object
+  `{"citations":[{"type":"rule","ruleId":"702.34a"},{"type":"card","name":"Lier, Disciple of the Drowned"}]}`.
+  ruleId = plain CR id from context (`[CR 702.34a]` → `702.34a`); card name
+  verbatim from context. No reasoning in output — final answer only. No JSON
+  wrapper around the answer. Few-shot 2–3 Q&A pairs in system prompt.
 - **Language mirror:** system prompt mandates same-language response (es→es,
   en→en, other→en). `buildUserPrompt` prepends "Respond in Spanish." when
   Spanish stopwords detected in question. Deterministic server-side.
 - **Partial context:** system prompt — excerpts may be truncated; answer from
   excerpts + CR knowledge; never refuse over incomplete excerpt.
 - **Formatting:** markdown subset + inline rule refs per DESIGN.md §6.4.1.
-- Server extracts `answer` → streamed as token events; `citations` → `done`
-  event. Client never renders raw JSON (DESIGN.md §6.4).
+- Server streams the answer text as it arrives; parses the delimiter tail;
+  `citations` assembled server-side → `done` event. Client never renders raw
+  JSON (DESIGN.md §6.4).
+- Citation assembly (server): rule id → verbatim rule text from the rules
+  artifact (§9.3.2), `section` = parent section header text; card name →
+  ruling comment (date), else oracle text. Unknown id → citation dropped (no
+  fabrication). Excerpts clipped to 300 chars.
 - Citation types:
   - rule:
     `{type:"rule", ruleId:"CR 702.34a", section:"702.34. Flashback", excerpt}`
   - card: `{type:"card", name, source:"scryfall", date, excerpt}`
-- Card rulings injected into context as card citations.
 
 ### 9.8 Game Context
 

@@ -28,9 +28,12 @@ const TOTAL_TIMEOUT_MS = 120_000;
 /** First-token or total-time budget exceeded (SPEC §9.5). */
 export class StreamTimeoutError extends Error {}
 
-/** One completed model call: full text, token usage, served model. */
+/** One completed model call: streamed answer, citations tail, usage, model. */
 export interface StreamOutcome {
-  readonly content: string;
+  /** Streamed answer text (client-visible, no delimiter/tail). */
+  readonly answerText: string;
+  /** Citations JSON tail after `<<<CITATIONS>>>`, null when absent. */
+  readonly citationsJson: string | null;
   readonly usage: Usage;
   readonly model: string;
 }
@@ -98,44 +101,6 @@ export const classifyFailure = (err: unknown): FailureKind => {
   return "retryable";
 };
 
-/**
- * @description Apply one chunk's token delta (SPEC §9.5): accumulate raw JSON
- * into `content` (downstream citation parse) while emitting only the extracted
- * `answer` characters via `onToken`. No `answer` value after the fallback
- * thresholds → raw mode: emit the model output as-is (degraded path).
- * @param chunk The stream chunk.
- * @param content Raw JSON text accumulated so far.
- * @param extractor Incremental answer extractor (per-pump instance).
- * @param rawMode True once fallback raw streaming is active.
- * @param onToken Callback per emitted char group.
- * @returns The new raw content.
- */
-const applyToken = (
-  chunk: ChatStreamChunk,
-  content: string,
-  extractor: AnswerExtractor,
-  rawMode: boolean,
-  onToken: (token: string) => void,
-): { readonly content: string; readonly rawMode: boolean } => {
-  const token = chunk.choices[0]?.delta?.content;
-  if (!token) return { content, rawMode };
-  const next = content + token;
-  if (rawMode) {
-    onToken(token);
-    return { content: next, rawMode };
-  }
-  const extracted = extractor.push(token);
-  if (extracted) {
-    onToken(extracted);
-    return { content: next, rawMode };
-  }
-  if (extractor.shouldFallback()) {
-    onToken(extractor.flushRaw());
-    return { content: next, rawMode: true };
-  }
-  return { content: next, rawMode };
-};
-
 /** Chunk usage → our Usage shape, or the current usage when absent. */
 const applyUsage = (chunk: ChatStreamChunk, usage: Usage): Usage => {
   if (!chunk.usage) return usage;
@@ -146,18 +111,30 @@ const applyUsage = (chunk: ChatStreamChunk, usage: Usage): Usage => {
   };
 };
 
+/** One chunk's token delta through the extractor; emits answer chars. */
+const applyChunk = (
+  chunk: ChatStreamChunk,
+  extractor: AnswerExtractor,
+  onToken: (token: string) => void,
+): string => {
+  const token = chunk.choices[0]?.delta?.content;
+  if (!token) return "";
+  const emitted = extractor.push(token);
+  if (emitted) onToken(emitted);
+  return emitted;
+};
+
 /**
- * @description Pump the SDK chunk iterator (SPEC §9.5): concat raw token
- * deltas (full JSON kept for citation parse), emit only the extracted `answer`
- * characters via `onToken` (fallback: raw text when no `answer` key appears —
- * degraded mode), track served model + usage. Throws on provider error
- * chunks; abort surfaces as an iterator rejection.
+ * @description Pump the SDK chunk iterator (SPEC §9.5): split each chunk's
+ * token delta with the extractor, emit only the answer chars via `onToken`
+ * (delimiter/tail never reach the client), track served model + usage. Throws
+ * on provider error chunks; abort surfaces as an iterator rejection.
  * @param iterator The chunk iterator (first chunk consumed by the first-token
  * race in {@link streamWithFallback}).
  * @param first The first `next()` result from the race.
  * @param model Initial served model id (primary; chunk.model wins when set).
  * @param onToken Callback per emitted answer-text group (arrival order).
- * @returns The completed outcome (full raw content, usage, served model).
+ * @returns The completed outcome (answer text, citations tail, usage, model).
  * @throws Error on provider stream error chunk or stream abort.
  */
 async function pumpTokens(
@@ -166,9 +143,8 @@ async function pumpTokens(
   model: string,
   onToken: (token: string) => void,
 ): Promise<StreamOutcome> {
-  let content = "";
-  let rawMode = false;
   const extractor = new AnswerExtractor();
+  let answerText = "";
   let usage: Usage = { inputTokens: 0, outputTokens: 0, cost: 0 };
   let servedModel = model;
   let current = first;
@@ -176,11 +152,14 @@ async function pumpTokens(
     const chunk = current.value;
     if (chunk.error) throw new Error(chunk.error.message || "provider stream error");
     servedModel = chunk.model || servedModel;
-    ({ content, rawMode } = applyToken(chunk, content, extractor, rawMode, onToken));
+    answerText += applyChunk(chunk, extractor, onToken);
     usage = applyUsage(chunk, usage);
     current = await iterator.next();
   }
-  return { content, usage, model: servedModel };
+  const tail = extractor.flush();
+  if (tail) onToken(tail); // no-delimiter case: held-back suffix is answer text
+  answerText += tail;
+  return { answerText, citationsJson: extractor.citationsJson(), usage, model: servedModel };
 }
 
 /** SPEC §9.6 — usage + cost logged per request. Never logs key/question. */
@@ -215,8 +194,8 @@ const logFailure = (failure: FailureKind, err: unknown): void => {
  * @param models Model ids in preference order (primary first).
  * @param messages System + history + context user messages.
  * @param clientSignal Request abort signal — abort cancels the stream.
- * @param onToken Callback per emitted answer-text group (arrival order;
- * raw JSON fallback text if the model skips the JSON schema).
+ * @param onToken Callback per emitted answer-text group (arrival order —
+ * answer chars only, never the delimiter or citations tail).
  * @param onProgress Optional phase callbacks with `performance.now()` timestamps
  * (SPEC §9.5 telemetry): "first_token" = first chunk won the race,
  * "first_answer_char" = first visible char emitted.

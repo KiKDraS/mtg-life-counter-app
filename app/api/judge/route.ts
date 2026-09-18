@@ -11,32 +11,12 @@ import { SSE_HEADERS, encodeEvent, errorResponse, ERROR_MESSAGES } from "./sse";
 import { sessionKey, getSession } from "./sessions";
 import { buildContext } from "./context";
 import { streamWithFallback } from "./stream";
-import { sendTiming } from "./telemetry";
+import { scheduleTelemetry } from "./telemetry";
 import { buildMessages } from "@/features/ai-judge/lib/history";
-import { parseCitations } from "@/features/ai-judge/lib/citations";
-import type { JudgeEvent, JudgeRequest, JudgeTimings, Usage } from "@/features/ai-judge/lib/types";
-import { after } from "next/server";
+import { assembleCitations } from "@/features/ai-judge/lib/citations";
+import type { JudgeEvent, JudgeRequest, JudgeTimings } from "@/features/ai-judge/lib/types";
 
 const encoder = new TextEncoder();
-
-/** Fire telemetry after the response flushes (SPEC §9.5). Unknown → 0. */
-const fireTelemetry = (
-  timings: JudgeTimings,
-  model: string,
-  usage?: Usage,
-  error?: string,
-): void => {
-  after(() => {
-    sendTiming({
-      model,
-      inputTokens: usage?.inputTokens ?? 0,
-      outputTokens: usage?.outputTokens ?? 0,
-      cost: usage?.cost ?? 0,
-      ...(error ? { error } : {}),
-      timings,
-    });
-  });
-};
 
 export async function POST(request: Request): Promise<Response> {
   const t0 = performance.now();
@@ -75,11 +55,11 @@ export async function POST(request: Request): Promise<Response> {
         totalMs: Math.round(performance.now() - t0),
       });
       try {
-        const { contextText, sourcesUsed, timings: buildTimings } = await buildContext(question);
+        const context = await buildContext(question);
         contextMs = Math.round(performance.now() - t0);
-        contextTimings = buildTimings;
+        contextTimings = context.timings;
         const history = getSession(sessionKey(body.sessionId, ip));
-        const messages = buildMessages(history, question, contextText);
+        const messages = buildMessages(history, question, context.contextText);
         const onToken = (token: string): void =>
           enqueue({ type: "token", content: token });
         const result = await streamWithFallback(
@@ -96,18 +76,18 @@ export async function POST(request: Request): Promise<Response> {
         if (result.kind === "client_disconnected") return;
         if (result.kind === "mid_stream_failure") {
           enqueue({ type: "error", code: "model_unavailable", message: ERROR_MESSAGES.model_unavailable });
-          fireTelemetry(knownTimings(), models[0], undefined, "model_unavailable");
+          scheduleTelemetry(knownTimings(), models[0], undefined, "model_unavailable");
           return;
         }
         if (result.kind === "failed") {
           const code = result.failure === "timeout" ? "timeout" : "model_unavailable";
           enqueue({ type: "error", code, message: ERROR_MESSAGES[code] });
-          fireTelemetry(knownTimings(), models[0], undefined, code);
+          scheduleTelemetry(knownTimings(), models[0], undefined, code);
           return;
         }
 
-        const citations = parseCitations(result.outcome.content);
-        history.turns.push({ user: question, assistant: result.outcome.content });
+        const citations = assembleCitations(result.outcome.citationsJson, context.lookup);
+        history.turns.push({ user: question, assistant: result.outcome.answerText });
         const totalMs = Math.round(performance.now() - t0);
         const timings: JudgeTimings = {
           contextMs,
@@ -117,13 +97,13 @@ export async function POST(request: Request): Promise<Response> {
           firstCharMs: Math.round(firstCharAt - t0),
           totalMs,
         };
-        enqueue({ type: "done", citations, usage: result.outcome.usage, model: result.outcome.model, sourcesUsed, timings });
+        enqueue({ type: "done", citations, usage: result.outcome.usage, model: result.outcome.model, sourcesUsed: context.sourcesUsed, timings });
         console.log("[ai-judge] timing", JSON.stringify({ ...timings, model: result.outcome.model, inputTokens: result.outcome.usage.inputTokens, outputTokens: result.outcome.usage.outputTokens }));
-        fireTelemetry(timings, result.outcome.model, result.outcome.usage);
+        scheduleTelemetry(timings, result.outcome.model, result.outcome.usage);
       } catch (err) {
         console.error("AI Judge route error:", err);
         enqueue({ type: "error", code: "model_unavailable", message: ERROR_MESSAGES.model_unavailable });
-        fireTelemetry(knownTimings(), models[0], undefined, "model_unavailable");
+        scheduleTelemetry(knownTimings(), models[0], undefined, "model_unavailable");
       }
     },
   });
