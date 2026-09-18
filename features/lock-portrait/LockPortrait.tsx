@@ -1,9 +1,11 @@
 import { FullscreenEnforcer } from "./FullscreenEnforcer";
+import { WakeLockEnforcer } from "./WakeLockEnforcer";
 
 export function LockPortrait() {
   return (
     <>
       <FullscreenEnforcer />
+      <WakeLockEnforcer />
       <div className="fixed inset-0 z-50 hidden flex-col items-center justify-center bg-black px-6 text-center pointer-coarse:landscape:flex">
         <svg
           className="mb-6 size-16 text-white"

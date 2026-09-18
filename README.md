@@ -102,6 +102,20 @@ in-game utility.
 
 ---
 
+## Browser Compatibility
+
+The game table locks to portrait orientation and keeps the screen awake during play.
+
+| Capability | Support |
+| --- | --- |
+| Screen stays awake (Wake Lock API) | Chrome/Edge 84+, Safari/iOS 16.4+ (browser mode), iOS 18.4+ (home-screen PWA) |
+| Portrait lock + fullscreen | All modern browsers; orientation lock skipped where unsupported (iOS Safari) |
+| Firefox | No Wake Lock API — screen may sleep; no web mechanism exists |
+
+On iOS, the wake lock works in browser mode from 16.4, but in installed (home-screen) PWAs it only works on iOS 18.4+ — a long-standing WebKit bug (bug 254545) that Apple fixed in 18.4. On unsupported/installed-older-iOS setups the request fails silently: gameplay is never blocked, the screen may just sleep. Android installed PWAs are unaffected.
+
+---
+
 ## Architecture & Agent System
 
 This repository was constructed using a **contract-driven multi-agent

@@ -6,6 +6,11 @@ export default defineConfig({
   retries: 1,
   workers: 1,
   reporter: "list",
+  webServer: {
+    command: "pnpm dev",
+    url: "http://localhost:3000",
+    reuseExistingServer: !process.env.CI,
+  },
   use: {
     baseURL: "http://localhost:3000",
     viewport: { width: 1280, height: 720 },
