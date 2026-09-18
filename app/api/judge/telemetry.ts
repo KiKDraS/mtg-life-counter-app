@@ -11,14 +11,20 @@ const AXIOM_INGEST_URL = `https://api.axiom.co/api/v1/ingest/${axiomDataset}`;
 /** Send one timing event to Axiom when configured; no-op otherwise. */
 export const sendTiming = (timing: JudgeTimings & { model: string }): void => {
   if (!AXIOM_OK) return;
-  void fetch(AXIOM_INGEST_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${axiomToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify([
-      { ...timing, _time: new Date().toISOString() },
-    ]),
-  }).catch(() => {});
+  try {
+    void fetch(AXIOM_INGEST_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${axiomToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify([
+        { ...timing, _time: new Date().toISOString() },
+      ]),
+    }).catch(() => {});
+  } catch {
+    // Sync throw (malformed dataset URL, fetch unavailable) — telemetry never
+    // propagates to the route. ponytail: async rejections already swallowed
+    // by .catch; this guards the sync-throw path only.
+  }
 };
