@@ -11,13 +11,16 @@ import { SSE_HEADERS, encodeEvent, errorResponse, ERROR_MESSAGES } from "./sse";
 import { sessionKey, getSession } from "./sessions";
 import { buildContext } from "./context";
 import { streamWithFallback } from "./stream";
+import { sendTiming } from "./telemetry";
 import { buildMessages } from "@/features/ai-judge/lib/history";
 import { parseCitations } from "@/features/ai-judge/lib/citations";
-import type { JudgeEvent, JudgeRequest } from "@/features/ai-judge/lib/types";
+import type { JudgeEvent, JudgeRequest, JudgeTimings } from "@/features/ai-judge/lib/types";
+import { after } from "next/server";
 
 const encoder = new TextEncoder();
 
 export async function POST(request: Request): Promise<Response> {
+  const t0 = performance.now();
   if (!ENV_OK) return errorResponse(503, "misconfigured", ERROR_MESSAGES.misconfigured);
 
   const ip = clientIp(request);
@@ -42,15 +45,22 @@ export async function POST(request: Request): Promise<Response> {
       };
       try {
         const { contextText, sourcesUsed } = await buildContext(question);
+        const contextMs = Math.round(performance.now() - t0);
         const history = getSession(sessionKey(body.sessionId, ip));
         const messages = buildMessages(history, question, contextText);
         const onToken = (token: string): void =>
           enqueue({ type: "token", content: token });
+        let firstTokenAt = t0;
+        let firstCharAt = t0;
         const result = await streamWithFallback(
           models,
           messages,
           request.signal,
           onToken,
+          (phase, atMs) => {
+            if (phase === "first_token") firstTokenAt = atMs;
+            else firstCharAt = atMs;
+          },
         );
 
         if (result.kind === "client_disconnected") return;
@@ -66,7 +76,18 @@ export async function POST(request: Request): Promise<Response> {
 
         const citations = parseCitations(result.outcome.content);
         history.turns.push({ user: question, assistant: result.outcome.content });
-        enqueue({ type: "done", citations, usage: result.outcome.usage, model: result.outcome.model, sourcesUsed });
+        const totalMs = Math.round(performance.now() - t0);
+        const timings: JudgeTimings = {
+          contextMs,
+          firstTokenMs: Math.round(firstTokenAt - t0),
+          firstCharMs: Math.round(firstCharAt - t0),
+          totalMs,
+        };
+        enqueue({ type: "done", citations, usage: result.outcome.usage, model: result.outcome.model, sourcesUsed, timings });
+        console.log("[ai-judge] timing", JSON.stringify({ ...timings, model: result.outcome.model, inputTokens: result.outcome.usage.inputTokens, outputTokens: result.outcome.usage.outputTokens }));
+        after(() => {
+          sendTiming({ ...timings, model: result.outcome.model });
+        });
       } catch (err) {
         console.error("AI Judge route error:", err);
         enqueue({ type: "error", code: "model_unavailable", message: ERROR_MESSAGES.model_unavailable });
