@@ -7,19 +7,22 @@
  * dependency is null-safe; the answer always proceeds.
  */
 
-import { buildUserPrompt } from "@/features/ai-judge/lib/prompts";
-import { getRulings, resolveCard } from "@/features/ai-judge/lib/scryfall";
-import { extractCardNames } from "@/features/ai-judge/lib/rag/cards-source";
-import type { CardRuling } from "@/features/ai-judge/lib/rag/cards-source";
-import { retrieveRules } from "@/features/ai-judge/lib/rag/retrieval";
-import type { RetrievedRule } from "@/features/ai-judge/lib/rag/retrieval";
-import { RULES_URL, parseRulesHtml } from "@/features/ai-judge/lib/rag/rules-source";
-import type { RulesArtifact } from "@/features/ai-judge/lib/rag/rules-source";
 import {
   getRulesArtifact,
   getStaleRulesArtifact,
   putRulesArtifact,
 } from "@/features/ai-judge/lib/cache";
+import { buildUserPrompt } from "@/features/ai-judge/lib/prompts";
+import type { CardRuling } from "@/features/ai-judge/lib/rag/cards-source";
+import { extractCardNames } from "@/features/ai-judge/lib/rag/cards-source";
+import type { RetrievedRule } from "@/features/ai-judge/lib/rag/retrieval";
+import { retrieveRules } from "@/features/ai-judge/lib/rag/retrieval";
+import type { RulesArtifact } from "@/features/ai-judge/lib/rag/rules-source";
+import {
+  RULES_URL,
+  parseRulesHtml,
+} from "@/features/ai-judge/lib/rag/rules-source";
+import { getRulings, resolveCard } from "@/features/ai-judge/lib/scryfall";
 
 /** Rules page fetch timeout — beyond this, serve stale or degrade (§9.3.2). */
 export const RULES_FETCH_TIMEOUT_MS = 10_000;
@@ -56,10 +59,13 @@ export interface CardRulingsResult {
  * @returns Card contexts + mapped rulings plus `["scryfall"]` when a card
  * resolved, else empty arrays.
  */
-export async function resolveCardRulings(question: string): Promise<CardRulingsResult> {
+export async function resolveCardRulings(
+  question: string,
+): Promise<CardRulingsResult> {
   const cards: CardContext[] = [];
   for (const name of extractCardNames(question)) {
     const card = await resolveCard(name);
+
     if (!card) continue;
 
     const rulings = (await getRulings(card)) ?? [];
@@ -100,10 +106,14 @@ export async function loadRules(
 ): Promise<{ rules: RetrievedRule[]; version: string } | null> {
   try {
     const artifact = getRulesArtifact() ?? (await fetchRules());
-    return { rules: retrieveRules(question, artifact), version: artifact.version };
+    return {
+      rules: retrieveRules(question, artifact),
+      version: artifact.version,
+    };
   } catch (err) {
     const stale = getStaleRulesArtifact();
-    if (stale) return { rules: retrieveRules(question, stale), version: stale.version };
+    if (stale)
+      return { rules: retrieveRules(question, stale), version: stale.version };
     console.error(
       "Rules fetch failed, degraded mode:",
       err instanceof Error ? err.message : err,

@@ -217,6 +217,9 @@ const logFailure = (failure: FailureKind, err: unknown): void => {
  * @param clientSignal Request abort signal — abort cancels the stream.
  * @param onToken Callback per emitted answer-text group (arrival order;
  * raw JSON fallback text if the model skips the JSON schema).
+ * @param onProgress Optional phase callbacks with `performance.now()` timestamps
+ * (SPEC §9.5 telemetry): "first_token" = first chunk won the race,
+ * "first_answer_char" = first visible char emitted.
  * @returns The routed result: done outcome, client_disconnected,
  * mid_stream_failure, or failed with the classified failure kind.
  */
@@ -225,10 +228,16 @@ export async function streamWithFallback(
   messages: JudgeMessages,
   clientSignal: AbortSignal,
   onToken: (token: string) => void,
+  onProgress?: (phase: "first_token" | "first_answer_char", atMs: number) => void,
 ): Promise<StreamWithFallbackResult> {
   let streamedAnyToken = false;
+  let firstEmitAt: number | null = null;
   const trackToken = (token: string): void => {
     streamedAnyToken = true;
+    if (firstEmitAt === null && token.length > 0) {
+      firstEmitAt = performance.now();
+      onProgress?.("first_answer_char", firstEmitAt);
+    }
     onToken(token);
   };
 
@@ -257,6 +266,7 @@ export async function streamWithFallback(
       firstPromise.catch(() => {});
       throw new StreamTimeoutError("first token timeout");
     }
+    onProgress?.("first_token", performance.now());
     const outcome = await pumpTokens(iterator, first, models[0] ?? "", trackToken);
     logUsage(outcome);
     return { kind: "done", outcome };

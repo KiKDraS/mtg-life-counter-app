@@ -28,6 +28,11 @@ export const env = {
 /** True when the required key + model are present and well-formed. */
 export const ENV_OK = env.apiKey.length > 0 && MODEL_FORMAT_RE.test(env.model);
 
+/** Telemetry env (optional — judge works without it, SPEC §9.5). */
+export const axiomToken = process.env.AXIOM_INGEST_TOKEN ?? "";
+export const axiomDataset = process.env.AXIOM_DATASET?.trim() || "judge-timings";
+export const AXIOM_OK = axiomToken.length > 0;
+
 /** Model list in preference order: primary + optional fallback (SPEC §9.6). */
 export const models: readonly string[] = [
   env.model,

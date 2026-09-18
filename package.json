@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "probe:judge": "node scripts/probe-judge.mjs"
   },
   "dependencies": {
     "@openrouter/sdk": "^1.2.24",

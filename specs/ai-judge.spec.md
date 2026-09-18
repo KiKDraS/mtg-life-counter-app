@@ -39,6 +39,8 @@ NO chip selectors. NO citation pills — removed from UI. UI never renders citat
 ## Mock fixtures (exact payloads)
 Mechanism: `page.addInitScript(fixture)` overrides `window.fetch` BEFORE app scripts → native browser `Response` with web `ReadableStream` delivering SSE chunks incrementally. `route.fulfill()` buffers and cannot stream — do NOT use `page.route` for this route. POST bodies + statuses recorded on `window.__judgeMock` (`{bodies, statuses}`). addInitScript re-applies on `page.reload()` — mock survives reload.
 
+Fixtures stay byte-exact as listed. Real server `done` MAY carry `timings` (SPEC §9.5) — client `isJudgeEvent` checks `type` only, unknown fields ignored, so mocks omit it.
+
 Client parses SSE blocks split on `\n\n`, accepts `data: ` lines. LF endings. Fixtures:
 
 - **FULL** (single body, all events at once; optional `delayMs`): `data: {"type":"token","content":"When"}` + ` you` + ` gain life`, then done `{"type":"done","citations":[],"usage":{"inputTokens":1200,"outputTokens":300,"cost":0.0015},"model":"anthropic/claude-sonnet-4","sourcesUsed":["mtg.wtf"]}`. Rendered: "When you gain life".

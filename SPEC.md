@@ -335,12 +335,16 @@ gradient.
 | `OPEN_ROUTER_FALLBACK_MODEL`  | fallback judge model | no       | no fallback — primary only    |
 | `OPEN_ROUTER_EMBEDDING_MODEL` | semantic retrieval   | no       | lexical retrieval only (§9.4) |
 | `OPEN_ROUTER_ZDR`             | zero-data-retention provider filter | no | default true — "false" disables (no ZDR endpoints on account) |
+| `AXIOM_INGEST_TOKEN`          | Axiom ingest token — judge timing telemetry | no | telemetry off, judge unaffected |
+| `AXIOM_DATASET`               | Axiom dataset name | no | default `judge-timings` |
 
 - Validated at route module load. Model format `vendor/model` — else 503
   `misconfigured`.
 - **No hardcoded model names in code.** Model set via env only.
 - Server-only env. Never client, never `NEXT_PUBLIC_*`, never in repo, never
   logged.
+- Telemetry: fire-and-forget Axiom POST after `done` (§9.5). Never blocks,
+  never throws, never logs token. Missing token → no-op.
 
 ### 9.3 Data Sources → Versioned Artifacts
 
@@ -408,7 +412,7 @@ SSE events:
 
 ```json
 { "type": "token", "content": "Yes. Reanimate returns the" }
-{ "type": "done", "citations": [...], "usage": { "inputTokens": 1200, "outputTokens": 300, "cost": 0.0015 }, "model": "anthropic/claude-sonnet-4", "sourcesUsed": ["mtg.wtf", "scryfall"] }
+{ "type": "done", "citations": [...], "usage": { "inputTokens": 1200, "outputTokens": 300, "cost": 0.0015 }, "model": "anthropic/claude-sonnet-4", "sourcesUsed": ["mtg.wtf"], "timings": { "contextMs": 1420, "firstTokenMs": 8400, "firstCharMs": 9400, "totalMs": 138000 } }
 { "type": "error", "code": "rate_limited", "message": "The AI Judge is busy. Please wait a moment." }
 ```
 
@@ -418,6 +422,10 @@ SSE events:
   raw model output (degraded, still readable).
 - `citations` delivered once in `done` — server contract (UI does not render
   them; answers carry inline rule refs formatted per DESIGN.md §6.4.1).
+- `done.timings` = phase ms from request start: `contextMs` (Scryfall + RAG
+  build), `firstTokenMs` (first model chunk), `firstCharMs` (first visible
+  char), `totalMs`. Client MAY ignore. Server logs `[ai-judge] timing` line +
+  sends to Axiom when configured (§9.2). Telemetry never delays response.
 
 Error codes: `rate_limited`, `model_unavailable`, `misconfigured`, `timeout`,
 `bad_request`.
