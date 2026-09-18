@@ -58,6 +58,8 @@ function rankRulings(question: string, rulings: CardRuling[]): CardRuling[] {
 export interface JudgeContext {
   readonly contextText: string;
   readonly sourcesUsed: string[];
+  /** SPEC §9.5 — per-leg context build ms; both within contextMs (parallel max). */
+  readonly timings: { readonly scryfallMs: number; readonly rulesMs: number };
 }
 
 /** One resolved card's context (SPEC §9.3.1). Present whenever the card
@@ -160,13 +162,17 @@ export async function loadRules(
  *   rulings only (§9.3.2).
  * @param question The player's trimmed question.
  * @returns The assembled context text plus the sources used (`scryfall`,
- * `mtg.wtf`) — empty when both paths degraded (§9.3.2).
+ * `mtg.wtf`) — empty when both paths degraded (§9.3.2). Per-leg build ms in
+ * `timings` (SPEC §9.5), both within contextMs (parallel max).
  */
 export async function buildContext(question: string): Promise<JudgeContext> {
-  const [card, rules] = await Promise.all([
-    resolveCardRulings(question),
-    loadRules(question),
-  ]);
+  const tScryfall = performance.now();
+  const cardP = resolveCardRulings(question);
+  const tRules = performance.now();
+  const rulesP = loadRules(question);
+  const [card, rules] = await Promise.all([cardP, rulesP]);
+  const scryfallMs = Math.round(performance.now() - tScryfall);
+  const rulesMs = Math.round(performance.now() - tRules);
 
   const rulings = card.cards.flatMap((cardContext) => cardContext.rulings);
   const sourcesUsed = [...card.sourcesUsed];
@@ -180,5 +186,6 @@ export async function buildContext(question: string): Promise<JudgeContext> {
       rulings,
     ),
     sourcesUsed,
+    timings: { scryfallMs, rulesMs },
   };
 }

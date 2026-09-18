@@ -48,6 +48,10 @@ export type Citation =
 /** SPEC §9.5 — per-request phase timings, ms from request start. */
 export interface JudgeTimings {
   readonly contextMs: number;
+  /** Card lookups (resolveCardRulings) — within contextMs (parallel max). */
+  readonly scryfallMs: number;
+  /** Rules fetch/cache + retrieval (loadRules) — within contextMs (parallel max). */
+  readonly rulesMs: number;
   readonly firstTokenMs: number;
   readonly firstCharMs: number;
   readonly totalMs: number;
