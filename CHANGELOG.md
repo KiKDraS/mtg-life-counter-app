@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.1.0 - 2026-09-18
+
+### Telemetry & observability
+
+- Phase timings + Axiom ingest; probe script (#155)
+- Context split metrics (scryfall/rules ms), Axiom failure events, probe derived metrics + history battery (#157)
+- Probe timeout aligned to server budget (130s), per-run progress (#163)
+
+### RAG & retrieval
+
+- Topic-prefix boost, rulings trim (cap 3), ES terms, real CR few-shot citations (#156)
+- Parallel Scryfall card lookup, history cap 10k (#159)
+
+### Streaming & UX
+
+- Answer-first streaming: plain answer + `<<<CITATIONS>>>` delimiter, server-side citation assembly, no-reasoning prompt (#158)
+- Status events: "Searching rules… / Thinking…" phase progress in judge modal (#161)
+
+### Infra
+
+- Committed CR rules bundle (kills cold-start fetch), `pnpm rules:refresh`, weekly CI refresh PR (#160)
+- Rules-refresh PR notifies owner (#162)
+
 ## [1.0.4] - 2026-08-14
 
 ### Added
