@@ -422,6 +422,8 @@ SSE events:
 
 ```json
 { "type": "token", "content": "Yes. Reanimate returns the" }
+{ "type": "status", "phase": "context" }
+{ "type": "status", "phase": "thinking" }
 { "type": "done", "citations": [...], "usage": { "inputTokens": 1200, "outputTokens": 300, "cost": 0.0015 }, "model": "anthropic/claude-sonnet-4", "sourcesUsed": ["mtg.wtf"], "timings": { "contextMs": 1420, "scryfallMs": 410, "rulesMs": 980, "firstTokenMs": 8400, "firstCharMs": 9400, "totalMs": 138000 } }
 { "type": "error", "code": "rate_limited", "message": "The AI Judge is busy. Please wait a moment." }
 ```
@@ -431,6 +433,9 @@ SSE events:
   + compact JSON citation ids (§9.7). Server streams answer chars as they
   arrive — nothing buffered, first visible char ≈ first model chunk. Never raw
   JSON to client. Citations assembly failure → `citations: []` (answer intact).
+- `status` events: `{type:"status", phase:"context"|"thinking"}` — phase
+  markers before the answer streams. Client MAY render them as progress text
+  and MAY ignore. Additive — never required for rendering.
 - `citations` assembled **server-side** from the model's compact ids: rule
   excerpts = verbatim retrieved-rule text (§9.4), card excerpts = ruling
   comment / oracle text (§9.7). Delivered once in `done` — server contract (UI

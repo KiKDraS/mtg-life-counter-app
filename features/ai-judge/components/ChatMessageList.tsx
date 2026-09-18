@@ -12,6 +12,8 @@ interface ChatMessageListProps {
   readonly streamText: string;
   readonly isStreaming: boolean;
   readonly errorBubble: JudgeErrorEvent | null;
+  /** SPEC §9.5 — pre-token phase marker rendered as progress text. */
+  readonly statusPhase: "context" | "thinking" | null;
 }
 
 /**
@@ -30,6 +32,7 @@ export function ChatMessageList({
   streamText,
   isStreaming,
   errorBubble,
+  statusPhase,
 }: Readonly<ChatMessageListProps>) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -70,6 +73,14 @@ export function ChatMessageList({
             <p className="text-sm whitespace-pre-wrap text-ui-textLight">
               {streamText}
             </p>
+          ) : statusPhase ? (
+            /* SPEC §9.5 — progress text while awaiting first token. */
+            <span
+              aria-label="AI Judge is typing"
+              className="text-sm text-ui-textLight"
+            >
+              {statusPhase === "context" ? "Searching rules…" : "Thinking…"}
+            </span>
           ) : (
             <span
               aria-label="AI Judge is typing"

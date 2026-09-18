@@ -32,6 +32,8 @@ export interface JudgeChatResult {
   /** SPEC §9.10 — navigator.onLine + fetch failure flipped state. */
   readonly isOffline: boolean;
   readonly errorBubble: JudgeErrorEvent | null;
+  /** SPEC §9.5 — pre-token phase marker: "context" | "thinking" | null (idle/token). */
+  readonly statusPhase: "context" | "thinking" | null;
   readonly draft: string;
   readonly setDraft: (draft: string) => void;
   /** Sends a trimmed question through the same path as submit. Empty no-ops. */
@@ -78,6 +80,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isOfflineState, setIsOfflineState] = useState(() => isOffline());
   const [errorBubble, setErrorBubble] = useState<JudgeErrorEvent | null>(null);
+  const [statusPhase, setStatusPhase] = useState<"context" | "thinking" | null>(null);
   const [draft, setDraft] = useState("");
 
   const abortRef = useRef<AbortController | null>(null);
@@ -115,6 +118,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
       setStreamText("");
       streamTextRef.current = "";
       setErrorBubble(null);
+      setStatusPhase(null);
       setIsOfflineState(isOffline()); // re-check on next open
     };
     dialog.addEventListener("close", handleClose);
@@ -213,6 +217,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
       pushMessage({ role: "user", content: question });
       setDraft("");
       setErrorBubble(null);
+      setStatusPhase(null);
       setStreamText("");
       streamTextRef.current = "";
       setIsStreaming(true);
@@ -224,6 +229,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
         onToken: (content) => {
           streamTextRef.current += content;
           setStreamText(streamTextRef.current);
+          setStatusPhase(null); // first token → phase markers done
         },
         onDone: () => {
           /* ponytail: done event still carries citations (API contract) —
@@ -234,6 +240,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
           });
           setStreamText("");
           setIsStreaming(false);
+          setStatusPhase(null);
           abortRef.current = null;
         },
         onError: (event) => {
@@ -247,6 +254,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
           setIsStreaming(false);
           abortRef.current = null;
         },
+        onStatus: (event) => setStatusPhase(event.phase),
       };
 
       try {
@@ -258,6 +266,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
       } catch (error) {
         if (controller.signal.aborted) return; // dialog closed mid-flight
         setIsStreaming(false);
+        setStatusPhase(null);
         abortRef.current = null;
         if (error instanceof TypeError) {
           // SPEC §9.10 — fetch network failure → offline state.
@@ -294,6 +303,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
     setStreamText("");
     streamTextRef.current = "";
     setErrorBubble(null);
+    setStatusPhase(null);
     setIsOfflineState(isOffline());
   }, []);
 
@@ -306,6 +316,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
     isStreaming,
     isOffline: isOfflineState,
     errorBubble,
+    statusPhase,
     draft,
     setDraft,
     sendQuestion,
