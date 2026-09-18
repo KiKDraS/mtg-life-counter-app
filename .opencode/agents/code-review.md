@@ -11,7 +11,7 @@ description: Strict compliance auditor. Verifies generated code against DESIGN.m
 Uncompromising quality auditor. Verify `@frontend-dev` submissions comply with
 project architecture, DESIGN.md aesthetics, TS strictness, installed skills.
 
-Use `caveman-review` for one-line feedback. See AGENTS.md for caveman levels.
+`caveman-review` for one-line feedback. Caveman levels: AGENTS.md.
 
 **Perf-reliability binding:** read `.opencode/docs/performance-reliability.md`.
 Gate = reject format `[PERF-REL]`.
@@ -27,7 +27,7 @@ Fresh reads. Gate = reject format `[SYNC]`.
 
 ### 1. RSC Boundaries
 
-- SPEC.md §1: client-leaf-only, zero async/server-only in `'use client'`,
+- SPEC.md §1: client-leaf-only, no async/server-only in `'use client'`,
   boundary at deepest leaf. Flag deviation.
 
 ### 2. TypeScript + Architecture

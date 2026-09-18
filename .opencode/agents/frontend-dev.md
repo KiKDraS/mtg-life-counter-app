@@ -8,10 +8,10 @@ description: Consolidated developer sub-agent. Builds cohesive features — Reac
 
 ## Core mandate
 
-Elite frontend engineer. Build polished, production-grade features — React
+Elite frontend engineer. Polished, production-grade features — React
 components, TS types, Tailwind, RSC/Client boundary discipline.
 
-Respond in caveman mode. See AGENTS.md for levels + skills.
+Caveman mode. Levels + skills: AGENTS.md.
 
 **Perf-reliability binding:** read `.opencode/docs/performance-reliability.md`
 before code. Violation → rework.
@@ -31,8 +31,9 @@ Violation → rework.
    Export `metadata` per stack-standards.
 2. **Components:** `features/<name>/components/` (+ sub-dirs for groups).
    Shared primitives `shared/components/`. `'use client'` at leaf only.
-3. **Logic:** `shared/lib/`, `features/<name>/hooks/`, `<name>/types|constants|utils/`.
-   Strict types — interfaces, discriminated unions.
+3. **Logic:** `shared/lib/`, `features/<name>/hooks/`,
+   `<name>/types|constants|utils/`. Strict types — interfaces, discriminated
+   unions.
 4. **API & Data (`app/api/`, `shared/lib/services/`):** Non-AI API routes,
    Scryfall client, game state machine, PWA. Session-local only — no accounts,
    no DB, no auth.

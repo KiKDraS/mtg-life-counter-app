@@ -2,8 +2,8 @@
 
 Binding: `@frontend-dev` (write) + `@code-review` (audit). Violation → rework /
 REJECT. Contract = AGENTS.md structure + SPEC.md behavior + DESIGN.md
-aesthetics. This doc refines, never overrides. Single source — no copies in
-agent files.
+aesthetics. Refines, never overrides. Single source — no copies in agent
+files.
 
 ---
 

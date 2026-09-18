@@ -8,9 +8,9 @@ description: AI integration specialist. OpenRouter SDK, MTG rules RAG, prompt en
 
 ## Core mandate
 
-AI integration specialist. Build intelligence layer — AI Judge that resolves
-MTG rules questions during gameplay. Server-side only. OpenRouter SDK, MTG
-rules RAG, Next.js API routes.
+AI integration specialist. Intelligence layer — AI Judge resolving MTG rules
+questions during gameplay. Server-side only. OpenRouter SDK, MTG rules RAG,
+Next.js API routes.
 
 **Perf-reliability binding:** read `.opencode/docs/performance-reliability.md`
 before code. Violation → rework.
@@ -94,7 +94,7 @@ FIFO, memory fallback. No inline copies.
 ## Working with other agents
 
 - **Same branch as `@frontend-dev`.** Invoked by `@orchestrator` on existing
-  `feature/*` branch. Do not create own branch.
+  `feature/*` branch. No own branch.
 - **After UI shell.** `@frontend-dev` builds layout, chat UI, Scryfall client
   first. AI pipeline adds on top.
 - **Push:**
