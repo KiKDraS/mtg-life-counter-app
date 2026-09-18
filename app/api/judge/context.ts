@@ -12,6 +12,7 @@ import {
   getStaleRulesArtifact,
   putRulesArtifact,
 } from "@/features/ai-judge/lib/cache";
+import type { CitationLookup } from "@/features/ai-judge/lib/citations";
 import { buildUserPrompt } from "@/features/ai-judge/lib/prompts";
 import type { CardRuling } from "@/features/ai-judge/lib/rag/cards-source";
 import { extractCardNames } from "@/features/ai-judge/lib/rag/cards-source";
@@ -60,6 +61,8 @@ export interface JudgeContext {
   readonly sourcesUsed: string[];
   /** SPEC §9.5 — per-leg context build ms; both within contextMs (parallel max). */
   readonly timings: { readonly scryfallMs: number; readonly rulesMs: number };
+  /** SPEC §9.7 — retrieved rules + card contexts for citation assembly. */
+  readonly lookup: CitationLookup;
 }
 
 /** One resolved card's context (SPEC §9.3.1). Present whenever the card
@@ -131,21 +134,27 @@ async function fetchRules(): Promise<RulesArtifact> {
  * @description Rules RAG path (SPEC §9.3.2): fresh cache → fetch+parse+cache
  * → stale-cache fallback (24h TTL) → null (degraded). Never throws.
  * @param question The player's trimmed question.
- * @returns Top-k rules with the artifact version, or null in degraded mode.
+ * @returns Top-k rules + the full artifact rules map (citation assembly,
+ * §9.7) + version, or null in degraded mode.
  */
 export async function loadRules(
   question: string,
-): Promise<{ rules: RetrievedRule[]; version: string } | null> {
+): Promise<{ rules: RetrievedRule[]; version: string; allRules: ReadonlyMap<string, string> } | null> {
   try {
     const artifact = getRulesArtifact() ?? (await fetchRules());
     return {
       rules: retrieveRules(question, artifact),
       version: artifact.version,
+      allRules: artifact.rules,
     };
   } catch (err) {
     const stale = getStaleRulesArtifact();
     if (stale)
-      return { rules: retrieveRules(question, stale), version: stale.version };
+      return {
+        rules: retrieveRules(question, stale),
+        version: stale.version,
+        allRules: stale.rules,
+      };
     console.error(
       "Rules fetch failed, degraded mode:",
       err instanceof Error ? err.message : err,
@@ -178,6 +187,13 @@ export async function buildContext(question: string): Promise<JudgeContext> {
   const sourcesUsed = [...card.sourcesUsed];
   if (rules) sourcesUsed.push("mtg.wtf");
 
+  const lookup: CitationLookup = {
+    // Full artifact map — rule sections AND headers resolve for citations
+    // (§9.7 section = parent header text).
+    rules: rules?.allRules ?? new Map(),
+    cards: new Map(card.cards.map((c) => [c.name, { oracleText: c.oracleText, rulings: c.rulings }])),
+  };
+
   return {
     contextText: buildUserPrompt(
       question,
@@ -187,5 +203,6 @@ export async function buildContext(question: string): Promise<JudgeContext> {
     ),
     sourcesUsed,
     timings: { scryfallMs, rulesMs },
+    lookup,
   };
 }

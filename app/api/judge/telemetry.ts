@@ -4,7 +4,8 @@
  */
 
 import { AXIOM_OK, axiomDataset, axiomToken } from "./config";
-import type { JudgeTimings } from "@/features/ai-judge/lib/types";
+import type { JudgeTimings, Usage } from "@/features/ai-judge/lib/types";
+import { after } from "next/server";
 
 const AXIOM_INGEST_URL = `https://api.axiom.co/api/v1/ingest/${axiomDataset}`;
 
@@ -17,6 +18,25 @@ interface JudgeTelemetry {
   readonly error?: string; // error code when the request failed
   readonly timings: JudgeTimings;
 }
+
+/** SPEC §9.5 — schedule telemetry after the response flushes. Unknown → 0. */
+export const scheduleTelemetry = (
+  timings: JudgeTimings,
+  model: string,
+  usage?: Usage,
+  error?: string,
+): void => {
+  after(() => {
+    sendTiming({
+      model,
+      inputTokens: usage?.inputTokens ?? 0,
+      outputTokens: usage?.outputTokens ?? 0,
+      cost: usage?.cost ?? 0,
+      ...(error ? { error } : {}),
+      timings,
+    });
+  });
+};
 
 /** Send one telemetry event to Axiom when configured; no-op otherwise. */
 export const sendTiming = (timing: JudgeTelemetry): void => {
