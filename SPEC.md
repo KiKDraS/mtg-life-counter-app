@@ -379,7 +379,12 @@ artifacts (§9.11).
 - Parse (pure fn): HTML → text. Split rules on `^(\d{3})\.(\d+)([a-z])?\.?\s`,
   sections on `^(\d{3})\.\s`. Output: `Map<ruleId, text>`.
 - Artifact `version` = rules date stamp from page ("effective as of …").
-- Memory cache. Refetch on version change. 24h TTL fallback.
+- **Bundle-primary:** committed artifact `rag/rules-bundle.json` seeded at
+  module load (imported JSON — always present in the server bundle). Refreshed
+  by `pnpm rules:refresh` (script) — CI opens a PR when the CR version changes.
+  Runtime fetch is the emergency path when the bundle is absent.
+- Memory cache: runtime-fetched artifacts keep 24h TTL fallback; bundle artifact
+  always fresh (its freshness = CI cadence).
 - Fetch fail → **degraded mode**: answer from card rulings only. `done` event
   includes `sourcesUsed: ["scryfall"]`.
 

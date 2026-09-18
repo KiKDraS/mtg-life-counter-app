@@ -1,11 +1,15 @@
 /**
  * In-memory caches — Node side (SPEC §9.3).
  *
+ * Rules are bundle-primary (§9.3.2): committed artifact rag/rules-bundle.json
+ * seeded at module load, always fresh (freshness = CI cadence). Runtime fetch
+ * is the emergency path when the bundle is absent.
  * Memory only, no fs/DB. Caches keyed by version, never by TTL guesswork:
  * artifact key = version+hash; freshness timestamps only decide refetch.
  */
 
 import type { RulesArtifact } from "./rag/rules-source";
+import rulesBundleJson from "./rag/rules-bundle.json"; // committed CR artifact (§9.3.2)
 import type { ScryfallCard, ScryfallRuling } from "./rag/cards-source";
 
 const HOUR = 60 * 60 * 1000;
@@ -28,6 +32,17 @@ interface CardEntry {
 /** Current artifact, keyed by version+hash identity (SPEC §9.3 — caches keyed by version). */
 let currentRules: RulesEntry | null = null;
 
+/** Bundle artifact seeded at module load — always fresh (freshness = CI cadence, §9.3.2). */
+const bundleEntry: RulesEntry | null = {
+  artifact: {
+    version: rulesBundleJson.version,
+    hash: rulesBundleJson.hash,
+    // JSON types rules as string[][]; each entry is a [ruleId, text] pair (§9.3.2).
+    rules: new Map(rulesBundleJson.rules as [string, string][]),
+  },
+  fetchedAt: 0,
+};
+
 /** LRU 500 / TTL 24h. Map preserves insertion order → delete+set = refresh. */
 const cardCache = new Map<string, CardEntry>();
 
@@ -38,22 +53,22 @@ const isFresh = (fetchedAt: number, ttl: number, now = Date.now()): boolean =>
   now - fetchedAt < ttl;
 
 /**
- * @description Fresh (<24h) rules artifact or null → route refetches (SPEC
- * §9.3.2). O(1).
- * @returns The cached artifact when fresh, else null.
+ * @description Fresh (<24h) runtime artifact, else the committed bundle
+ * artifact (always fresh — §9.3.2). O(1).
+ * @returns The artifact to serve: runtime-fresh, else bundle.
  */
 export function getRulesArtifact(): RulesArtifact | null {
   if (currentRules && isFresh(currentRules.fetchedAt, RULES_TTL)) return currentRules.artifact;
-  return null;
+  return bundleEntry?.artifact ?? null; // bundle always fresh — freshness = CI cadence (§9.3.2)
 }
 
 /**
  * @description Last known rules artifact, any age — fetch-fail fallback.
- * O(1).
- * @returns The cached artifact or null when never fetched.
+ * Runtime artifact first, bundle second. O(1).
+ * @returns The cached artifact or null when nothing known.
  */
 export function getStaleRulesArtifact(): RulesArtifact | null {
-  return currentRules?.artifact ?? null;
+  return currentRules?.artifact ?? bundleEntry?.artifact ?? null;
 }
 
 /**
