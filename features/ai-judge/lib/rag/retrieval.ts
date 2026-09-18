@@ -62,10 +62,13 @@ const mentionScore = (ruleId: string, mentioned: Set<string>): number => {
 };
 
 /**
- * Topic term (EN + ES, normalized) → CR section numbers (§9.4). A question
- * naming a topic gets its section's rules a flat boost — stack questions must
- * surface 405/608/707 even when token overlap is thin ("copies" vs "copy").
- * ES keys mirror es-dict terms; accent-free lowercase via normalize().
+ * Topic term (EN + ES, normalized) → CR section prefixes (§9.4). A question
+ * naming a topic gets every rule whose id starts with a prefix a flat boost —
+ * stack questions must surface 405/608/707 even when token overlap is thin
+ * ("copies" vs "copy"). Prefixes are 3-digit sections ("405") or keyword-level
+ * sub-prefixes ("702.34" flashback, "700.2" modes) — a prefix matches the
+ * section head AND every rule under it. ES keys mirror es-dict terms;
+ * accent-free lowercase via normalize().
  */
 const TOPIC_SECTIONS: Readonly<Record<string, readonly string[]>> = {
   stack: ["405"], pila: ["405"],
@@ -87,17 +90,37 @@ const TOPIC_SECTIONS: Readonly<Record<string, readonly string[]>> = {
   hand: ["402"], mano: ["402"],
   draw: ["121"], robar: ["121"],
   token: ["111"],
+  flashback: ["702.34"], recuperar: ["702.34"],
+  modes: ["700.2"], modal: ["700.2"], modos: ["700.2"],
+  "choose one or more": ["700.2"], "elegir uno o mas": ["700.2"],
+  target: ["115"], objetivo: ["115"],
 };
 
-/** Topic-match boost: rule under a matched section gets +TOPIC_BOOST. */
+/** Topic-match boost: rule under a matched prefix gets +TOPIC_BOOST. */
 export const TOPIC_BOOST = 2;
 
 /**
- * @description CR section numbers whose topic appears in the question.
+ * @description Prefix boost for one rule: +{@link TOPIC_BOOST} when its id
+ * starts with any matched topic prefix ("405" → 405/405.1/405.2a...,
+ * "702.34" → flashback section + subrules). O(topics) per rule — topics
+ * ≤ ~5, fine.
+ * @param ruleId Rule id to test.
+ * @param topics Matched topic prefixes from {@link topicSections}.
+ * @returns {@link TOPIC_BOOST} or 0.
+ */
+const topicBoost = (ruleId: string, topics: Set<string>): number => {
+  for (const prefix of topics) {
+    if (ruleId.startsWith(prefix)) return TOPIC_BOOST;
+  }
+  return 0;
+};
+
+/**
+ * @description CR section prefixes whose topic appears in the question.
  * Whole-word match on the normalized question — same pattern as es-dict
  * translateTerms. O(T) regexes over a bounded term table.
  * @param question The player's question.
- * @returns Matched section numbers, deduped.
+ * @returns Matched section prefixes, deduped.
  */
 function topicSections(question: string): Set<string> {
   const normalized = normalize(question);
@@ -202,7 +225,7 @@ export function retrieveRules(question: string, artifact: RulesArtifact): Retrie
   for (const [ruleId, text] of artifact.rules) {
     let score = mentionScore(ruleId, mentioned);
     score += overlapScore(text, questionTokens, translatedTokens, phrases);
-    if (topics.has(ruleId.split(".")[0])) score += TOPIC_BOOST;
+    score += topicBoost(ruleId, topics);
     if (score > 0) scored.push({ ruleId, text, score });
   }
 
