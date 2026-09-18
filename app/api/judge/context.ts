@@ -15,6 +15,7 @@ import {
 import { buildUserPrompt } from "@/features/ai-judge/lib/prompts";
 import type { CardRuling } from "@/features/ai-judge/lib/rag/cards-source";
 import { extractCardNames } from "@/features/ai-judge/lib/rag/cards-source";
+import { normalize } from "@/features/ai-judge/lib/rag/es-dict";
 import type { RetrievedRule } from "@/features/ai-judge/lib/rag/retrieval";
 import { retrieveRules } from "@/features/ai-judge/lib/rag/retrieval";
 import type { RulesArtifact } from "@/features/ai-judge/lib/rag/rules-source";
@@ -26,6 +27,32 @@ import { getRulings, resolveCard } from "@/features/ai-judge/lib/scryfall";
 
 /** Rules page fetch timeout — beyond this, serve stale or degrade (§9.3.2). */
 export const RULES_FETCH_TIMEOUT_MS = 10_000;
+
+/** Rulings cap per card — top-ranked by question-token overlap (§9.3.1). */
+const MAX_RULINGS_PER_CARD = 3;
+
+/**
+ * @description Rank rulings by question-token overlap with the comment
+ * (SPEC §9.3.1). ≤ cap → as-is. O(tokens × rulings) — both tiny (≤ ~20),
+ * once per card. Stable sort keeps original order for ties; zero-overlap
+ * rulings still fill the cap (score 0, original order).
+ * @param question The player's trimmed question.
+ * @param rulings Card rulings, original order.
+ * @returns Top-{@link MAX_RULINGS_PER_CARD} rulings, overlap desc.
+ */
+function rankRulings(question: string, rulings: CardRuling[]): CardRuling[] {
+  if (rulings.length <= MAX_RULINGS_PER_CARD) return rulings;
+  const tokens = normalize(question)
+    .split(/\s+/)
+    .filter((t) => t.length >= 3);
+  const scored = rulings.map((ruling) => {
+    const comment = normalize(ruling.comment);
+    const score = tokens.filter((t) => comment.includes(t)).length;
+    return { ruling, score };
+  });
+  scored.sort((a, b) => b.score - a.score); // stable — ties keep original order
+  return scored.slice(0, MAX_RULINGS_PER_CARD).map((s) => s.ruling);
+}
 
 /** RAG context for one question: user-message text + sources actually used. */
 export interface JudgeContext {
@@ -68,17 +95,20 @@ export async function resolveCardRulings(
 
     if (!card) continue;
 
-    const rulings = (await getRulings(card)) ?? [];
-    cards.push({
-      name: card.name,
-      typeLine: card.type_line,
-      oracleText: card.oracle_text,
-      rulings: rulings.map((ruling) => ({
+    const rulings = rankRulings(
+      question,
+      ((await getRulings(card)) ?? []).map((ruling) => ({
         name: card.name,
         source: ruling.source,
         published_at: ruling.published_at,
         comment: ruling.comment,
       })),
+    );
+    cards.push({
+      name: card.name,
+      typeLine: card.type_line,
+      oracleText: card.oracle_text,
+      rulings,
     });
   }
   return { cards, sourcesUsed: cards.length > 0 ? ["scryfall"] : [] };

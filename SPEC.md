@@ -370,6 +370,7 @@ artifacts (§9.11).
 - Card context = `name` + `type_line` + `oracle_text` (verbatim) + rulings via
   `rulings_uri` (canonical, from card JSON), fallback `GET /cards/{id}/rulings`.
   Card block injected whenever the card resolves — even with zero rulings.
+- Rulings ranked by token overlap with question, max 3 per card.
 
 #### 9.3.2 mtg.wtf (Comprehensive Rules)
 
@@ -386,11 +387,14 @@ artifacts (§9.11).
 Pure TS only — no Node APIs, no `fs`, no `fetch`. Browser-portable unchanged
 (offline seam §9.11).
 
-- **Lexical (default):** ruleId regex match (e.g. `702.12` in question) + token
+- **Lexical (default):** ruleId regex match (e.g. `702.34` in question) + token
   overlap scoring. top-k = 5.
-- **Spanish expansion:** ES→EN MTG term dictionary (`rag/es-dict.ts`, 41 terms)
+- **Spanish expansion:** ES→EN MTG term dictionary (`rag/es-dict.ts`, 45 terms)
   — translated phrases boost (multi-word +3, single-word +2), accent-stripped
   normalization. Spanish questions retrieve English rules.
+- **Topic boost:** term → CR section prefixes. 3-digit sections (`405`, `608`)
+  or keyword-level prefixes (`702.34` flashback, `700.2` modes). Match via
+  rule-id prefix, not just section head.
 - **Semantic (opt-in):** `OPENROUTER_EMBEDDING_MODEL` set → embed rules corpus,
   cosine similarity. top-k = 5. Embedding artifact file-cached, keyed by rules
   version. Rebuild only on version change.
@@ -452,7 +456,7 @@ Oracle text: {oracle_text}
 
 Relevant rules:
 ---
-[CR 702.12a] <text>
+[CR 702.34a] <text>
 ---
 Player question: {question}
 ```
@@ -473,7 +477,7 @@ Player question: {question}
   event. Client never renders raw JSON (DESIGN.md §6.4).
 - Citation types:
   - rule:
-    `{type:"rule", ruleId:"CR 702.12a", section:"702.12. Reanimate", excerpt}`
+    `{type:"rule", ruleId:"CR 702.34a", section:"702.34. Flashback", excerpt}`
   - card: `{type:"card", name, source:"scryfall", date, excerpt}`
 - Card rulings injected into context as card citations.
 
