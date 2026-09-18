@@ -28,7 +28,8 @@ if (!base) {
 const endpoint = base.replace(/\/+$/, "").replace(/\/api\/judge$/, "") + "/api/judge";
 const runs = Number(process.argv[3] ?? 5);
 const HIST_RUNS = Math.min(2, runs);
-const ITER_TIMEOUT_MS = 90_000;
+// Server total budget 120s (SPEC §9.5) + 10s margin — full answer must complete.
+const ITER_TIMEOUT_MS = 130_000;
 
 const pct = (sorted, p) =>
   sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * p) - 1))] ?? 0;
@@ -151,7 +152,10 @@ function report(label, results) {
 
 for (const [qi, question] of QUESTIONS.entries()) {
   const results = [];
-  for (let i = 0; i < runs; i++) results.push(await oneIteration(question, i));
+  for (let i = 0; i < runs; i++) {
+    console.log(`  Q${qi + 1}/${QUESTIONS.length} run ${i + 1}/${runs}...`);
+    results.push(await oneIteration(question, i));
+  }
   report(`Q${qi + 1}: ${question}`, results);
 }
 
@@ -164,4 +168,10 @@ for (let i = 0; i < HIST_RUNS; i++) {
 }
 report(`Q4: [history] ${HISTORY_QUESTION}`, histResults);
 
-process.exit(anySuccess ? 0 : 1);
+if (!anySuccess) {
+  console.error(
+    "All runs failed. Check: production URL (not a preview alias), OPEN_ROUTER_API_KEY set on the deployment.",
+  );
+  process.exit(1);
+}
+process.exit(0);
