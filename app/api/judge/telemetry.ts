@@ -1,5 +1,5 @@
 /**
- * Fire-and-forget Axiom ingest for judge timings (SPEC §9.5).
+ * Fire-and-forget Axiom ingest for judge timings + usage (SPEC §9.5).
  * Never throws, never blocks, never logs the token. No retry.
  */
 
@@ -8,8 +8,18 @@ import type { JudgeTimings } from "@/features/ai-judge/lib/types";
 
 const AXIOM_INGEST_URL = `https://api.axiom.co/api/v1/ingest/${axiomDataset}`;
 
-/** Send one timing event to Axiom when configured; no-op otherwise. */
-export const sendTiming = (timing: JudgeTimings & { model: string }): void => {
+/** SPEC §9.5 — one timing/usage telemetry event. */
+interface JudgeTelemetry {
+  readonly model: string;
+  readonly inputTokens: number;
+  readonly outputTokens: number;
+  readonly cost: number;
+  readonly error?: string; // error code when the request failed
+  readonly timings: JudgeTimings;
+}
+
+/** Send one telemetry event to Axiom when configured; no-op otherwise. */
+export const sendTiming = (timing: JudgeTelemetry): void => {
   if (!AXIOM_OK) return;
   try {
     void fetch(AXIOM_INGEST_URL, {
@@ -19,7 +29,15 @@ export const sendTiming = (timing: JudgeTimings & { model: string }): void => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify([
-        { ...timing, _time: new Date().toISOString() },
+        {
+          ...timing.timings,
+          model: timing.model,
+          inputTokens: timing.inputTokens,
+          outputTokens: timing.outputTokens,
+          cost: timing.cost,
+          ...(timing.error ? { error: timing.error } : {}),
+          _time: new Date().toISOString(),
+        },
       ]),
     }).catch(() => {});
   } catch {

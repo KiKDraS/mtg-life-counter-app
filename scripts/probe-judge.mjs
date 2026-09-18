@@ -10,6 +10,15 @@ const QUESTIONS = [
   "Does Lier, Disciple of the Drowned let me cast Sublime Epiphany from my graveyard?",
 ];
 
+// History battery (Q4): same-session warmups bound the measured question's
+// history window. 2 iterations only — model cost.
+const HISTORY_WARMUPS = [
+  "When can I cast instants?",
+  "Does lifelink cause a draw when both players are at 0?",
+];
+const HISTORY_QUESTION =
+  "Can I cast Sorin, Imperious Bloodlord's ability multiple times?";
+
 const base = process.argv[2] ?? process.env.JUDGE_PROD_URL;
 if (!base) {
   console.error("Usage: node scripts/probe-judge.mjs <URL> [iterations]");
@@ -18,6 +27,7 @@ if (!base) {
 }
 const endpoint = base.replace(/\/+$/, "").replace(/\/api\/judge$/, "") + "/api/judge";
 const runs = Number(process.argv[3] ?? 5);
+const HIST_RUNS = Math.min(2, runs);
 const ITER_TIMEOUT_MS = 90_000;
 
 const pct = (sorted, p) =>
@@ -27,15 +37,15 @@ const stats = (arr) => {
   return { min: s[0] ?? 0, median: pct(s, 0.5), p95: pct(s, 0.95) };
 };
 
-/** One probe iteration → { timings, outputTokens, model } or { error }. */
-async function oneIteration(question, i) {
+/** One probe iteration → { timings, answerChars, outputTokens, model } or { error }. */
+async function oneIteration(question, i, sessionId = `probe-${Date.now()}-${i}`) {
   const t0 = performance.now();
   let res;
   try {
     res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-      body: JSON.stringify({ sessionId: `probe-${Date.now()}-${i}`, question }),
+      body: JSON.stringify({ sessionId, question }),
       signal: AbortSignal.timeout(ITER_TIMEOUT_MS),
     });
   } catch (err) {
@@ -48,6 +58,7 @@ async function oneIteration(question, i) {
 
   let buf = "";
   let firstTokenMs = null;
+  let answerChars = 0;
   let done = null;
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -69,8 +80,10 @@ async function oneIteration(question, i) {
           } catch {
             continue;
           }
-          if (event.type === "token" && firstTokenMs === null)
-            firstTokenMs = performance.now() - t0;
+          if (event.type === "token") {
+            if (firstTokenMs === null) firstTokenMs = performance.now() - t0;
+            answerChars += event.content.length;
+          }
           if (event.type === "error") return { error: `judge error: ${event.code}` };
           if (event.type === "done") done = event;
         }
@@ -92,20 +105,21 @@ async function oneIteration(question, i) {
       firstCharMs: firstTokenMs !== null ? Math.round(firstTokenMs) : null,
       totalMs: clientTotalMs,
     },
+    answerChars,
     outputTokens: done.usage?.outputTokens ?? null,
     model: done.model ?? null,
   };
 }
 
 let anySuccess = false;
-for (const [qi, question] of QUESTIONS.entries()) {
-  const results = [];
-  for (let i = 0; i < runs; i++) results.push(await oneIteration(question, i));
+
+/** One battery: base fields + SPEC §9.5 derived metrics (medians). */
+function report(label, results) {
   const ok = results.filter((r) => !r.error);
   if (ok.length > 0) anySuccess = true;
 
-  console.log(`\nQ${qi + 1}: ${question}`);
-  console.log(`  ${ok.length}/${runs} ok`);
+  console.log(`\n${label}`);
+  console.log(`  ${ok.length}/${results.length} ok`);
   for (const r of results) if (r.error) console.log(`  FAIL: ${r.error}`);
 
   const field = (name) => stats(ok.map((r) => r.timings[name]).filter((v) => v !== null && v !== undefined));
@@ -117,6 +131,37 @@ for (const [qi, question] of QUESTIONS.entries()) {
   console.log(`  outputTokens min ${out.min}  median ${out.median}  p95 ${out.p95}`);
   const models = [...new Set(ok.map((r) => r.model).filter(Boolean))];
   if (models.length) console.log(`  model: ${models.join(", ")}`);
+
+  const diff = (a, b) => (a != null && b != null ? a - b : null);
+  const rate = (numerator, denomMs) =>
+    numerator != null && denomMs > 0 ? numerator / (denomMs / 1000) : null;
+  const derivedMedian = (name, fn) => {
+    const vals = ok.map(fn).filter((v) => v !== null && v !== undefined && Number.isFinite(v));
+    if (vals.length) console.log(`  ${name.padEnd(12)} median ${stats(vals).median.toFixed(1)}`);
+  };
+  derivedMedian("tokensPerSec", (r) => rate(r.outputTokens, diff(r.timings.totalMs, r.timings.firstTokenMs)));
+  derivedMedian("prefillMs", (r) => diff(r.timings.firstTokenMs, r.timings.contextMs));
+  derivedMedian("hiddenWindowMs", (r) => diff(r.timings.firstCharMs, r.timings.firstTokenMs));
+  derivedMedian("streamMs", (r) => diff(r.timings.totalMs, r.timings.firstCharMs));
+  derivedMedian("charsPerSec", (r) => rate(r.answerChars, diff(r.timings.totalMs, r.timings.firstCharMs)));
+  derivedMedian("jsonOverhead", (r) =>
+    r.answerChars > 0 && r.outputTokens != null ? r.outputTokens / r.answerChars : null,
+  );
 }
+
+for (const [qi, question] of QUESTIONS.entries()) {
+  const results = [];
+  for (let i = 0; i < runs; i++) results.push(await oneIteration(question, i));
+  report(`Q${qi + 1}: ${question}`, results);
+}
+
+// Q4 — history battery: warmups + measured question, same session, sequential.
+const histResults = [];
+for (let i = 0; i < HIST_RUNS; i++) {
+  const sessionId = `probe-${Date.now()}-history-${i}`;
+  for (const warmup of HISTORY_WARMUPS) await oneIteration(warmup, i, sessionId);
+  histResults.push(await oneIteration(HISTORY_QUESTION, i, sessionId));
+}
+report(`Q4: [history] ${HISTORY_QUESTION}`, histResults);
 
 process.exit(anySuccess ? 0 : 1);
