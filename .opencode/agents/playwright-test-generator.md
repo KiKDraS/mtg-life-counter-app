@@ -3,7 +3,8 @@ name: playwright-test-generator
 mode: subagent
 description: Use this agent to automatically generate real Playwright TypeScript source code files from written test plans.
 permission:
-  bash: "*": ask
+  bash:
+    "*": ask
   "playwright-test*browser_*": allow
   "playwright-test*generator_*": allow
 ---

@@ -3,7 +3,8 @@ name: playwright-test-healer
 mode: subagent
 description: Use this agent to run, debug, and auto-heal/fix failing Playwright tests dynamically.
 permission:
-  bash: "*": ask
+  bash:
+    "*": ask
   "playwright-test*browser_*": allow
   "playwright-test*test_*": allow
 ---

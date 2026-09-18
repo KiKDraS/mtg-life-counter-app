@@ -3,7 +3,8 @@ name: playwright-test-planner
 mode: subagent
 description: Use this agent to create a comprehensive test plan markdown by exploring the web interface.
 permission:
-  bash: "*": ask
+  bash:
+    "*": ask
   "playwright-test*browser_*": allow
   "playwright-test*planner_*": allow
 ---
