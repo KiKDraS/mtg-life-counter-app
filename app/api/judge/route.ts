@@ -55,11 +55,13 @@ export async function POST(request: Request): Promise<Response> {
         totalMs: Math.round(performance.now() - t0),
       });
       try {
+        enqueue({ type: "status", phase: "context" });
         const context = await buildContext(question);
         contextMs = Math.round(performance.now() - t0);
         contextTimings = context.timings;
         const history = getSession(sessionKey(body.sessionId, ip));
         const messages = buildMessages(history, question, context.contextText);
+        enqueue({ type: "status", phase: "thinking" });
         const onToken = (token: string): void =>
           enqueue({ type: "token", content: token });
         const result = await streamWithFallback(

@@ -75,6 +75,7 @@ export interface JudgeRequest {
 /** SPEC §9.5 — SSE event stream payloads. */
 export type JudgeEvent =
   | { readonly type: "token"; readonly content: string }
+  | { readonly type: "status"; readonly phase: "context" | "thinking" }
   | {
       readonly type: "done";
       readonly citations: Citation[];
