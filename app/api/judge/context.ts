@@ -84,9 +84,10 @@ export interface CardRulingsResult {
 /**
  * @description Card rulings path (SPEC §9.3.1). Null-safe at every step per
  * card: name missing, unresolvable/ambiguous, or rulings unavailable → that
- * card skipped, no error (§9.3.1). All extracted names resolved sequentially
- * through the rate queue (resolveCard). Card context (name/type/oracle text)
- * present whenever a card resolves — rulings stay optional.
+ * card skipped, no error (§9.3.1). Card lookups run in parallel through the
+ * rate queue (resolveCard); card context order = extraction order.
+ * Card context (name/type/oracle text) present whenever a card resolves —
+ * rulings stay optional.
  * @param question The player's trimmed question.
  * @returns Card contexts + mapped rulings plus `["scryfall"]` when a card
  * resolved, else empty arrays.
@@ -94,28 +95,29 @@ export interface CardRulingsResult {
 export async function resolveCardRulings(
   question: string,
 ): Promise<CardRulingsResult> {
-  const cards: CardContext[] = [];
-  for (const name of extractCardNames(question)) {
-    const card = await resolveCard(name);
-
-    if (!card) continue;
-
-    const rulings = rankRulings(
-      question,
-      ((await getRulings(card)) ?? []).map((ruling) => ({
-        name: card.name,
-        source: ruling.source,
-        published_at: ruling.published_at,
-        comment: ruling.comment,
-      })),
-    );
-    cards.push({
-      name: card.name,
-      typeLine: card.type_line,
-      oracleText: card.oracle_text,
-      rulings,
-    });
-  }
+  // Promise.all preserves input order — card block order stays extraction order.
+  const cards = (
+    await Promise.all(
+      extractCardNames(question).map(async (name): Promise<CardContext | null> => {
+        const card = await resolveCard(name);
+        if (!card) return null;
+        return {
+          name: card.name,
+          typeLine: card.type_line,
+          oracleText: card.oracle_text,
+          rulings: rankRulings(
+            question,
+            ((await getRulings(card)) ?? []).map((ruling) => ({
+              name: card.name,
+              source: ruling.source,
+              published_at: ruling.published_at,
+              comment: ruling.comment,
+            })),
+          ),
+        };
+      }),
+    )
+  ).filter((card): card is CardContext => card !== null);
   return { cards, sourcesUsed: cards.length > 0 ? ["scryfall"] : [] };
 }
 
