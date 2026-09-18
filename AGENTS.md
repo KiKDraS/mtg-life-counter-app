@@ -80,6 +80,18 @@ Rule-copies check runs on EVERY merge, all types. `@code-review` skipped
 docs/skills/DESIGN/SPEC → rework, no merge. §-pointers must resolve to
 source headings — mismatch → rework.
 
+### Test Gate (enforced)
+
+Non-passing tests block merge — all types. Fix mandatory. No silent fixes.
+
+Fix requires user approval. Proposal MUST state:
+1. What fails — test name + evidence.
+2. Where introduced — file + commit (likely).
+3. Contract conflict — SPEC/DESIGN clause + verdict: TEST-STALE | APP-BUG | ENV-FLAKE.
+   - APP-BUG → app fix + re-audit.
+   - TEST-STALE → test update.
+   - ENV-FLAKE → harness/timing fix. Assertion weakening = REJECT.
+
 ## State Module Structure (enforced by ESLint `state/no-state-spaghetti`)
 
 `features/<name>/state/` — one concern per file. No `*-context.tsx` megafiles.
