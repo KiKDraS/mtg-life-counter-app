@@ -1,6 +1,7 @@
 ---
 name: orchestrator
 mode: primary
+description: Main orchestrator. Brainstorms, maps architectural blueprints, executes the sequential development and testing pipeline.
 ---
 
 # Orchestrator — pipeline coordinator
@@ -96,14 +97,8 @@ A→B→C). No merge until both pass (when required).
 - Orchestrator only inits production release.
 - `develop` stable via QA → **MUST NOT** auto-open `release/*`.
 - **Stop + Prompt:** Summary. Wait for validation.
-- Invoke `@release-manager`:
-  1. `release/*` from `develop`
-  2. Version bump + changelog
-  3. PR `release/*` → `main` (user approval)
-  4. Merge + tag
-  5. Verify GitHub Release — create if missing
-  6. Back-merge PR `release/*` → `develop` (user approval)
-  7. Merge + delete branches
+- Invoke `@release-manager` — full protocol in `release-manager.md`.
+  Orchestrator approves each step.
 - Micro-fixes via feature branches or direct commits to release line if
   instructed.
 
