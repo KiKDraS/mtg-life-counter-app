@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.4] - 2026-09-19
+### Fixed
+- Axiom telemetry ingest: corrected endpoint (`/v1/datasets/{dataset}/ingest`) — dataset was empty because the old `/api/v1/ingest/{dataset}` path 404'd silently.
+- Telemetry `after()` fetch now bounded to 5s (AbortSignal) — previously held the function to Vercel's 300s cap, causing "Task timed out after 300 seconds" on every request.
+- Telemetry failures now log status/error name only (never token/body) so ingest problems are visible.
+
 ## v1.1.3 - 2026-09-19
 
 - Prompt: few-shot answers one sentence each; injected rule excerpts clipped to 180 chars (citations verbatim)
