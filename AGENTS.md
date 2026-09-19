@@ -35,6 +35,17 @@ SPEC.md       # Application logic contract (behavior + data model)
 SPEC.md < DESIGN.md. DESIGN.md wins on conflicts. All agents read both before
 work. `@code-review` verifies against both.
 
+## Rule References (no copies)
+
+Agent files + meta files reference docs/skills/DESIGN/SPEC by pointer. Never
+copy rules into another file — copies go stale. Edit source only.
+DESIGN.md ↔ SPEC.md cross-references: pointer-only, no restated rules.
+
+**Directive routing:** all agents → AGENTS.md. ≥2 agents → doc in
+`.opencode/docs/` + binding line in each agent file. 1 agent → agent file.
+**Agents defined in `.opencode/agents/*.md` only** — no inline JSON agent
+blocks. Single source. Duplicate definition = violation.
+
 ---
 
 ## Git Flow
@@ -69,6 +80,23 @@ All merges via PRs only. Branch ops by `@release-manager`.
 > This doc + DESIGN.md + SPEC.md are binding contracts. Violations rejected by
 > `@code-review`. Pipeline halts.
 
+Rule-copies check runs on EVERY merge, all types. `@code-review` skipped
+(meta/release)? Orchestrator scans diff for duplicated rules from
+docs/skills/DESIGN/SPEC → rework, no merge. §-pointers must resolve to
+source headings — mismatch → rework.
+
+### Test Gate (enforced)
+
+Non-passing tests block merge — all types. Fix mandatory. No silent fixes.
+
+Fix requires user approval. Proposal MUST state:
+1. What fails — test name + evidence.
+2. Where introduced — file + commit (likely).
+3. Contract conflict — SPEC/DESIGN clause + verdict: TEST-STALE | APP-BUG | ENV-FLAKE.
+   - APP-BUG → app fix + re-audit.
+   - TEST-STALE → test update.
+   - ENV-FLAKE → harness/timing fix. Assertion weakening = REJECT.
+
 ## State Module Structure (enforced by ESLint `state/no-state-spaghetti`)
 
 `features/<name>/state/` — one concern per file. No `*-context.tsx` megafiles.
@@ -93,8 +121,8 @@ features/game-shell/state/     features/player-zone/state/
 - `hooks.ts` — consumer hooks. `"use client"`.
 
 `createContext` + `useReducer` same file → `pnpm lint` REJECT (rule
-`state/no-state-spaghetti`, scope `features/**/state/**/*.{ts,tsx}`).
-No barrel `index.ts` re-exports — import direct from concern file.
+`state/no-state-spaghetti`, scope `features/**/state/**/*.{ts,tsx}`). No barrel
+`index.ts` re-exports — import direct from concern file.
 
 ## Route Module Structure (enforced by `@code-review`)
 

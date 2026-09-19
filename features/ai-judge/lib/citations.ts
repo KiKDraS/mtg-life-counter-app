@@ -1,10 +1,13 @@
 /**
- * Citation parse + validate + sanitize (SPEC §9.7).
+ * Citation assembly + validate + sanitize (SPEC §9.7).
  *
- * Extracts citations from the LLM's structured output. Never crashes on
- * malformed output — returns [] on anything unparseable.
+ * The model emits compact citation ids (`{"citations":[{type, ruleId|name}]}`)
+ * after the `<<<CITATIONS>>>` delimiter; the server assembles verbatim
+ * excerpts from the retrieved context. Never crashes on malformed output —
+ * unknown ids are dropped, never fabricated.
  */
 
+import type { CardRuling } from "./rag/cards-source";
 import type { Citation } from "./types";
 
 /** Control chars that must not reach the client (CR/LF/tab/ESC…). */
@@ -22,81 +25,6 @@ const clipExcerpt = (excerpt: string): string => {
   if (clean.length <= MAX_EXCERPT) return clean;
   return `${clean.slice(0, MAX_EXCERPT).replace(/\s+\S*$/, "")}…`;
 };
-
-/** Validated non-empty string, else fallback. */
-const orElse = (value: unknown, fallback: string): string =>
-  isNonEmptyString(value) ? sanitize(value) : fallback;
-
-/** Parse a rule citation; null → filtered. */
-function parseRule(v: Record<string, unknown>): Citation | null {
-  if (!isNonEmptyString(v.ruleId)) return null;
-  return {
-    type: "rule",
-    ruleId: sanitize(v.ruleId),
-    section: orElse(v.section, sanitize(v.ruleId)),
-    excerpt: clipExcerpt(orElse(v.excerpt, "")),
-  };
-}
-
-/** Parse a card citation; null → filtered. */
-function parseCard(v: Record<string, unknown>): Citation | null {
-  if (!isNonEmptyString(v.name)) return null;
-  return {
-    type: "card",
-    name: sanitize(v.name),
-    source: orElse(v.source, "scryfall"),
-    date: orElse(v.date, ""),
-    excerpt: clipExcerpt(orElse(v.excerpt, "")),
-  };
-}
-
-/** Validate one parsed citation object; null → filtered. */
-function toCitation(value: unknown): Citation | null {
-  if (typeof value !== "object" || value === null) return null;
-  const v = value as Record<string, unknown>;
-  if (v.type === "rule") return parseRule(v);
-  if (v.type === "card") return parseCard(v);
-  return null;
-}
-
-/** Locate the first `{...}` JSON-ish block in raw text (markdown fence aware). */
-function extractJsonBlock(raw: string): string | null {
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = fenced ? fenced[1] : raw;
-  const start = candidate.indexOf("{");
-  const end = candidate.lastIndexOf("}");
-  if (start === -1 || end <= start) return null;
-  return candidate.slice(start, end + 1);
-}
-
-/**
- * Parse `{answer, citations}` from LLM output.
- *
- * Path 1: content IS a JSON string → parse directly.
- * Path 2: JSON inside markdown fences or embedded in prose → extract block.
- * Path 3: nothing parseable → [].
- */
-export function parseCitations(raw: string): Citation[] {
-  if (raw.trim().length === 0) return [];
-
-  const parseBlock = (block: string): Citation[] => {
-    try {
-      const parsed: unknown = JSON.parse(block);
-      if (typeof parsed !== "object" || parsed === null) return [];
-      const citations = (parsed as Record<string, unknown>).citations;
-      if (!Array.isArray(citations)) return [];
-      return citations.map(toCitation).filter((c): c is Citation => c !== null);
-    } catch {
-      return [];
-    }
-  };
-
-  const direct = parseBlock(raw.trim());
-  if (direct.length > 0) return direct;
-
-  const block = extractJsonBlock(raw);
-  return block ? parseBlock(block) : [];
-}
 
 /** Build a rule citation, normalizing the id to `CR <id>` form (§9.7). */
 export function buildRuleCitation(ruleId: string, section: string, excerpt: string): Citation {
@@ -121,4 +49,90 @@ export function buildCardCitation(
 ): Citation {
   const excerptText = excerpt.trim().length > 0 ? excerpt : (oracleText ?? "");
   return { type: "card", name, source: "scryfall", date, excerpt: clipExcerpt(excerptText) };
+}
+
+/** Context data the server assembles citations from (SPEC §9.7). */
+export interface CitationLookup {
+  /** ruleId → verbatim rule text (retrieved top-k, §9.4). */
+  readonly rules: ReadonlyMap<string, string>;
+  /** card name → oracle text + rulings. */
+  readonly cards: ReadonlyMap<string, { readonly oracleText: string | null; readonly rulings: CardRuling[] }>;
+}
+
+/**
+ * Rule section title: parent header text ("702.34. Flashback") when a header
+ * key exists in lookup, else the rule id. Parent candidates derived by
+ * stripping trailing parts: "702.34a" → "702.34", "702".
+ */
+function ruleSection(ruleId: string, rules: ReadonlyMap<string, string>): string {
+  let parent = ruleId;
+  while (parent.includes(".")) {
+    parent = parent.slice(0, parent.lastIndexOf("."));
+    const header = rules.get(parent);
+    if (header !== undefined) return header;
+  }
+  return ruleId;
+}
+
+/** One compact rule id → assembled citation; unknown id → null. */
+function ruleCitation(v: Record<string, unknown>, lookup: CitationLookup): Citation | null {
+  if (!isNonEmptyString(v.ruleId)) return null;
+  const ruleId = sanitize(v.ruleId);
+  const text = lookup.rules.get(ruleId);
+  if (text === undefined) return null; // unknown id — no excerpt to fabricate
+  return buildRuleCitation(ruleId, ruleSection(ruleId, lookup.rules), text);
+}
+
+/** One compact card name → assembled citation; unknown card → null. */
+function cardCitation(v: Record<string, unknown>, lookup: CitationLookup): Citation | null {
+  if (!isNonEmptyString(v.name)) return null;
+  const name = sanitize(v.name);
+  const card = lookup.cards.get(name);
+  if (!card) return null;
+  const first = card.rulings[0];
+  return buildCardCitation(name, first?.published_at ?? "", first?.comment ?? "", card.oracleText ?? undefined);
+}
+
+/** One tail item → assembled citation; unknown shape → null. */
+function citationFromItem(item: unknown, lookup: CitationLookup): Citation | null {
+  if (typeof item !== "object" || item === null) return null;
+  const v = item as Record<string, unknown>;
+  if (v.type === "rule") return ruleCitation(v, lookup);
+  if (v.type === "card") return cardCitation(v, lookup);
+  return null;
+}
+
+/** Parse + shape-check the tail JSON; null when unparseable/not a list. */
+function parseTail(tailJson: string): unknown[] | null {
+  try {
+    const parsed: unknown = JSON.parse(tailJson);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const citations = (parsed as Record<string, unknown>).citations;
+    return Array.isArray(citations) ? citations : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @description Assemble Citations from the model's compact id tail (SPEC
+ * §9.7). Unknown ids / unparseable tail → citation dropped, never fabricated.
+ * Empty/unparseable → []. O(citations) — each id is one Map lookup.
+ * @param tailJson The trimmed citations tail after `<<<CITATIONS>>>`, or null
+ * when the model emitted no delimiter.
+ * @param lookup Retrieved rules + card contexts to assemble excerpts from.
+ * @returns Assembled citations (rule → CR-normalized id, verbatim excerpt;
+ * card → first ruling comment, oracle text fallback).
+ */
+export function assembleCitations(tailJson: string | null, lookup: CitationLookup): Citation[] {
+  if (!tailJson || tailJson.length === 0) return [];
+  const citations = parseTail(tailJson);
+  if (!citations) return [];
+
+  const out: Citation[] = [];
+  for (const item of citations) {
+    const citation = citationFromItem(item, lookup);
+    if (citation) out.push(citation);
+  }
+  return out;
 }

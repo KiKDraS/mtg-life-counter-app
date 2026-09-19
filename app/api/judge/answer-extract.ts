@@ -1,150 +1,66 @@
 /**
- * Incremental, escape-aware JSON `answer` extractor (SPEC §9.5).
+ * Streaming answer/citations splitter (SPEC §9.5).
  *
- * Model output is one JSON object `{answer, citations}`. Only the `answer`
- * string is streamed to the client as token events. This state machine pulls
- * the answer's characters out of the raw JSON as chunks arrive, so the client
- * never sees braces/keys/citations. Chunks may split anywhere, including
- * inside a key, an escape sequence, or a `\uXXXX` code point — the machine
- * waits for more input rather than emitting a wrong char.
- *
- * Fallback: if no `answer` value has opened after `FALLBACK_CHUNKS` chunks or
- * `FALLBACK_CHARS` chars of model output (e.g. the model ignored the JSON
- * schema), `shouldFallback()` reports raw mode and `flushRaw()` returns the
- * un-emitted prefix so the caller streams raw text (SPEC §9.5 degraded path).
+ * Model output: plain-text answer, then a line `<<<CITATIONS>>>`, then a
+ * compact JSON object of citation ids. The delimiter splitter emits answer
+ * chars as they arrive — first visible char ≈ first model chunk; the
+ * citations tail is held until `citationsJson()` at stream end.
  *
  * Pure module — no Node APIs, browser-portable.
  */
 
-/** Machine states (exported for tests): idle → open-quote → capture → done. */
-export type AnswerExtractorState = "idle" | "open-quote" | "capture" | "done";
+const DELIMITER = "<<<CITATIONS>>>";
 
 /**
- * Fallback thresholds — raw mode when no answer value opened yet.
- * `FALLBACK_CHUNKS` must cover the JSON preamble (`{"answer": "` = 13 chars;
- * models stream 1-char deltas) plus margin — 24 chunks catches schema
- * violations fast while never firing before the answer quote opens.
- */
-export const FALLBACK_CHUNKS = 24;
-export const FALLBACK_CHARS = 512;
-
-/** Escape → real char map for the escapes that matter in answer text. */
-const ESCAPES: Readonly<Record<string, string>> = {
-  '"': '"',
-  "\\": "\\",
-  n: "\n",
-  t: "\t",
-  r: "\r",
-  b: "\b",
-  f: "\f",
-};
-
-/**
- * Streaming JSON answer extractor (SPEC §9.5). Feed raw model chunks via
- * {@link push}; it returns the answer characters captured by that chunk.
- * Use {@link shouldFallback} + {@link flushRaw} for the degraded raw path.
+ * Streaming answer/citations splitter (SPEC §9.5). Feed raw model chunks via
+ * {@link push}; it returns the answer chars captured by that chunk. After the
+ * stream ends, {@link flush} returns any remaining answer chars (no-delimiter
+ * case) and {@link citationsJson} the tail after the delimiter.
  */
 export class AnswerExtractor {
   private buffer = "";
-  private state: AnswerExtractorState = "idle";
-  /** Answer value opened (opening quote consumed) — fallback disabled. */
+  private streamed = 0; // answer chars already returned
+  private tail = ""; // citations JSON after delimiter
   private found = false;
-  /** Buffer position consumed by the machine. */
-  private readPos = 0;
-  /** Buffer chars already returned to the caller (extracted or raw). */
-  private emitted = 0;
-  private totalChars = 0;
-  private chunks = 0;
 
-  /**
-   * Feed one raw model chunk. Returns the answer characters newly captured
-   * ("" when the answer has not opened yet, or after it closed).
-   */
+  /** Feed one raw chunk. Returns the chars to stream to the client. */
   push(chunk: string): string {
-    if (this.state === "done") return "";
+    if (this.found) {
+      this.tail += chunk;
+      return "";
+    }
     this.buffer += chunk;
-    this.totalChars += chunk.length;
-    this.chunks += 1;
-    if (this.state === "idle") this.scanForKey();
-    if (this.state === "open-quote") this.openValue();
-    if (this.state === "capture") return this.readValue();
-    return "";
-  }
-
-  /** True when no answer value opened and the fallback thresholds are hit. */
-  shouldFallback(): boolean {
-    return !this.found && (this.chunks >= FALLBACK_CHUNKS || this.totalChars >= FALLBACK_CHARS);
-  }
-
-  /** All un-emitted raw input (fallback prefix + current chunk remnants). */
-  flushRaw(): string {
-    const raw = this.buffer.slice(this.emitted);
-    this.emitted = this.buffer.length;
-    return raw;
-  }
-
-  /** Skip until `"answer"` followed by `:`. Re-scans on every push; the
-   *  preamble is tiny (≤ fallback cap), so O(n²) is a non-issue. */
-  private scanForKey(): void {
-    while (this.state === "idle") {
-      const i = this.buffer.indexOf('"answer"', this.readPos);
-      if (i === -1) return; // key incomplete or not here yet — wait
-      const rest = this.buffer.slice(i + 8);
-      const m = rest.match(/^\s*:/);
-      if (!m) {
-        this.readPos = i + 1; // `"answer"` not followed by `:` — skip past it
-        continue;
-      }
-      this.readPos = i + 8 + m[0].length;
-      this.state = "open-quote";
+    const idx = this.buffer.indexOf(DELIMITER);
+    if (idx === -1) {
+      // Hold back a possible partial delimiter prefix — emit only what can't
+      // be the start of DELIMITER.
+      const safe = Math.max(0, this.buffer.length - DELIMITER.length + 1);
+      const emit = this.buffer.slice(this.streamed, safe);
+      this.streamed = safe;
+      return emit;
     }
+    // Delimiter found: everything before it is the answer, everything after
+    // is the citations tail. A trailing newline right before the delimiter
+    // may already have been streamed (1-char deltas) — harmless either way.
+    const emit = this.buffer.slice(this.streamed, idx);
+    this.streamed = idx + DELIMITER.length;
+    this.tail = this.buffer.slice(this.streamed);
+    this.found = true;
+    return emit;
   }
 
-  /** After `"answer":` — expect the opening quote of the string value. */
-  private openValue(): void {
-    const rest = this.buffer.slice(this.readPos);
-    const ws = /^\s*/.exec(rest)?.[0] ?? "";
-    const c = this.buffer[this.readPos + ws.length];
-    if (c === '"') {
-      this.readPos += ws.length + 1;
-      this.found = true;
-      this.state = "capture";
-    } else if (c !== undefined) {
-      // Value is not a string — malformed. Resume key scan at buffer end.
-      this.readPos = this.buffer.length;
-      this.state = "idle";
-    }
-    // else: only whitespace so far — wait for the quote.
+  /** Remaining answer chars when the stream ends without a delimiter. */
+  flush(): string {
+    if (this.found) return "";
+    const emit = this.buffer.slice(this.streamed);
+    this.streamed = this.buffer.length;
+    return emit;
   }
 
-  /** Read the string value: unescape, return captured chars. */
-  private readValue(): string {
-    let out = "";
-    while (this.readPos < this.buffer.length) {
-      const c = this.buffer[this.readPos];
-      if (c === '"') {
-        this.readPos += 1;
-        this.state = "done";
-        break;
-      }
-      if (c === "\\") {
-        if (this.readPos + 1 >= this.buffer.length) break; // wait for escape char
-        const e = this.buffer[this.readPos + 1];
-        if (e === "u") {
-          if (this.readPos + 5 >= this.buffer.length) break; // wait for 4 hex digits
-          const hex = this.buffer.slice(this.readPos + 2, this.readPos + 6);
-          out += String.fromCharCode(parseInt(hex, 16));
-          this.readPos += 6;
-        } else {
-          out += ESCAPES[e] ?? e;
-          this.readPos += 2;
-        }
-        continue;
-      }
-      out += c;
-      this.readPos += 1;
-    }
-    this.emitted += out.length;
-    return out;
+  /** Citations JSON tail (after DELIMITER), trimmed; null when no delimiter. */
+  citationsJson(): string | null {
+    return this.found ? this.tail.trim() : null;
   }
+  // ponytail: an answer containing the literal delimiter breaks the tail
+  // parse — pathological ("<<<CITATIONS>>>" in real answer text), acceptable.
 }

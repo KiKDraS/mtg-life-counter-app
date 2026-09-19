@@ -5,13 +5,15 @@ export interface JudgeChatCallbacks {
   readonly onToken: (content: string) => void;
   readonly onDone: (event: Extract<JudgeEvent, { type: "done" }>) => void;
   readonly onError: (event: Extract<JudgeEvent, { type: "error" }>) => void;
+  /** SPEC §9.5 — optional phase marker; progress text while awaiting first token. */
+  readonly onStatus?: (event: Extract<JudgeEvent, { type: "status" }>) => void;
 }
 
 /** Loose runtime guard — stream we own, keep parsing defensive. */
 const isJudgeEvent = (value: unknown): value is JudgeEvent => {
   if (typeof value !== "object" || value === null) return false;
   const type = (value as { readonly type?: unknown }).type;
-  return type === "token" || type === "done" || type === "error";
+  return type === "token" || type === "done" || type === "error" || type === "status";
 };
 
 /**
@@ -51,6 +53,7 @@ async function readSseStream(
   const dispatch = (event: JudgeEvent): void => {
     if (event.type === "token") callbacks.onToken(event.content);
     else if (event.type === "done") callbacks.onDone(event);
+    else if (event.type === "status") callbacks.onStatus?.(event); // mid-flight, never stops
     else {
       callbacks.onError(event);
       stopped = true;
@@ -88,8 +91,9 @@ async function readSseStream(
  * @description
  * SPEC §9.11 — single client call site for the AI Judge. All UI questions
  * route through here. POSTs to `/api/judge` and parses the SSE event stream
- * (SPEC §9.5): `token` events stream incrementally, `done` carries the final
- * answer metadata, `error` carries a user-facing message.
+ * (SPEC §9.5): `token` events stream incrementally, `status` events mark the
+ * pre-token phase (context → thinking), `done` carries the final answer
+ * metadata, `error` carries a user-facing message.
  *
  * Network failures (e.g. `TypeError: fetch failed` while offline) propagate
  * as thrown errors — the UI treats them as the offline state (SPEC §9.10).
@@ -99,7 +103,7 @@ async function readSseStream(
  *   optional server capability (SPEC §9.8) — the client currently sends
  *   questions without it.
  * @param callbacks — onToken per token event, onDone per done event,
- *   onError per error event.
+ *   onError per error event, onStatus (optional) per status event (SPEC §9.5).
  * @param signal — optional AbortSignal; aborts the fetch. AbortError
  *   propagates to the caller.
  * @returns Promise resolving when the stream ends (done/error/connection close).

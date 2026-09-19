@@ -335,12 +335,17 @@ gradient.
 | `OPEN_ROUTER_FALLBACK_MODEL`  | fallback judge model | no       | no fallback — primary only    |
 | `OPEN_ROUTER_EMBEDDING_MODEL` | semantic retrieval   | no       | lexical retrieval only (§9.4) |
 | `OPEN_ROUTER_ZDR`             | zero-data-retention provider filter | no | default true — "false" disables (no ZDR endpoints on account) |
+| `AXIOM_INGEST_TOKEN`          | Axiom ingest token — judge timing telemetry | no | telemetry off, judge unaffected |
+| `AXIOM_DATASET`               | Axiom dataset name | no | default `judge-timings` |
 
 - Validated at route module load. Model format `vendor/model` — else 503
   `misconfigured`.
 - **No hardcoded model names in code.** Model set via env only.
 - Server-only env. Never client, never `NEXT_PUBLIC_*`, never in repo, never
   logged.
+- Telemetry: fire-and-forget Axiom POST after response — success and failure
+  paths (§9.5). Never blocks, never throws, never logs token. Missing token →
+  no-op.
 
 ### 9.3 Data Sources → Versioned Artifacts
 
@@ -366,6 +371,7 @@ artifacts (§9.11).
 - Card context = `name` + `type_line` + `oracle_text` (verbatim) + rulings via
   `rulings_uri` (canonical, from card JSON), fallback `GET /cards/{id}/rulings`.
   Card block injected whenever the card resolves — even with zero rulings.
+- Rulings ranked by token overlap with question, max 3 per card.
 
 #### 9.3.2 mtg.wtf (Comprehensive Rules)
 
@@ -373,7 +379,12 @@ artifacts (§9.11).
 - Parse (pure fn): HTML → text. Split rules on `^(\d{3})\.(\d+)([a-z])?\.?\s`,
   sections on `^(\d{3})\.\s`. Output: `Map<ruleId, text>`.
 - Artifact `version` = rules date stamp from page ("effective as of …").
-- Memory cache. Refetch on version change. 24h TTL fallback.
+- **Bundle-primary:** committed artifact `rag/rules-bundle.json` seeded at
+  module load (imported JSON — always present in the server bundle). Refreshed
+  by `pnpm rules:refresh` (script) — CI opens a PR when the CR version changes.
+  Runtime fetch is the emergency path when the bundle is absent.
+- Memory cache: runtime-fetched artifacts keep 24h TTL fallback; bundle artifact
+  always fresh (its freshness = CI cadence).
 - Fetch fail → **degraded mode**: answer from card rulings only. `done` event
   includes `sourcesUsed: ["scryfall"]`.
 
@@ -382,11 +393,14 @@ artifacts (§9.11).
 Pure TS only — no Node APIs, no `fs`, no `fetch`. Browser-portable unchanged
 (offline seam §9.11).
 
-- **Lexical (default):** ruleId regex match (e.g. `702.12` in question) + token
+- **Lexical (default):** ruleId regex match (e.g. `702.34` in question) + token
   overlap scoring. top-k = 5.
-- **Spanish expansion:** ES→EN MTG term dictionary (`rag/es-dict.ts`, 41 terms)
+- **Spanish expansion:** ES→EN MTG term dictionary (`rag/es-dict.ts`, 45 terms)
   — translated phrases boost (multi-word +3, single-word +2), accent-stripped
   normalization. Spanish questions retrieve English rules.
+- **Topic boost:** term → CR section prefixes. 3-digit sections (`405`, `608`)
+  or keyword-level prefixes (`702.34` flashback, `700.2` modes). Match via
+  rule-id prefix, not just section head.
 - **Semantic (opt-in):** `OPENROUTER_EMBEDDING_MODEL` set → embed rules corpus,
   cosine similarity. top-k = 5. Embedding artifact file-cached, keyed by rules
   version. Rebuild only on version change.
@@ -408,16 +422,35 @@ SSE events:
 
 ```json
 { "type": "token", "content": "Yes. Reanimate returns the" }
-{ "type": "done", "citations": [...], "usage": { "inputTokens": 1200, "outputTokens": 300, "cost": 0.0015 }, "model": "anthropic/claude-sonnet-4", "sourcesUsed": ["mtg.wtf", "scryfall"] }
+{ "type": "status", "phase": "context" }
+{ "type": "status", "phase": "thinking" }
+{ "type": "done", "citations": [...], "usage": { "inputTokens": 1200, "outputTokens": 300, "cost": 0.0015 }, "model": "anthropic/claude-sonnet-4", "sourcesUsed": ["mtg.wtf"], "timings": { "contextMs": 1420, "scryfallMs": 410, "rulesMs": 980, "firstTokenMs": 8400, "firstCharMs": 9400, "totalMs": 138000 } }
 { "type": "error", "code": "rate_limited", "message": "The AI Judge is busy. Please wait a moment." }
 ```
 
-- `token.content` = **answer text only**. Model emits JSON
-  `{answer, citations}` (§9.7); server extracts `answer` and streams only its
-  characters. Never raw JSON to client. Extraction failure → fallback: stream
-  raw model output (degraded, still readable).
-- `citations` delivered once in `done` — server contract (UI does not render
-  them; answers carry inline rule refs formatted per DESIGN.md §6.4.1).
+- `token.content` = **answer text only**. Model emits plain-text answer
+  immediately (no JSON wrapper, no reasoning), then `<<<CITATIONS>>>` delimiter
+  + compact JSON citation ids (§9.7). Server streams answer chars as they
+  arrive — nothing buffered, first visible char ≈ first model chunk. Never raw
+  JSON to client. Citations assembly failure → `citations: []` (answer intact).
+- `status` events: `{type:"status", phase:"context"|"thinking"}` — phase
+  markers before the answer streams. Client MAY render them as progress text
+  and MAY ignore. Additive — never required for rendering.
+- `citations` assembled **server-side** from the model's compact ids: rule
+  excerpts = verbatim retrieved-rule text (§9.4), card excerpts = ruling
+  comment / oracle text (§9.7). Delivered once in `done` — server contract (UI
+  does not render them; answers carry inline rule refs formatted per DESIGN.md
+  §6.4.1).
+- `done.timings` = phase ms from request start: `contextMs` (Scryfall + RAG
+  build; parallel max), `scryfallMs` (card lookups), `rulesMs` (rules
+  fetch/cache + retrieval), `firstTokenMs` (first model chunk), `firstCharMs`
+  (first visible char), `totalMs`. Client MAY ignore. Server logs
+  `[ai-judge] timing` line + sends to Axiom when configured (§9.2). Telemetry
+  never delays response.
+- Telemetry payload: timings + `model` + `inputTokens`/`outputTokens`/`cost`.
+  Failure paths (timeout, model_unavailable, mid-stream) also send an error
+  event to Axiom with partial timings + error code. Client disconnect → no
+  telemetry. Question/key never sent.
 
 Error codes: `rate_limited`, `model_unavailable`, `misconfigured`, `timeout`,
 `bad_request`.
@@ -444,7 +477,7 @@ Oracle text: {oracle_text}
 
 Relevant rules:
 ---
-[CR 702.12a] <text>
+[CR 702.34a] <text>
 ---
 Player question: {question}
 ```
@@ -453,25 +486,29 @@ Player question: {question}
   Rulings block (existing format) follows it when rulings exist. No card → card
   block omitted.
 
-- Structured output `{answer, citations[]}`. Few-shot 2–3 Q&A pairs in system
-  prompt. Reasoning hidden — final answer only.
+- Output contract: plain-text answer (markdown subset), then a line with the
+  delimiter `<<<CITATIONS>>>`, then ONE compact JSON object
+  `{"citations":[{"type":"rule","ruleId":"702.34a"},{"type":"card","name":"Lier, Disciple of the Drowned"}]}`.
+  ruleId = plain CR id from context (`[CR 702.34a]` → `702.34a`); card name
+  verbatim from context. No reasoning in output — final answer only. No JSON
+  wrapper around the answer. Few-shot 2–3 Q&A pairs in system prompt.
 - **Language mirror:** system prompt mandates same-language response (es→es,
   en→en, other→en). `buildUserPrompt` prepends "Respond in Spanish." when
   Spanish stopwords detected in question. Deterministic server-side.
 - **Partial context:** system prompt — excerpts may be truncated; answer from
   excerpts + CR knowledge; never refuse over incomplete excerpt.
-- **Formatting:** answers use markdown subset — paragraphs (`\n\n`), `**bold**`,
-  `- ` bullets, `1. ` lists. No headings/tables/code blocks. Client renders via
-  minimal renderer (DESIGN.md §6.4.1). Inline rule refs
-  (`CR|rule|regla <num>`) → stripped from text, appended as
-  ` - <i>CR <num></i>` suffix (comma-joined multiple).
-- Server extracts `answer` → streamed as token events; `citations` → `done`
-  event. Client never renders raw JSON (DESIGN.md §6.4).
+- **Formatting:** markdown subset + inline rule refs per DESIGN.md §6.4.1.
+- Server streams the answer text as it arrives; parses the delimiter tail;
+  `citations` assembled server-side → `done` event. Client never renders raw
+  JSON (DESIGN.md §6.4).
+- Citation assembly (server): rule id → verbatim rule text from the rules
+  artifact (§9.3.2), `section` = parent section header text; card name →
+  ruling comment (date), else oracle text. Unknown id → citation dropped (no
+  fabrication). Excerpts clipped to 300 chars.
 - Citation types:
   - rule:
-    `{type:"rule", ruleId:"CR 702.12a", section:"702.12. Reanimate", excerpt}`
+    `{type:"rule", ruleId:"CR 702.34a", section:"702.34. Flashback", excerpt}`
   - card: `{type:"card", name, source:"scryfall", date, excerpt}`
-- Card rulings injected into context as card citations.
 
 ### 9.8 Game Context
 
@@ -489,8 +526,8 @@ Player question: {question}
 - `sessionId = aijudge-<version>` — deterministic, same server history across
   reloads.
 - IndexedDB blocked/private mode → memory-only fallback, app stays usable.
-- In-memory token budget: 24k tokens → FIFO prune oldest, keep system prompt +
-  last N turns.
+- In-memory token budget: 10k tokens → FIFO prune oldest, keep system prompt +
+  last N turns. Mirrored client-side char cap (10k × 4 chars).
 
 ### 9.10 UI Contract
 

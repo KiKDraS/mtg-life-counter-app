@@ -64,7 +64,7 @@ luminance. WCAG 4.5:1.
 | Token                 | Hex                | Usage                                        |
 | --------------------- | ------------------ | -------------------------------------------- |
 | BG overlay            | `#1a1a1a`          | Commander damage & counters overlay BG       |
-| Splash cover          | `#292A2A`          | Extended splash hydration cover (§4.6)       |
+| Splash cover          | `#292A2A`          | Extended splash hydration cover (SPEC.md §4.6) |
 | Belt / AI Judge       | `#000000`          | Spellbook belt, AI Judge modal backdrop      |
 | Modal BG              | `rgba(0,0,0,0.80)` | Config modals                                |
 | Danger red            | `#D50000`          | Life ≤ 0, commander ≥ 21                     |
@@ -312,9 +312,8 @@ Tap M → black belt expands full width. M stays centered. 5 icons spread:
 
 Gameplay (⟳, ⚖️) near center. Setup (⚙️, 👥, ⬇️) outer edges.
 
-**Install App (⬇️):** PWA install helper. Hidden in standalone mode (`pwa:`
-variant — `display-mode: standalone`) and absent until browser fires
-`beforeinstallprompt`. Behavior contract: SPEC.md §8.6.
+**Install App (⬇️):** PWA install helper. Installability gate + behavior per
+SPEC.md §8.6.
 
 ---
 
@@ -421,8 +420,7 @@ Streaming response.
 - **Input:** Docked bottom. Placeholder "Ask about a card or rule…" (50% white
   opacity). Enter/⏎ sends. Auto-scroll to newest message.
 - **Keyboard:** Escape closes. Focus on input on open.
-- **History persistence:** chat survives modal close AND page reload (IndexedDB,
-  SPEC §9.9). New game (⟳ / ⚙️ / 👥 reset) → fresh chat. Old games pruned.
+- **History persistence:** per SPEC.md §9.9.
 
 #### 6.4.0 Offline Fallback (until local engine lands)
 
@@ -558,8 +556,8 @@ each commander deals to current player.
 └──────────────────────┘
 ```
 
-Data model: see SPEC.md §4 `CommanderDamage`. Player 1 (playerId: 0) sees
-columns for playerId 0 (own commander), 1, 2, 3 (opponents).
+Data model: see SPEC.md §5 `CommanderDamage`. Behavior per SPEC.md §6. Player 1
+(playerId: 0) sees columns for playerId 0 (own commander), 1, 2, 3 (opponents).
 
 - **Pill:** Rounded. Commander owner's mana color. `PlaneswalkerSymbol` inside
   (white fill).
@@ -567,8 +565,6 @@ columns for playerId 0 (own commander), 1, 2, 3 (opponents).
 - **[−]/[+] buttons:** Tap ±1, hold ±10 after 1s. Borderless. Decrement
   floors at 0.
 - **Wrap:** flex-wrap. 4p+ player 0 + player 5: 30% width (3/row). Else: 45% (2/row).
-- **Life reduction:** Each commander damage point also −1 life.
-  `adjustCommanderDamage(+3)` → life -3.
 - **Lethal:** Any commander ≥21 → current player loses. Value + life total →
   `#D50000`.
 - **Zone label:** When commander ≥21 & life >0 → small "Commander Damage Lethal"

@@ -45,6 +45,18 @@ export type Citation =
       readonly excerpt: string;
     };
 
+/** SPEC §9.5 — per-request phase timings, ms from request start. */
+export interface JudgeTimings {
+  readonly contextMs: number;
+  /** Card lookups (resolveCardRulings) — within contextMs (parallel max). */
+  readonly scryfallMs: number;
+  /** Rules fetch/cache + retrieval (loadRules) — within contextMs (parallel max). */
+  readonly rulesMs: number;
+  readonly firstTokenMs: number;
+  readonly firstCharMs: number;
+  readonly totalMs: number;
+}
+
 /** SPEC §9.6 — token usage + cost of the served model call. */
 export interface Usage {
   readonly inputTokens: number;
@@ -63,12 +75,14 @@ export interface JudgeRequest {
 /** SPEC §9.5 — SSE event stream payloads. */
 export type JudgeEvent =
   | { readonly type: "token"; readonly content: string }
+  | { readonly type: "status"; readonly phase: "context" | "thinking" }
   | {
       readonly type: "done";
       readonly citations: Citation[];
       readonly usage: Usage;
       readonly model: string;
       readonly sourcesUsed: string[];
+      readonly timings: JudgeTimings;
     }
   | {
       readonly type: "error";

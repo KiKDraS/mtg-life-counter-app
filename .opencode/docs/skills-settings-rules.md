@@ -24,7 +24,8 @@ explanations, no pleasantries. If reading: caveman ultra. If writing: caveman
 ultra.
 
 **Context7 MCP mandatory.** `resolve-library-id` → `query-docs` for
-lib/framework/API/CLI questions. Spec: `.opencode/skills/context7-mcp/SKILL.md`
+lib/framework/API/CLI questions. MCP instructions auto-injected — no skill
+file.
 
 **CodeGraph mandatory.** `.codegraph/` in root? **USE CODEGRAPH FIRST.** No
 grep/find/Read before. MCP `codegraph_codegraph_explore`: source + line nums +
