@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.1 - 2026-09-19
+
+- Reasoning-effort knob (OPEN_ROUTER_REASONING_EFFORT: none/low/medium/high) — controls hidden chain-of-thought latency on reasoning models (#166)
+
 ## v1.1.0 - 2026-09-18
 
 ### Telemetry & observability
