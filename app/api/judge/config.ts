@@ -18,6 +18,22 @@ const MODEL_FORMAT_RE = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._:\/-]*$/i;
  */
 export const zdrEnabled = process.env.OPEN_ROUTER_ZDR !== "false";
 
+/** Accepted values for `OPEN_ROUTER_REASONING_EFFORT` (SPEC §9.2). */
+const REASONING_EFFORTS = new Set(["none", "low", "medium", "high"]);
+
+/** Reasoning depth for reasoning models (SPEC §9.2, §9.5). */
+export type ReasoningEffort = "none" | "low" | "medium" | "high";
+
+/**
+ * Reasoning depth from env — optional. Unset/invalid → undefined → request
+ * omits `reasoning` (model default). Never crashes, never logged.
+ */
+const rawEffort = (process.env.OPEN_ROUTER_REASONING_EFFORT ?? "")
+  .trim()
+  .toLowerCase();
+export const reasoningEffort: ReasoningEffort | undefined =
+  REASONING_EFFORTS.has(rawEffort) ? (rawEffort as ReasoningEffort) : undefined;
+
 /** Resolved env config. Empty strings when unset. */
 export const env = {
   apiKey: process.env.OPEN_ROUTER_API_KEY ?? "",

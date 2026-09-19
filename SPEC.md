@@ -335,6 +335,7 @@ gradient.
 | `OPEN_ROUTER_FALLBACK_MODEL`  | fallback judge model | no       | no fallback — primary only    |
 | `OPEN_ROUTER_EMBEDDING_MODEL` | semantic retrieval   | no       | lexical retrieval only (§9.4) |
 | `OPEN_ROUTER_ZDR`             | zero-data-retention provider filter | no | default true — "false" disables (no ZDR endpoints on account) |
+| `OPEN_ROUTER_REASONING_EFFORT` | reasoning depth for reasoning models | no | unset = model default; `none`/`low`/`medium`/`high` — see §9.5 |
 | `AXIOM_INGEST_TOKEN`          | Axiom ingest token — judge timing telemetry | no | telemetry off, judge unaffected |
 | `AXIOM_DATASET`               | Axiom dataset name | no | default `judge-timings` |
 
@@ -436,6 +437,10 @@ SSE events:
 - `status` events: `{type:"status", phase:"context"|"thinking"}` — phase
   markers before the answer streams. Client MAY render them as progress text
   and MAY ignore. Additive — never required for rendering.
+- **Reasoning:** reasoning models may emit hidden chain-of-thought before the
+  answer (`firstCharMs - firstTokenMs` = reasoning duration). `OPEN_ROUTER_REASONING_EFFORT`
+  (none/low/medium/high) controls depth when set — latency/quality tradeoff,
+  measured via probe (§9.2).
 - `citations` assembled **server-side** from the model's compact ids: rule
   excerpts = verbatim retrieved-rule text (§9.4), card excerpts = ruling
   comment / oracle text (§9.7). Delivered once in `done` — server contract (UI
