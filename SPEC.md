@@ -454,7 +454,9 @@ SSE events:
   (`[{phase:"context",atMs:0},{phase:"thinking",atMs:contextMs}]`). Client MAY
   ignore. Server logs
   `[ai-judge] timing` line + sends to Axiom when configured (§9.2). Telemetry
-  never delays response.
+  never delays response. Ingest = cloud REST endpoint
+  `/v1/datasets/{dataset}/ingest`, fetch bounded 5s (AbortSignal); timeout or
+  non-2xx → `[ai-judge] telemetry ingest ...` failure line (status/name only).
 - Telemetry payload: timings + `model` + `inputTokens`/`outputTokens`/`cost`.
   Failure paths (timeout, model_unavailable, mid-stream) also send an error
   event to Axiom with partial timings + error code. Client disconnect → no

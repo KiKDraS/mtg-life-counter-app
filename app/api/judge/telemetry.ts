@@ -1,13 +1,18 @@
 /**
  * Fire-and-forget Axiom ingest for judge timings + usage (SPEC §9.5).
- * Never throws, never blocks, never logs the token. No retry.
+ * Never throws, never blocks (5s bounded), never logs the token. No retry.
+ * Failures log status/name only — dataset name, never body/token.
  */
 
 import { AXIOM_OK, axiomDataset, axiomToken } from "./config";
 import type { JudgeTimings, Usage } from "@/features/ai-judge/lib/types";
 import { after } from "next/server";
 
-const AXIOM_INGEST_URL = `https://api.axiom.co/api/v1/ingest/${axiomDataset}`;
+/** Cloud ingest endpoint (Axiom REST API "Ingest data (legacy)", docs §restapi). */
+const AXIOM_INGEST_URL = `https://api.axiom.co/v1/datasets/${axiomDataset}/ingest`;
+
+/** Bound the after() fetch so it can never hold the function past 5s. */
+const TELEMETRY_TIMEOUT_MS = 5_000;
 
 /** SPEC §9.5 — one timing/usage telemetry event. */
 interface JudgeTelemetry {
@@ -59,10 +64,21 @@ export const sendTiming = (timing: JudgeTelemetry): void => {
           _time: new Date().toISOString(),
         },
       ]),
-    }).catch(() => {});
+      signal: AbortSignal.timeout(TELEMETRY_TIMEOUT_MS),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          // Status + dataset only — never token/body (SPEC §9.5).
+          console.error(`[ai-judge] telemetry ingest ${res.status} (${axiomDataset})`);
+        }
+      })
+      .catch((err: unknown) => {
+        const name = err instanceof Error ? err.name : "unknown";
+        console.error(`[ai-judge] telemetry ingest failed (${axiomDataset}): ${name}`);
+      });
   } catch {
     // Sync throw (malformed dataset URL, fetch unavailable) — telemetry never
-    // propagates to the route. ponytail: async rejections already swallowed
-    // by .catch; this guards the sync-throw path only.
+    // propagates to the route. ponytail: async rejections already handled above;
+    // this guards the sync-throw path only.
   }
 };
