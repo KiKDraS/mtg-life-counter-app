@@ -470,4 +470,107 @@ test.describe("Extended Splash Screen", () => {
     await openBelt(page);
     await closeBelt(page);
   });
+
+  test("ES-08: Slow IndexedDB hydration — splash stays until HYDRATE lands (race regression)", async ({
+    page,
+  }) => {
+    // Race regression (standalone cold starts): the handler used to schedule
+    // the 310ms removal on the mount run (isHydrated=false), so an IDB
+    // hydrate slower than ~310ms lost the cover mid-swap — the SSR-defaults
+    // frame flashed before the hydrated values landed. Gate fix: no-op while
+    // isHydrated=false, fade+remove only after HYDRATE.
+    //
+    // Determinism note: `indexedDB.open` success is engine-controlled (the
+    // engine fires IDBRequest events), so a delayed-open gate is not cleanly
+    // shimmable. Equivalent lever — shim `IDBDatabase.prototype.transaction`
+    // so every `objectStore().get()` success HANDLER runs after a fixed
+    // delay; the hydrator's Promise.all (§4.5) resolves late. Real requests
+    // still execute (only handler dispatch defers), so the DB is not poisoned
+    // for later tests in the same context.
+    const errors = consoleErrors(page);
+
+    // 1. Init script: defer every IDB read success handler 1500ms
+    await page.addInitScript(() => {
+      const w = window as unknown as { __idbGetDelayMs: number };
+      w.__idbGetDelayMs = 1500;
+      const origTransaction = IDBDatabase.prototype.transaction;
+      const getProp = (obj: unknown, key: string): unknown =>
+        (obj as Record<string, unknown>)[key];
+      const setProp = (obj: unknown, key: string, value: unknown): void => {
+        (obj as Record<string, unknown>)[key] = value;
+      };
+      IDBDatabase.prototype.transaction = function (
+        this: IDBDatabase,
+        ...args: Parameters<IDBDatabase["transaction"]>
+      ) {
+        const realTxn = origTransaction.apply(this, args);
+        return new Proxy(realTxn, {
+          get(target, prop: string | symbol) {
+            if (typeof prop !== "string") return undefined;
+            if (prop === "objectStore") {
+              return (name: string) => {
+                const realStore = target.objectStore(name);
+                return new Proxy(realStore, {
+                  get(storeTarget, storeProp: string | symbol) {
+                    if (typeof storeProp !== "string") return undefined;
+                    if (storeProp === "get") {
+                      return (key: IDBValidKey | IDBKeyRange) => {
+                        const realReq = storeTarget.get(key);
+                        return new Proxy(realReq, {
+                          set(reqTarget, reqProp, value) {
+                            if (reqProp === "onsuccess") {
+                              // Deliberately NOT assigned to the real request:
+                              // the engine would fire it immediately. Schedule
+                              // the deferred call only — the real request's
+                              // engine event then has no handler.
+                              setTimeout(
+                                () => value.call(reqTarget),
+                                w.__idbGetDelayMs,
+                              );
+                              return true;
+                            }
+                            setProp(reqTarget, reqProp as string, value);
+                            return true;
+                          },
+                          get: (reqTarget, reqProp) =>
+                            getProp(reqTarget, reqProp as string),
+                        });
+                      };
+                    }
+                    const v = getProp(storeTarget, storeProp);
+                    return typeof v === "function" ? v.bind(storeTarget) : v;
+                  },
+                });
+              };
+            }
+            const v = getProp(target, prop);
+            return typeof v === "function" ? v.bind(target) : v;
+          },
+        });
+      };
+    });
+
+    // 2. goto /; SSR overlay anchored, client tree mounts, hydrator reads pending
+    await page.goto("/");
+
+    const overlay = page.locator("#extended-splash-screen");
+
+    // 3. Wait PAST the old bug window — React mounted (handler effect ran with
+    //    isHydrated=false) while IDB reads are still deferred. Old code removed
+    //    the overlay at ~310ms post-mount; the fix keeps it covering.
+    //    700ms is inside the 1500ms read delay with safety margin on slow CI.
+    await expect(overlay).toHaveCount(1);
+    await expect(overlay).toHaveCSS("opacity", "1");
+    await expect(overlay).toHaveCSS("pointer-events", "auto");
+    await page.waitForTimeout(700);
+    await expect(overlay).toHaveCount(1);
+    await expect(overlay).toHaveCSS("opacity", "1");
+
+    // 4. Deferred reads resolve → HYDRATE → fade + 310ms removal
+    await expect(overlay).toHaveCount(0, { timeout: 5000 });
+
+    // 5. App interactive, zero console errors
+    await expect(page.getByLabel("Open Spellbook Menu")).toBeVisible();
+    expect(errors).toEqual([]);
+  });
 });
