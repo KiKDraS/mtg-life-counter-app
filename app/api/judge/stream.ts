@@ -8,7 +8,8 @@
  */
 
 import { AnswerExtractor } from "./answer-extract";
-import { openRouter, zdrEnabled } from "./config";
+import { openRouter, reasoningEffort, zdrEnabled } from "./config";
+import type { ReasoningEffort } from "./config";
 import {
   ConnectionError,
   EdgeNetworkTimeoutResponseError,
@@ -24,6 +25,15 @@ import type { Usage } from "@/features/ai-judge/lib/types";
 
 const FIRST_TOKEN_TIMEOUT_MS = 30_000;
 const TOTAL_TIMEOUT_MS = 120_000;
+
+/**
+ * `reasoning` request field when effort configured (SPEC §9.2); empty object
+ * when unset → spread adds nothing → model default (§9.5).
+ */
+const reasoningField:
+  | { reasoning: { effort: ReasoningEffort } }
+  | Record<string, never> =
+  reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {};
 
 /** First-token or total-time budget exceeded (SPEC §9.5). */
 export class StreamTimeoutError extends Error {}
@@ -191,6 +201,8 @@ const logFailure = (failure: FailureKind, err: unknown): void => {
  * failure → "mid_stream_failure" (a fallback cannot be spliced in cleanly);
  * client disconnect → "client_disconnected"; otherwise "failed" with the
  * classified failure kind.
+ * Reasoning depth (SPEC §9.5): `OPEN_ROUTER_REASONING_EFFORT` when configured —
+ * latency/quality tradeoff on reasoning models, omitted = model default.
  * @param models Model ids in preference order (primary first).
  * @param messages System + history + context user messages.
  * @param clientSignal Request abort signal — abort cancels the stream.
@@ -229,6 +241,9 @@ export async function streamWithFallback(
           stream: true,
           streamOptions: { includeUsage: true },
           provider: { zdr: zdrEnabled },
+          // Reasoning depth when configured (SPEC §9.2) — latency/quality
+          // tradeoff on reasoning models; omitted = model default (§9.5).
+          ...reasoningField,
         },
       },
       { timeoutMs: TOTAL_TIMEOUT_MS, signal: clientSignal },
