@@ -506,6 +506,10 @@ Q: {question}
   Spanish stopwords detected in question. Deterministic server-side.
 - **Partial context:** system prompt — excerpts may be truncated; answer from
   excerpts + CR knowledge; never refuse over incomplete excerpt.
+- **Injected rule excerpts clipped** to 180 chars (word boundary) at prompt
+  build — answer-side citations still assembled from the full verbatim rule
+  text. Few-shot answers one sentence each; `<<<CITATIONS>>>` + citation JSON
+  lines verbatim (format enforcers).
 - **Conciseness:** system prompt — shortest complete answer (2–6 short
   sentences / short list); don't restate question; don't quote card text back.
 - **No placeholders:** system prompt — never `[]`/`()`; cite only via citation

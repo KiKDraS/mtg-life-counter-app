@@ -145,7 +145,7 @@ function report(label, results) {
   derivedMedian("hiddenWindowMs", (r) => diff(r.timings.firstCharMs, r.timings.firstTokenMs));
   derivedMedian("streamMs", (r) => diff(r.timings.totalMs, r.timings.firstCharMs));
   derivedMedian("charsPerSec", (r) => rate(r.answerChars, diff(r.timings.totalMs, r.timings.firstCharMs)));
-  derivedMedian("jsonOverhead", (r) =>
+  derivedMedian("tokensPerChar", (r) =>
     r.answerChars > 0 && r.outputTokens != null ? r.outputTokens / r.answerChars : null,
   );
   // Status-phase trace (SPEC §9.5): thinking atMs from phases, contextMs fallback.
