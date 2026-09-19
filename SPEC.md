@@ -335,7 +335,7 @@ gradient.
 | `OPEN_ROUTER_FALLBACK_MODEL`  | fallback judge model | no       | no fallback — primary only    |
 | `OPEN_ROUTER_EMBEDDING_MODEL` | semantic retrieval   | no       | lexical retrieval only (§9.4) |
 | `OPEN_ROUTER_ZDR`             | zero-data-retention provider filter | no | default true — "false" disables (no ZDR endpoints on account) |
-| `OPEN_ROUTER_REASONING_EFFORT` | reasoning depth for reasoning models | no | unset = model default; `none`/`low`/`medium`/`high` — see §9.5 |
+| `OPEN_ROUTER_REASONING_EFFORT` | reasoning depth for reasoning models | no | unset/invalid = `medium` floor; `none`/`low`/`medium`/`high` — see §9.5 |
 | `AXIOM_INGEST_TOKEN`          | Axiom ingest token — judge timing telemetry | no | telemetry off, judge unaffected |
 | `AXIOM_DATASET`               | Axiom dataset name | no | default `judge-timings` |
 
@@ -435,12 +435,13 @@ SSE events:
   arrive — nothing buffered, first visible char ≈ first model chunk. Never raw
   JSON to client. Citations assembly failure → `citations: []` (answer intact).
 - `status` events: `{type:"status", phase:"context"|"thinking"}` — phase
-  markers before the answer streams. Client MAY render them as progress text
-  and MAY ignore. Additive — never required for rendering.
+  markers before the answer streams. **Telemetry-only:** server logs `phases`,
+  client IGNORES them — UI renders 3-dot typing indicator, no status text
+  (DESIGN §6.4).
 - **Reasoning:** reasoning models may emit hidden chain-of-thought before the
-  answer (`firstCharMs - firstTokenMs` = reasoning duration). `OPEN_ROUTER_REASONING_EFFORT`
-  (none/low/medium/high) controls depth when set — latency/quality tradeoff,
-  measured via probe (§9.2).
+  answer (`firstCharMs - firstTokenMs` = reasoning duration). Effort default
+  `medium` (quality floor) — `OPEN_ROUTER_REASONING_EFFORT` overrides
+  (none/low/medium/high). Latency/quality tradeoff measured via probe (§9.2).
 - `citations` assembled **server-side** from the model's compact ids: rule
   excerpts = verbatim retrieved-rule text (§9.4), card excerpts = ruling
   comment / oracle text (§9.7). Delivered once in `done` — server contract (UI
@@ -449,7 +450,9 @@ SSE events:
 - `done.timings` = phase ms from request start: `contextMs` (Scryfall + RAG
   build; parallel max), `scryfallMs` (card lookups), `rulesMs` (rules
   fetch/cache + retrieval), `firstTokenMs` (first model chunk), `firstCharMs`
-  (first visible char), `totalMs`. Client MAY ignore. Server logs
+  (first visible char), `totalMs`, `phases`
+  (`[{phase:"context",atMs:0},{phase:"thinking",atMs:contextMs}]`). Client MAY
+  ignore. Server logs
   `[ai-judge] timing` line + sends to Axiom when configured (§9.2). Telemetry
   never delays response.
 - Telemetry payload: timings + `model` + `inputTokens`/`outputTokens`/`cost`.
@@ -470,26 +473,27 @@ Error codes: `rate_limited`, `model_unavailable`, `misconfigured`, `timeout`,
 
 ### 9.7 Prompt & Citations
 
-- Persona: "You are an impartial Magic: The Gathering rules judge. Answer only
-  based on Comprehensive Rules and Oracle card text."
+- Persona: impartial MTG rules judge; answer only from Comprehensive Rules +
+  Oracle card text. System prompt prose caveman-ultra compressed (no filler).
+  Verbatim kept: refusal line, citation-id rule, output contract, few-shots.
 - RAG context in **user** message, never system:
 
 ```
-Card:
-Name: {name}
-Type: {type_line}
-Oracle text: {oracle_text}
+CARD:
+NAME: {name}
+TYPE: {type_line}
+ORACLE: {oracle_text}
 
-Relevant rules:
----
+RULES:
 [CR 702.34a] <text>
----
-Player question: {question}
+
+Q: {question}
 ```
 
 - Card block present whenever the card resolves — even with zero rulings.
-  Rulings block (existing format) follows it when rulings exist. No card → card
-  block omitted.
+  `RULINGS:` block follows when rulings exist (`[name] (date) comment` per
+  line, max 3/card). No card → card block omitted. Source data verbatim —
+  framing labels only compressed.
 
 - Output contract: plain-text answer (markdown subset), then a line with the
   delimiter `<<<CITATIONS>>>`, then ONE compact JSON object
@@ -498,10 +502,14 @@ Player question: {question}
   verbatim from context. No reasoning in output — final answer only. No JSON
   wrapper around the answer. Few-shot 2–3 Q&A pairs in system prompt.
 - **Language mirror:** system prompt mandates same-language response (es→es,
-  en→en, other→en). `buildUserPrompt` prepends "Respond in Spanish." when
+  en→en, other→en). `buildUserPrompt` prepends "Answer Spanish." when
   Spanish stopwords detected in question. Deterministic server-side.
 - **Partial context:** system prompt — excerpts may be truncated; answer from
   excerpts + CR knowledge; never refuse over incomplete excerpt.
+- **Conciseness:** system prompt — shortest complete answer (2–6 short
+  sentences / short list); don't restate question; don't quote card text back.
+- **No placeholders:** system prompt — never `[]`/`()`; cite only via citation
+  id list. MarkdownText render guard strips stray empty placeholders.
 - **Formatting:** markdown subset + inline rule refs per DESIGN.md §6.4.1.
 - Server streams the answer text as it arrives; parses the delimiter tail;
   `citations` assembled server-side → `done` event. Client never renders raw

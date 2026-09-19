@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.2 - 2026-09-19
+
+- Server logs status phases (context/thinking) in timings + telemetry; UI dots-only, no status text
+- Reasoning effort default medium (OPEN_ROUTER_REASONING_EFFORT overrides)
+- Prompt: concise answers, no empty citation placeholders; caveman-ultra compressed context framing
+
 ## v1.1.1 - 2026-09-19
 
 - Reasoning-effort knob (OPEN_ROUTER_REASONING_EFFORT: none/low/medium/high) — controls hidden chain-of-thought latency on reasoning models (#166)

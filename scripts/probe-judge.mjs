@@ -148,6 +148,12 @@ function report(label, results) {
   derivedMedian("jsonOverhead", (r) =>
     r.answerChars > 0 && r.outputTokens != null ? r.outputTokens / r.answerChars : null,
   );
+  // Status-phase trace (SPEC §9.5): thinking atMs from phases, contextMs fallback.
+  const thinkingAtMs = (r) => {
+    const ph = (r.timings.phases ?? []).find((e) => e.phase === "thinking");
+    return ph?.atMs ?? r.timings.contextMs ?? null;
+  };
+  if (ok.some((r) => Array.isArray(r.timings.phases))) derivedMedian("thinkingAtMs", thinkingAtMs);
 }
 
 for (const [qi, question] of QUESTIONS.entries()) {

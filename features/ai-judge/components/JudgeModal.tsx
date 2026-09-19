@@ -80,7 +80,6 @@ export function JudgeModal({ id }: JudgeModalProps) {
           streamText={chat.streamText}
           isStreaming={chat.isStreaming}
           errorBubble={chat.errorBubble}
-          statusPhase={chat.statusPhase}
         />
 
         {/* Offline alert row (§6.4.0). */}

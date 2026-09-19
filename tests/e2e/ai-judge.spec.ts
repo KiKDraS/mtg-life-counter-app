@@ -147,6 +147,18 @@ const FIXTURE_CLEAN_ANSWER: MockFixture = {
   ].join(""),
 };
 
+/* SPEC §9.7 — "No placeholders": the model sometimes emits empty citation
+   placeholders ([]), [ ] and () inline; the render guard strips them before
+   display (EMPTY_PLACEHOLDER_RE in MarkdownText + streaming bubble). */
+const FIXTURE_PLACEHOLDERS: MockFixture = {
+  kind: "body",
+  body: [
+    'data: {"type":"token","content":"No. The spell is not countered ([]). You may still target it []. Mode resolution proceeds () normally."}\n\n',
+    'data: {"type":"token","content":"The ruling stands without hidden citation."}\n\n',
+    DONE_EVENT,
+  ].join(""),
+};
+
 /* ── Helpers ── */
 
 interface GameContextBody {
@@ -1110,6 +1122,38 @@ test.describe("AI Judge", () => {
     await expect(systemBubbles(page)).toHaveCount(1);
 
     // expect: no pageerror/console errors (blocked IDB swallowed everywhere)
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  /* SPEC §9.7 — "No placeholders": no `[]`/`()`/`([])` placeholder may ever
+     render in a system bubble — MarkdownText + streaming bubble strip stray
+     empty placeholders (EMPTY_PLACEHOLDER_RE). */
+  test("TC-AJ-25: Empty citation placeholders never render — ([]) / [] / () stripped", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FIXTURE_PLACEHOLDERS (body: two token events —
+    //    the first carries all three empty placeholder forms inline — then done)
+    const errors = errorCollectors(page);
+    await mockJudge(page, FIXTURE_PLACEHOLDERS);
+    await openJudgeModal(page);
+
+    // 2. Send "Are the brackets rendered?" + Enter; wait for answer done
+    await sendQuestion(page, "Are the brackets rendered?");
+    const bubble = systemBubbles(page).last();
+    // expect: exact rendered text with every placeholder stripped — "([])" →
+    //     "", "[]" → "", "()" → "", surrounding words intact (note: the
+    //     "proceeds  normally" double space collapses to one under toHaveText)
+    await expect(bubble).toHaveText(
+      "No. The spell is not countered . You may still target it . Mode resolution proceeds normally.The ruling stands without hidden citation.",
+    );
+
+    // expect: no empty-placeholder remnant anywhere in the bubble text
+    await expect(bubble).not.toContainText("([])");
+    await expect(bubble).not.toContainText("[]");
+    await expect(bubble).not.toContainText("()");
+
+    // expect: no console/page errors
     expect(errors.pageErrors).toEqual([]);
     expect(errors.consoleErrors).toEqual([]);
   });

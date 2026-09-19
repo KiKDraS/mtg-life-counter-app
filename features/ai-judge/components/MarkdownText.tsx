@@ -168,8 +168,11 @@ const plainLength = (content: string): number =>
 
 interface MarkdownTextProps {
   /** Model answer text with the DESIGN §6.4 markdown subset. */
-  readonly content: string;
+  readonly rawContent: string;
 }
+
+/** Empty citation placeholders the model sometimes emits — never rendered. */
+const EMPTY_PLACEHOLDER_RE = /\(\[\s*\]\)|\[\s*\]|\(\s*\)/g;
 
 /**
  * @description
@@ -185,12 +188,13 @@ interface MarkdownTextProps {
  *  ` - <i>CR <num></i>` suffix (comma-joined, DESIGN §6.4.1). Escapes via
  * React text nodes — no dangerouslySetInnerHTML.
  *
- * @param content The raw answer string from the model.
+ * @param rawContent The raw answer string from the model.
  * @returns Paragraph/list React nodes with bold spans and italic refs.
  *
  * @see DESIGN.md §6.4.1
  */
-export function MarkdownText({ content }: Readonly<MarkdownTextProps>) {
+export function MarkdownText({ rawContent }: Readonly<MarkdownTextProps>) {
+  const content = rawContent.replace(EMPTY_PLACEHOLDER_RE, "");
   const hasBlankSeparator = /\n{2,}/.test(content);
   const nodes: ReactNode[] = [];
   let hasList = false;

@@ -12,9 +12,10 @@ interface ChatMessageListProps {
   readonly streamText: string;
   readonly isStreaming: boolean;
   readonly errorBubble: JudgeErrorEvent | null;
-  /** SPEC §9.5 — pre-token phase marker rendered as progress text. */
-  readonly statusPhase: "context" | "thinking" | null;
 }
+
+/** Empty citation placeholders the model sometimes emits — never rendered. */
+const EMPTY_PLACEHOLDER_RE = /\(\[\s*\]\)|\[\s*\]|\(\s*\)/g;
 
 /**
  * @description
@@ -32,7 +33,6 @@ export function ChatMessageList({
   streamText,
   isStreaming,
   errorBubble,
-  statusPhase,
 }: Readonly<ChatMessageListProps>) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -60,7 +60,7 @@ export function ChatMessageList({
               message.content
             ) : (
               /* DESIGN §6.4 — answer text: markdown subset renderer. */
-              <MarkdownText content={message.content} />
+              <MarkdownText rawContent={message.content} />
             )}
           </div>
         </Fragment>
@@ -71,16 +71,8 @@ export function ChatMessageList({
         <div className="max-w-[75%] self-start rounded-lg rounded-tl-none bg-mana-b px-3 py-2">
           {streamText ? (
             <p className="text-sm whitespace-pre-wrap text-ui-textLight">
-              {streamText}
+              {streamText.replace(EMPTY_PLACEHOLDER_RE, "")}
             </p>
-          ) : statusPhase ? (
-            /* SPEC §9.5 — progress text while awaiting first token. */
-            <span
-              aria-label="AI Judge is typing"
-              className="text-sm text-ui-textLight"
-            >
-              {statusPhase === "context" ? "Searching rules…" : "Thinking…"}
-            </span>
           ) : (
             <span
               aria-label="AI Judge is typing"
