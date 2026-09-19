@@ -46,8 +46,14 @@ export async function POST(request: Request): Promise<Response> {
       let contextTimings = { scryfallMs: 0, rulesMs: 0 };
       let firstTokenAt = t0;
       let firstCharAt = t0;
+      // Status-phase trace (SPEC §9.5): context fires at request start, thinking after context build.
+      let phases: JudgeTimings["phases"] = [
+        { phase: "context", atMs: 0 },
+        { phase: "thinking", atMs: 0 },
+      ];
       const knownTimings = (): JudgeTimings => ({
         contextMs,
+        phases,
         scryfallMs: contextTimings.scryfallMs,
         rulesMs: contextTimings.rulesMs,
         firstTokenMs: Math.round(firstTokenAt - t0),
@@ -59,6 +65,10 @@ export async function POST(request: Request): Promise<Response> {
         const context = await buildContext(question);
         contextMs = Math.round(performance.now() - t0);
         contextTimings = context.timings;
+        phases = [
+          { phase: "context", atMs: 0 },
+          { phase: "thinking", atMs: contextMs },
+        ];
         const history = getSession(sessionKey(body.sessionId, ip));
         const messages = buildMessages(history, question, context.contextText);
         enqueue({ type: "status", phase: "thinking" });
@@ -93,6 +103,7 @@ export async function POST(request: Request): Promise<Response> {
         const totalMs = Math.round(performance.now() - t0);
         const timings: JudgeTimings = {
           contextMs,
+          phases,
           scryfallMs: contextTimings.scryfallMs,
           rulesMs: contextTimings.rulesMs,
           firstTokenMs: Math.round(firstTokenAt - t0),

@@ -25,14 +25,16 @@ const REASONING_EFFORTS = new Set(["none", "low", "medium", "high"]);
 export type ReasoningEffort = "none" | "low" | "medium" | "high";
 
 /**
- * Reasoning depth from env — optional. Unset/invalid → undefined → request
- * omits `reasoning` (model default). Never crashes, never logged.
+ * Reasoning depth from env — default medium (at-least-median quality floor,
+ * SPEC §9.2). Valid override: none/low/medium/high for A/B experiments.
+ * Unset or invalid → "medium". Never crashes, never logged.
  */
 const rawEffort = (process.env.OPEN_ROUTER_REASONING_EFFORT ?? "")
   .trim()
   .toLowerCase();
-export const reasoningEffort: ReasoningEffort | undefined =
-  REASONING_EFFORTS.has(rawEffort) ? (rawEffort as ReasoningEffort) : undefined;
+export const reasoningEffort: ReasoningEffort = REASONING_EFFORTS.has(rawEffort)
+  ? (rawEffort as ReasoningEffort)
+  : "medium";
 
 /** Resolved env config. Empty strings when unset. */
 export const env = {

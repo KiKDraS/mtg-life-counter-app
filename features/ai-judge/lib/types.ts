@@ -55,6 +55,8 @@ export interface JudgeTimings {
   readonly firstTokenMs: number;
   readonly firstCharMs: number;
   readonly totalMs: number;
+  /** Status-phase trace: when each status event fired (ms from request start). */
+  readonly phases: ReadonlyArray<{ readonly phase: "context" | "thinking"; readonly atMs: number }>;
 }
 
 /** SPEC §9.6 — token usage + cost of the served model call. */
