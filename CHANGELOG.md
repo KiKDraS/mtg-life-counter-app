@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.3 - 2026-09-19
+
+- Prompt: few-shot answers one sentence each; injected rule excerpts clipped to 180 chars (citations verbatim)
+- Probe: renamed jsonOverhead → tokensPerChar (value includes hidden reasoning tokens)
+
 ## v1.1.2 - 2026-09-19
 
 - Server logs status phases (context/thinking) in timings + telemetry; UI dots-only, no status text

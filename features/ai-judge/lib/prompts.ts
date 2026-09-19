@@ -3,10 +3,21 @@
  *
  * Persona + refusal rules + structured output instruction + few-shot pairs in
  * the system prompt. RAG context goes in the USER message — never system.
+ * Injected rule excerpts clipped to 180 chars; answer-side citations
+ * unaffected (verbatim lookup).
  */
 
 import type { CardRuling } from "./rag/cards-source";
 import type { RetrievedRule } from "./rag/retrieval";
+
+/** Prompt-side rule excerpt cap (SPEC §9.7) — citations still verbatim. */
+const PROMPT_RULE_MAX = 180;
+/** Clip to ~180 chars at a word boundary, append "…" when clipped. */
+const clipPromptRule = (text: string): string => {
+  if (text.length <= PROMPT_RULE_MAX) return text;
+  const clipped = text.slice(0, PROMPT_RULE_MAX).replace(/\s+\S*$/, "");
+  return `${clipped}…`;
+};
 
 /** Card data rendered as the Card block (SPEC §9.7). */
 export interface PromptCard {
@@ -63,11 +74,7 @@ Rules:
 Examples:
 
 Q: When does a creature's enters-the-battlefield ability trigger?
-A: A triggered ability that reads "when [creature] enters the battlefield" triggers at the moment the permanent enters, which happens as the spell resolves.
-
-It triggers after the creature is on the battlefield:
-- It will trigger even if the creature leaves the battlefield before the ability resolves.
-- The ability is put on the stack the next time a player would receive priority.
+A: A triggered ability that reads "when [creature] enters the battlefield" triggers when the permanent enters, after it is on the battlefield.
 <<<CITATIONS>>>
 {"citations":[{"type":"rule","ruleId":"603.6a"}]}
 
@@ -77,7 +84,7 @@ A: No. State-based actions are checked before a player would gain life from life
 {"citations":[{"type":"rule","ruleId":"704.5a"}]}
 
 Q: Can I cast instants during my opponent's combat phase?
-A: Yes. You may cast an instant any time you have priority, which includes your opponent's combat phase. Each time a player would get priority during that phase, you get priority in turn before the active player's opponent acts.
+A: Yes. You may cast an instant anytime you have priority, including during your opponent's combat phase.
 <<<CITATIONS>>>
 {"citations":[{"type":"rule","ruleId":"117.1a"}]}`;
 
@@ -115,7 +122,7 @@ export function buildUserPrompt(
 
   if (rules.length > 0) {
     const ruleBlock = rules
-      .map((rule) => `[CR ${rule.ruleId}] ${rule.text}`)
+      .map((rule) => `[CR ${rule.ruleId}] ${clipPromptRule(rule.text)}`)
       .join("\n");
     parts.push(`RULES:\n${ruleBlock}`);
   }
