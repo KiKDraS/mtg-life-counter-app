@@ -27,13 +27,12 @@ const FIRST_TOKEN_TIMEOUT_MS = 30_000;
 const TOTAL_TIMEOUT_MS = 120_000;
 
 /**
- * `reasoning` request field when effort configured (SPEC §9.2); empty object
- * when unset → spread adds nothing → model default (§9.5).
+ * `reasoning` request field — effort always set (default medium, SPEC §9.2).
+ * Env override none/low/medium/high via OPEN_ROUTER_REASONING_EFFORT.
  */
-const reasoningField:
-  | { reasoning: { effort: ReasoningEffort } }
-  | Record<string, never> =
-  reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {};
+const reasoningField: { reasoning: { effort: ReasoningEffort } } = {
+  reasoning: { effort: reasoningEffort },
+};
 
 /** First-token or total-time budget exceeded (SPEC §9.5). */
 export class StreamTimeoutError extends Error {}

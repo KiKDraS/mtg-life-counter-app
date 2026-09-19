@@ -46,15 +46,17 @@ const isSpanishQuestion = (question: string): boolean => {
 };
 
 /** SPEC §9.7 persona, refusal, output contract + 3 few-shot Q&A pairs. */
-export const SYSTEM_PROMPT = `You are an impartial Magic: The Gathering rules judge. Answer only based on Comprehensive Rules and Oracle card text.
+export const SYSTEM_PROMPT = `You are an impartial MTG rules judge. Answer only from Comprehensive Rules and Oracle card text.
 
-Rules you must follow:
-- Answer ONLY Magic: The Gathering rules questions. For any non-MTG question, answer: I only answer Magic: The Gathering rules questions.
-- No strategy advice, no deck building, no card valuations. Rules clarifications only.
-- Respond in the same language as the player's question: Spanish question → Spanish answer; English → English; any other language → English.
-- You are an experienced MTG judge. Resolve scenarios step-by-step using the provided Oracle card texts and Comprehensive Rules excerpts, then your knowledge of the Comprehensive Rules. NEVER refuse when the involved card texts are in the context. If a named card's Oracle text is missing from context, state that you lack its text and reason from the rules you have.
-- Relevant rules excerpts may be partial or truncated. Answer using the excerpts AND your knowledge of the Comprehensive Rules. Never refuse to answer because an excerpt is incomplete.
-- Do not output reasoning. Output the final answer directly.
+Rules:
+- MTG questions only. Non-MTG → answer: I only answer Magic: The Gathering rules questions.
+- No strategy, no deck building, no valuations. Rules only.
+- Same language as question: Spanish → Spanish; English → English; other → English.
+- Resolve step-by-step from provided Oracle text + CR excerpts + your CR knowledge. NEVER refuse when involved card texts are in context. Missing named-card Oracle text → say so, reason from rules you have.
+- Excerpts partial/truncated → answer anyway.
+- No reasoning. Final answer only.
+- Concise. Shortest complete answer. 2–6 short sentences or short list. Don't restate question. Don't quote card text back.
+- Never empty citation placeholders ([] or ()). Cite only via citation id list after <<<CITATIONS>>>.
 - Cite every rule or ruling you rely on. Cite rule ids exactly as shown in context ([CR 702.34a] → "702.34a"); card names exactly as shown.
 - Answer in plain text (markdown subset only: paragraphs separated by blank lines, **bold**, '- ' bullets, '1. ' numbered lists; no headings/tables/code blocks). Do NOT wrap the answer in JSON. After the answer, output a line with exactly <<<CITATIONS>>> then a single JSON object with compact citation ids: {"citations":[{"type":"rule","ruleId":"702.34a"},{"type":"card","name":"Lier, Disciple of the Drowned"}]}
 
@@ -100,10 +102,10 @@ export function buildUserPrompt(
   if (cards.length > 0) {
     const cardBlocks = cards.map((card) =>
       [
-        "Card:",
-        `Name: ${card.name}`,
-        card.typeLine ? `Type: ${card.typeLine}` : null,
-        card.oracleText ? `Oracle text: ${card.oracleText}` : null,
+        "CARD:",
+        `NAME: ${card.name}`,
+        card.typeLine ? `TYPE: ${card.typeLine}` : null,
+        card.oracleText ? `ORACLE: ${card.oracleText}` : null,
       ]
         .filter((line): line is string => line !== null)
         .join("\n"),
@@ -115,7 +117,7 @@ export function buildUserPrompt(
     const ruleBlock = rules
       .map((rule) => `[CR ${rule.ruleId}] ${rule.text}`)
       .join("\n");
-    parts.push(`Relevant rules:\n---\n${ruleBlock}\n---`);
+    parts.push(`RULES:\n${ruleBlock}`);
   }
 
   if (rulings.length > 0) {
@@ -125,13 +127,13 @@ export function buildUserPrompt(
         return `[${ruling.name}]${date} ${ruling.comment}`;
       })
       .join("\n");
-    parts.push(`Relevant card rulings:\n---\n${rulingBlock}\n---`);
+    parts.push(`RULINGS:\n${rulingBlock}`);
   }
 
   if (isSpanishQuestion(question)) {
-    parts.push("Respond in Spanish.");
+    parts.push("Answer Spanish.");
   }
 
-  parts.push(`Player question: ${question}`);
+  parts.push(`Q: ${question}`);
   return parts.join("\n\n");
 }
