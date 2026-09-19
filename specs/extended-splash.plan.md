@@ -207,6 +207,37 @@ must keep the `_vercel/speed-insights` 404 filter.
    `openBelt` → `closeBelt`
    - expect: belt toggle toggles checked/unchecked cleanly
 
+### 8. ES-08 — Slow IndexedDB hydration: splash stays until HYDRATE lands (race regression)
+
+**File:** `tests/e2e/extended-splash.spec.ts`
+
+> Race regression (standalone cold starts): pre-fix, the handler scheduled the
+> 310ms removal on the mount run (`isHydrated=false`), so an IDB hydrate slower
+> than ~310ms lost the cover mid-swap — SSR-defaults frame flashed before the
+> hydrated values landed (the exact flicker §4.6 exists to suppress). Gate fix:
+> effect no-op while `isHydrated=false`, fade+remove only after HYDRATE.
+>
+> Determinism note: `indexedDB.open` success is engine-controlled (the engine
+> fires IDBRequest events) — a delayed-open gate is not cleanly shimmable in an
+> init script. Equivalent lever: shim `IDBDatabase.prototype.transaction` so
+> every `objectStore().get()` success HANDLER runs after a fixed 1500ms delay;
+> the hydrator's `Promise.all` (§4.5) resolves late. Real requests still
+> execute (only handler dispatch defers) — DB not poisoned.
+
+**Steps:**
+1. `addInitScript` transaction-get delay shim (1500ms) per note above
+2. `goto("/")`
+3. Assert overlay still covering PAST the old bug window — React mounted
+   (handler effect ran with `isHydrated=false`) while IDB reads deferred:
+   - expect: `#extended-splash-screen` count 1, `opacity` 1, `pointer-events`
+     auto — immediately after goto
+   - `waitForTimeout(700)` — inside the 1500ms delay with margin; old code
+     removed the overlay at ~310ms post-mount
+   - expect: count 1 + `opacity` 1 again (regression kicker)
+4. Deferred reads resolve → HYDRATE → fade + 310ms removal
+   - expect: count 0 (timeout 5000)
+5. Belt visible; zero console errors
+
 ## Notes for the test generator
 
 - One file: `tests/e2e/extended-splash.spec.ts`, one `test.describe("Extended Splash
