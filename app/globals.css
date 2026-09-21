@@ -38,6 +38,10 @@
   --leading-base: 1.4;
 }
 
+html {
+  background-color: var(--color-ui-belt);
+}
+
 /* ── Native dialog reset (§6.1) ── */
 dialog {
   border: none;

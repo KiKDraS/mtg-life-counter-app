@@ -404,9 +404,9 @@ Streaming response.
 │                    └──────────────────┘  │
 │  ┌─────────────┐  (typing indicator)     │  Streaming state
 │                                          │
-│  ┌────────────────────────────────────┐  │
-│  │  Ask about a card or rule…     ⏎   │  │  Input, docked bottom
-│  └────────────────────────────────────┘  │
+│  ┌────────────────────────────────────┐ [⏎] │
+│  │  Ask about a card or rule…          │     │
+│  └────────────────────────────────────┘     │
 └──────────────────────────────────────────┘
 ```
 
@@ -417,9 +417,19 @@ Streaming response.
 - **Header:** "AI Judge" `--text-heading sr-only`. ✕ close button — Escape too.
 - **Streaming:** Response renders incrementally in system bubble. Typing
   indicator (3 dots) while waiting. Input disabled while streaming.
-- **Input:** Docked bottom. Placeholder "Ask about a card or rule…" (50% white
-  opacity). Enter/⏎ sends. Auto-scroll to newest message.
-- **Keyboard:** Escape closes. Focus on input on open.
+- **Input:** Docked bottom, textarea. Wraps — no x-overflow. Grows UP with
+  newlines (`field-sizing: content`), cap `max-h-40` (~7 lines) then scroll.
+  Placeholder "Ask about a card or rule…" (50% white opacity). Send button `⏎`
+  bottom-right, pinned to input bottom edge, disabled when empty/streaming/
+  offline. Enter sends, Shift+Enter newline. Auto-scroll to newest message.
+- **Keyboard:** Escape closes. Focus on input on open. Mobile: virtual keyboard
+  must not obscure input/send — input row lifted by measured overflow vs the
+  keyboard's top edge: VirtualKeyboard API `boundingRect` (Chrome Android,
+  exact, toolbar included) or `visualViewport` fallback + 48px toolbar margin
+  while the keyboard is up; all event sources (geometrychange, viewport
+  resize/scroll, window resize, focusin) plus a 500ms poll re-apply the lift;
+  layout viewport never shrinks, dialog stays full-window black, board never
+  shows during transition. Canvas black via CSS (`--color-ui-belt`).
 - **History persistence:** per SPEC.md §9.9.
 
 #### 6.4.0 Offline Fallback (until local engine lands)
@@ -428,14 +438,15 @@ Offline → chat read-only. No typing, no send. Alert explains why.
 
 ```
 │  ⚠️  You're offline — AI Judge needs internet.  ← alert row
-│  ┌──────────────────────────────────────────┐
-│  │  Ask about a card or rule…          ⏎    │  ← input disabled
-│  └──────────────────────────────────────────┘
+│  ┌────────────────────────────────────┐ [⏎] │  input + send disabled
+│  │  Ask about a card or rule…          │     │
+│  └────────────────────────────────────┘     │
 ```
 
 - **Alert row:** full-width, above input. BG `MANA.b`, text `#FAF8F5`,
   `--text-body-sm`. Copy: "You're offline — AI Judge needs internet."
-- **Input:** disabled — no focus, no send, placeholder unchanged.
+- **Input:** disabled — no focus, no send, placeholder unchanged. Send button
+  disabled too.
 - **History:** still visible + scrollable. Read-only.
 - **Online return:** state clears, input re-enables. No reload.
 

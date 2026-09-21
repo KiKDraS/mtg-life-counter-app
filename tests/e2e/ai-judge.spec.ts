@@ -338,6 +338,8 @@ function errorCollectors(page: Page): {
 const modal = (page: Page): Locator => page.locator("#ai-judge-modal");
 const input = (page: Page): Locator =>
   page.getByRole("textbox", { name: "Ask about a card or rule" });
+const sendButton = (page: Page): Locator =>
+  page.getByRole("button", { name: "Send question" });
 const typing = (page: Page): Locator => page.getByLabel("AI Judge is typing");
 const scroll = (page: Page): Locator =>
   modal(page).locator("div[class*='overflow-y-auto']");
@@ -350,6 +352,9 @@ const allBubbles = (page: Page): Locator =>
 const status = (page: Page): Locator => modal(page).locator("[role='status']");
 const closeButton = (page: Page): Locator =>
   page.getByRole("button", { name: "Close AI Judge" });
+/* META — head-level viewport tag (global; never inside the modal). */
+const viewportMeta = (page: Page): Locator =>
+  page.locator('meta[name="viewport"]');
 
 /* ───────────────────────────────────────────────
  * 1. AI Judge
@@ -1154,6 +1159,1075 @@ test.describe("AI Judge", () => {
     await expect(bubble).not.toContainText("()");
 
     // expect: no console/page errors
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  /* feature/judge-input-grow — send button + auto-grow textarea (DESIGN §6.4). */
+
+  test("TC-AJ-25: Send button — visible, disabled on empty/whitespace draft, enabled after typing", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL, open modal
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // expect: send button visible inside modal (bottom-right of input row),
+    //     glyph ⏎, type="submit" (DESIGN §6.4)
+    await expect(sendButton(page)).toBeVisible();
+    await expect(sendButton(page)).toHaveText("⏎");
+    await expect(sendButton(page)).toHaveAttribute("type", "submit");
+
+    // 2. Fresh draft — empty
+    // expect: send button disabled (draft empty → trim guard, DESIGN §6.4)
+    await expect(sendButton(page)).toBeDisabled();
+
+    // 3. Whitespace-only draft
+    await input(page).fill("   ");
+    // expect: send button still disabled (trim-empty guard draft.trim() === "")
+    await expect(sendButton(page)).toBeDisabled();
+
+    // 4. Real draft
+    await input(page).fill("Is this play legal?");
+    // expect: send button enabled; input value exact
+    await expect(sendButton(page)).toBeEnabled();
+    await expect(input(page)).toHaveValue("Is this play legal?");
+  });
+
+  test("TC-AJ-26: Click send button submits POST; input cleared", async ({ page }) => {
+    // 1. Mock the judge route → FULL, open modal
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // 2. Fill draft and CLICK send (button path only — no Enter)
+    await input(page).fill("Click send test");
+    await sendButton(page).click();
+
+    // expect: exactly 1 request captured; question exact; sessionId
+    //     version-derived (SPEC §9.9); no gameContext
+    const bodies = await waitForBodies(page, 1);
+    expect(bodies[0].question).toBe("Click send test");
+    expect(bodies[0].sessionId).toBe(sessionIdFor(0));
+    expect(bodies[0].gameContext).toBeUndefined();
+    // expect: input value "" (cleared after send — same contract as TC-AJ-02)
+    await expect(input(page)).toHaveValue("");
+
+    // 3. Wait done
+    // expect: user bubble with question text, system bubble with answer
+    await expect(userBubbles(page)).toHaveText("Click send test");
+    await expect(systemBubbles(page)).toHaveText("When you gain life");
+    // expect: input enabled (streaming ended, SPEC §9.10)
+    await expect(input(page)).toBeEnabled();
+    // expect: send button functional after stream end — its disabled state is
+    //     the empty-draft trim guard only (DESIGN §6.4), so a draft re-enables it
+    await input(page).fill("next");
+    await expect(sendButton(page)).toBeEnabled();
+  });
+
+  test("TC-AJ-27: Enter still sends after input→textarea swap (regression pointer)", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL, open modal; send via fill + Enter helper
+    //    (full Enter coverage lives in TC-AJ-02 — this is the swap guard only)
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+    await sendQuestion(page, "Enter still works");
+
+    // expect: exactly 1 request captured; question exact
+    const bodies = await waitForBodies(page, 1);
+    expect(bodies[0].question).toBe("Enter still works");
+
+    // 2. Wait done
+    // expect: user + system bubbles render
+    await expect(userBubbles(page)).toHaveText("Enter still works");
+    await expect(systemBubbles(page)).toHaveText("When you gain life");
+    // expect: input enabled; send button not blocked by streaming — only the
+    //     empty-draft trim guard holds it (DESIGN §6.4)
+    await expect(input(page)).toBeEnabled();
+    await input(page).fill("ready");
+    await expect(sendButton(page)).toBeEnabled();
+  });
+
+  test("TC-AJ-28: Shift+Enter inserts newline, does NOT send; Enter then sends multi-line draft", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL, open modal
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // 2. Fill "line one", press Shift+Enter (newline — no submit), type "line two"
+    await input(page).fill("line one");
+    await input(page).press("Shift+Enter");
+    await input(page).pressSequentially("line two");
+
+    // expect: newline inserted, NOT submitted
+    await expect(input(page)).toHaveValue("line one\nline two");
+    // expect: POST count stays 0 (1s window)
+    await expect.poll(async () => (await judgeBodies(page)).length).toBe(0);
+
+    // 3. Press Enter (no Shift)
+    await input(page).press("Enter");
+    // expect: exactly 1 request; multi-line draft sent intact (\n preserved;
+    //     trim() strips edges only)
+    const bodies = await waitForBodies(page, 1);
+    expect(bodies[0].question).toBe("line one\nline two");
+  });
+
+  test("TC-AJ-29: Textarea grows up with content; soft-wraps — no x-overflow", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL, open modal
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // 2. Baseline height (1 row)
+    const h0 = await input(page).evaluate((el) => (el as HTMLElement).offsetHeight);
+
+    // 3. 3 explicit lines
+    await input(page).fill("a\nb\nc");
+    // expect: grew up with newlines (field-sizing: content, DESIGN §6.4)
+    const h3 = await input(page).evaluate((el) => (el as HTMLElement).offsetHeight);
+    expect(h3).toBeGreaterThan(h0);
+
+    // 4. Single 300-char unbroken word — soft-wrap stress
+    await input(page).fill("x".repeat(300));
+    const wrapped = await input(page).evaluate((el) => ({
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+      offsetHeight: (el as HTMLElement).offsetHeight,
+    }));
+    // expect: wraps — no x-overflow
+    expect(wrapped.scrollWidth).toBeLessThanOrEqual(wrapped.clientWidth);
+    // expect: wrapped lines count toward content height
+    expect(wrapped.offsetHeight).toBeGreaterThan(h0);
+  });
+
+  test("TC-AJ-30: Send button disabled while streaming and while offline; re-enabled after state clears", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → STREAM_NEVER_ENDS (1 token, held open)
+    const errors = errorCollectors(page);
+    await mockJudge(page, FIXTURE_NEVER_ENDS);
+    await openJudgeModal(page);
+
+    // 2. Fill draft and CLICK send
+    await input(page).fill("Stream button test");
+    await sendButton(page).click();
+    await waitForBodies(page, 1);
+    await expect(userBubbles(page)).toHaveText("Stream button test");
+    await expect(systemBubbles(page).last()).toHaveText("partial");
+
+    // 3. Streaming state — inputDisabled = isStreaming (same state TC-AJ-06
+    //    asserts on the input)
+    await expect(sendButton(page)).toBeDisabled();
+    await expect(input(page)).toBeDisabled();
+
+    // 4. Close via CLOSE (abort cleanup, TC-AJ-06/13 pattern); reopen
+    await closeButton(page).click();
+    await expect(modal(page)).not.toBeVisible();
+    await reopenJudgeModal(page);
+    // expect: stream reset on close (SPEC §9.9) — input enabled again
+    await expect(input(page)).toBeEnabled();
+    // expect: send button governed by the empty-draft trim guard only
+    //     (DESIGN §6.4) — typing re-enables it
+    await input(page).fill("x");
+    await expect(sendButton(page)).toBeEnabled();
+
+    // 5. Fill draft, then go offline (TC-AJ-08 pattern)
+    await input(page).fill("Offline button test");
+    await page.context().setOffline(true);
+    // expect: status alert visible; send button disabled (offline → inputDisabled)
+    await expect(status(page)).toBeVisible();
+    await expect(sendButton(page)).toBeDisabled();
+
+    // 6. Back online — no reload (SPEC §9.10)
+    await page.context().setOffline(false);
+    // expect: status gone; send button enabled (draft non-empty)
+    await expect(status(page)).toHaveCount(0);
+    await expect(sendButton(page)).toBeEnabled();
+
+    // 7. Cleanup
+    // expect: no console/page errors
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  test("TC-AJ-31: Send button re-enabled after done; stays functional (click path)", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL, open modal
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // 2. Send "Done re-enable" (Enter); wait done
+    await sendQuestion(page, "Done re-enable");
+    await expect(systemBubbles(page)).toHaveText("When you gain life");
+    await expect(input(page)).toBeEnabled();
+    // expect: send button not blocked by streaming after done — only the
+    //     empty-draft trim guard holds it (DESIGN §6.4); typing re-enables it
+    await input(page).fill("Second click");
+    await expect(sendButton(page)).toBeEnabled();
+
+    // 3. Click send for the second question; wait done
+    await sendButton(page).click();
+    const bodies = await waitForBodies(page, 2);
+    await expect(systemBubbles(page).last()).toHaveText("When you gain life");
+    // expect: same version thread, sessionId unchanged
+    expect(bodies[1].sessionId).toBe(sessionIdFor(0));
+    // expect: 2 user + 2 system bubbles (button fully functional after stream end)
+    await expect(userBubbles(page)).toHaveCount(2);
+    await expect(systemBubbles(page)).toHaveCount(2);
+  });
+
+  test("TC-AJ-32: Send button re-enabled after error", async ({ page }) => {
+    // 1. Mock the judge route → ERR_429 (200 + error event), open modal
+    await mockJudge(page, FIXTURE_ERR_429);
+    await openJudgeModal(page);
+
+    // 2. Fill draft and CLICK send
+    await input(page).fill("Error button test");
+    await sendButton(page).click();
+
+    // expect: error bubble with exact text (TC-AJ-04 pattern)
+    await expect(systemBubbles(page)).toHaveText(
+      "The AI Judge is busy. Please wait a moment.",
+    );
+    // expect: typing indicator gone
+    await expect(typing(page)).toHaveCount(0);
+    // expect: input re-enabled (SPEC §9.10 error → re-enable)
+    await expect(input(page)).toBeEnabled();
+    // expect: send button re-enabled — only the empty-draft trim guard holds
+    //     it after the error (DESIGN §6.4), so a draft re-enables it
+    await input(page).fill("next");
+    await expect(sendButton(page)).toBeEnabled();
+  });
+
+  test("TC-AJ-33: Auto-grow cap — height stops at 160px (max-h-40), internal scroll", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL, open modal
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // 2. Baseline height, then 3 lines
+    const h0 = await input(page).evaluate((el) => (el as HTMLElement).offsetHeight);
+    await input(page).fill("l0\nl1\nl2");
+    const h3 = await input(page).evaluate((el) => (el as HTMLElement).offsetHeight);
+    // expect: grew, not yet capped
+    expect(h3).toBeGreaterThan(h0);
+    expect(h3).toBeLessThan(160);
+
+    // 3. 12 lines — cap (max-h-40 = 10rem border-box)
+    const twelveLines = Array.from({ length: 12 }, (_, i) => `line ${i}`).join("\n");
+    await input(page).fill(twelveLines);
+    // expect: offsetHeight === 160
+    await expect
+      .poll(() => input(page).evaluate((el) => (el as HTMLElement).offsetHeight))
+      .toBe(160);
+    const capped = await input(page).evaluate((el) => ({
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+      overflowY: getComputedStyle(el).overflowY,
+    }));
+    // expect: internal scroll past cap (scrollHeight > clientHeight)
+    expect(capped.scrollHeight).toBeGreaterThan(capped.clientHeight);
+    // expect: computed overflow-y === auto (overflow-y-auto class)
+    expect(capped.overflowY).toBe("auto");
+
+    // 4. Press Enter (no Shift)
+    await input(page).press("Enter");
+    const bodies = await waitForBodies(page, 1);
+    // expect: full 12-line draft sent intact
+    expect(bodies[0].question).toBe(twelveLines);
+  });
+
+  /* feature/judge-input-grow — mobile keyboard viewport behavior (DESIGN §6.4). */
+
+  /* DESIGN §6.4 Keyboard + commit 53987c1 (app/layout.tsx) — the viewport
+     export dropped interactive-widget=resizes-content (under it the layout
+     viewport shrank stepwise when the mobile keyboard opened, exposing a
+     white browser-window gap below the dialog). The emitted meta is now the
+     Next default width=device-width, initial-scale=1 — NO interactive-widget
+     key: the layout viewport NEVER shrinks (default resizes-visual) and the
+     keyboard is handled by the JudgeModal padding-lift (TC-AJ-36, commit
+     d1558cf). This TC pins the negative meta contract — absence of
+     interactive-widget IS the point. No /api/judge call → no mock needed
+     (TC-AJ-01/14 pattern). */
+  test("TC-AJ-34: Viewport meta = Next default width=device-width, initial-scale=1 — no interactive-widget (global)", async ({
+    page,
+  }) => {
+    // 1. Error collectors on (TC-AJ-03 pattern). Load the app root with the
+    //    modal closed — the viewport meta is a root-layout concern, not
+    //    modal-scoped
+    const errors = errorCollectors(page);
+    await page.goto("/");
+    // expect: exactly 1 viewport meta in document.head (global tag, never
+    //     inside #ai-judge-modal)
+    await expect(viewportMeta(page)).toHaveCount(1);
+    await expect(page.locator('head meta[name="viewport"]')).toHaveCount(1);
+    // expect: content EXACTLY "width=device-width, initial-scale=1" — Next
+    //     default, single key, no order/spacing variance. Exact equality, NOT
+    //     regex; the exact match subsumes the negative: no interactive-widget
+    //     token anywhere (the layout viewport must never shrink; the
+    //     padding-lift handles the keyboard)
+    await expect(viewportMeta(page)).toHaveAttribute(
+      "content",
+      "width=device-width, initial-scale=1",
+    );
+
+    // 2. Open the modal — no duplicate meta is injected into the dialog
+    await openJudgeModal(page);
+    // expect: meta still exactly 1, still head-level; 0 inside #ai-judge-modal
+    await expect(viewportMeta(page)).toHaveCount(1);
+    await expect(page.locator('head meta[name="viewport"]')).toHaveCount(1);
+    await expect(modal(page).locator('meta[name="viewport"]')).toHaveCount(0);
+
+    // 3. Cleanup — no pageerror/console errors (no stream, no fetch; only
+    //    benign _vercel/* 404s + MIME-type refusals, filtered by errorCollectors)
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  test("TC-AJ-35: Layout adapts when the viewport shrinks (keyboard proxy)", async ({
+    page,
+  }) => {
+    // Harness workaround (env, not app behavior): FullscreenEnforcer requests
+    // fullscreen on the first pointerdown (belt click) → the headless browser
+    // window locks into fullscreen and Playwright's setViewportSize fails with
+    // "Browser.setWindowBounds: restore to normal state first". Fullscreen is
+    // orthogonal to the shrink-layout contract, so neutralize it for this test.
+    await page.addInitScript(() => {
+      Element.prototype.requestFullscreen = () => Promise.resolve();
+    });
+
+    // 1. Open the modal at the default 1280x720 — the modal is already open
+    //    when the "keyboard" opens (the real bug scenario)
+    await openJudgeModal(page);
+    await expect(modal(page)).toHaveAttribute("open", "");
+    await expect(input(page)).toBeFocused();
+    const baselineHeight = await input(page).evaluate(
+      (el) => (el as HTMLElement).offsetHeight,
+    );
+    // expect: 1-row baseline (observed 46px; small tolerance)
+    expect(baselineHeight).toBeGreaterThanOrEqual(40);
+    expect(baselineHeight).toBeLessThanOrEqual(52);
+
+    // 2. Shrink the layout viewport to 390x400 — generic layout-containment
+    //    proxy (dialog must track the viewport; keyboard lift is TC-AJ-36)
+    await page.setViewportSize({ width: 390, height: 400 });
+    const viewport = page.viewportSize() ?? { width: 390, height: 400 };
+
+    const dialogBox = await modal(page).boundingBox();
+    const textareaBox = await input(page).boundingBox();
+    const sendBox = await sendButton(page).boundingBox();
+    const formBox = await modal(page).locator("form").boundingBox();
+    const scrollBox = await scroll(page).boundingBox();
+
+    // expect (a): dialog tracks the layout viewport (fixed + h-full)
+    expect(dialogBox?.x).toBeCloseTo(0, 0);
+    expect(dialogBox?.y).toBeCloseTo(0, 0);
+    expect(dialogBox?.width).toBe(viewport.width);
+    expect(dialogBox?.height).toBe(viewport.height);
+
+    // expect (b): input row fully inside — nothing clipped behind the keyboard
+    expect(textareaBox?.y).toBeGreaterThanOrEqual(0);
+    expect(sendBox?.y).toBeGreaterThanOrEqual(0);
+    expect((textareaBox?.y ?? 0) + (textareaBox?.height ?? 0)).toBeLessThanOrEqual(
+      viewport.height,
+    );
+    expect((sendBox?.y ?? 0) + (sendBox?.height ?? 0)).toBeLessThanOrEqual(
+      viewport.height,
+    );
+    // expect: form docked flush to the bottom edge (pb-4 stays inside)
+    expect((formBox?.y ?? 0) + (formBox?.height ?? 0)).toBeCloseTo(
+      viewport.height,
+      0,
+    );
+    // expect: scroll container sits directly above the form; observed 338/282
+    expect((scrollBox?.y ?? 0) + (scrollBox?.height ?? 0)).toBeCloseTo(
+      formBox?.y ?? 0,
+      0,
+    );
+    expect(textareaBox?.y).toBeCloseTo(338, -1);
+    expect(scrollBox?.height).toBeCloseTo(282, -1);
+
+    // 3. Worst-case 12-line draft — hits the max-h-40 cap (TC-AJ-33)
+    const twelveLines = Array.from({ length: 12 }, (_, i) => `line ${i}`).join("\n");
+    await input(page).fill(twelveLines);
+    await expect
+      .poll(() => input(page).evaluate((el) => (el as HTMLElement).offsetHeight))
+      .toBe(160);
+
+    const grownDialogBox = await modal(page).boundingBox();
+    const grownTextareaBox = await input(page).boundingBox();
+    const grownSendBox = await sendButton(page).boundingBox();
+    const grownFormBox = await modal(page).locator("form").boundingBox();
+    const grownScrollBox = await scroll(page).boundingBox();
+
+    // expect (c): row grows UP, never below the bottom — textarea y drops
+    //     338 → 224 (observed); every y + height stays inside the viewport
+    expect(grownTextareaBox?.y).toBeLessThan(textareaBox?.y ?? 0);
+    expect(grownTextareaBox?.y).toBeCloseTo(224, -1);
+    expect(
+      (grownTextareaBox?.y ?? 0) + (grownTextareaBox?.height ?? 0),
+    ).toBeLessThanOrEqual(viewport.height);
+    expect((grownSendBox?.y ?? 0) + (grownSendBox?.height ?? 0)).toBeLessThanOrEqual(
+      viewport.height,
+    );
+    // expect: form bottom still pinned at the viewport bottom (observed 400)
+    expect((grownFormBox?.y ?? 0) + (grownFormBox?.height ?? 0)).toBeCloseTo(
+      viewport.height,
+      0,
+    );
+    // expect: dialog height unchanged (400)
+    expect(grownDialogBox?.height).toBe(viewport.height);
+    // expect: scroll container absorbs the growth (flex-1; 282 → 168)
+    expect(grownScrollBox?.height).toBeCloseTo(168, -1);
+    // expect: textarea bottom unchanged (still docked at 384)
+    expect(
+      (grownTextareaBox?.y ?? 0) + (grownTextareaBox?.height ?? 0),
+    ).toBeCloseTo((textareaBox?.y ?? 0) + (textareaBox?.height ?? 0), -1);
+    // expect: 12-line draft intact; send button enabled (draft non-empty)
+    await expect(input(page)).toHaveValue(twelveLines);
+    await expect(sendButton(page)).toBeEnabled();
+  });
+
+  /* DESIGN §6.4 Keyboard + commits d1558cf/ab97d62/c351995/2ed1b9e
+     (JudgeModal.tsx) — the visualViewport fallback lifts the input row via
+     inline paddingBottom. The lift is self-calibrating (overflow = form bottom
+     − visibleBottom, clamped ≥ 0), re-applied by all trigger sources incl. a
+     500ms poll (no settle timer); the 48px KEYBOARD_TOOLBAR_MARGIN applies
+     ONLY while the keyboard is up (keyboardUp = vv.height + vv.offsetTop <
+     window.innerHeight).
+
+     CRITICAL env fact (verified live 2026-09-21): Playwright Chromium on
+     localhost (secure context) HAS navigator.virtualKeyboard — a prototype
+     getter returning boundingRect { top: 0, height: 0 } at rest. Without
+     shadowing it the effect takes the vk branch (the mount gates the API path
+     on height > 0) and the vv resize listeners NEVER attach — the vv dispatch
+     simulation is a NO-OP. This test shadows the API BEFORE app scripts
+     (addInitScript before goto) so the effect mounts with the vv branch.
+     No /api/judge call → no mock needed (TC-AJ-34/35 pattern). */
+  test("TC-AJ-36: visualViewport fallback lifts input via paddingBottom, with 48px toolbar margin (keyboard simulation)", async ({
+    page,
+  }) => {
+    // 1. Error collectors on (TC-AJ-03 pattern). Add the vk shadow FIRST — an
+    //    own data property (value: undefined, configurable: true) shadows the
+    //    prototype getter → the effect's else-branch attaches the vv listeners
+    //    at mount — then openJudgeModal at the default 1280x720 (the modal is
+    //    already open when the "keyboard" opens — the real bug scenario)
+    const errors = errorCollectors(page);
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "virtualKeyboard", {
+        value: undefined,
+        configurable: true,
+      });
+    });
+    await openJudgeModal(page);
+
+    // expect: shadow applied — own data property, reads undefined
+    const shadow = await page.evaluate(() => {
+      const nav = navigator as Navigator & {
+        virtualKeyboard?: unknown;
+      };
+      const desc = Object.getOwnPropertyDescriptor(navigator, "virtualKeyboard");
+      return {
+        vk: nav.virtualKeyboard,
+        descValue: desc?.value,
+        descConfigurable: desc?.configurable,
+        hasOwn: Object.prototype.hasOwnProperty.call(navigator, "virtualKeyboard"),
+      };
+    });
+    expect(shadow.vk).toBeUndefined();
+    expect(shadow.descValue).toBeUndefined();
+    expect(shadow.descConfigurable).toBe(true);
+    expect(shadow.hasOwn).toBe(true);
+
+    // expect: modal open; dialog bbox = full viewport — h-full, NOT shrunk;
+    //     the old inline style.height/style.top mechanism is gone (both read "")
+    await expect(modal(page)).toHaveAttribute("open", "");
+    const baseStyle = await modal(page).evaluate((el) => ({
+      height: el.style.height,
+      top: el.style.top,
+      paddingBottom: el.style.paddingBottom,
+    }));
+    expect(baseStyle.height).toBe("");
+    expect(baseStyle.top).toBe("");
+    // expect: mount sync already applied — paddingBottom "0px" (inset 0; the
+    //     handler always writes a px value, never clears to "")
+    expect(baseStyle.paddingBottom).toBe("0px");
+    const baseDialogBox = await modal(page).boundingBox();
+    expect(baseDialogBox?.x).toBeCloseTo(0, 0);
+    expect(baseDialogBox?.y).toBeCloseTo(0, 0);
+    expect(baseDialogBox?.width).toBe(1280);
+    expect(baseDialogBox?.height).toBe(720);
+
+    // expect: baseline input row fully inside 720 — textarea + SEND bottoms
+    //     exactly 704 (observed; docked textarea + ⏎)
+    const baseInputBox = await input(page).boundingBox();
+    const baseSendBox = await sendButton(page).boundingBox();
+    expect((baseInputBox?.y ?? 0) + (baseInputBox?.height ?? 0)).toBe(704);
+    expect((baseSendBox?.y ?? 0) + (baseSendBox?.height ?? 0)).toBe(704);
+    expect(baseInputBox?.y).toBeGreaterThanOrEqual(0);
+    expect(baseSendBox?.y).toBeGreaterThanOrEqual(0);
+
+    // 2. Simulate the keyboard shrink in-page: own properties shadow the
+    //    visualViewport prototype getters, then a resize event on the
+    //    visualViewport object fires the mounted handler (vv + window resize
+    //    listeners both attached in the fallback branch). No throw expected.
+    const shrunk = await page.evaluate(() => {
+      const vv = window.visualViewport!;
+      Object.defineProperty(vv, "height", { value: 300, configurable: true });
+      Object.defineProperty(vv, "offsetTop", { value: 0, configurable: true });
+      vv.dispatchEvent(new Event("resize"));
+      const desc = Object.getOwnPropertyDescriptor(vv, "height");
+      return {
+        readHeight: vv.height,
+        descValue: desc?.value,
+        descConfigurable: desc?.configurable,
+        keyboardUp: vv.height + vv.offsetTop < window.innerHeight,
+      };
+    });
+    // expect: own prop shadows the getter — height reads 300, configurable;
+    //     keyboardUp true (300 < 720) → the 48px margin applies
+    expect(shrunk.readHeight).toBe(300);
+    expect(shrunk.descValue).toBe(300);
+    expect(shrunk.descConfigurable).toBe(true);
+    expect(shrunk.keyboardUp).toBe(true);
+
+    // 3. Input row lifts above the "keyboard" — INCLUDING the 48px toolbar
+    //    margin; dialog height UNCHANGED (full-page black preserved)
+    const shrinkDialogBox = await modal(page).boundingBox();
+    expect(shrinkDialogBox?.y).toBeCloseTo(0, 0);
+    expect(shrinkDialogBox?.height).toBe(720);
+    // expect: paddingBottom exactly 468px — visibleBottom = 300 − 48 = 252;
+    //     overflow = 720 − 252 = 468. Contract change vs the pre-c351995
+    //     effect: the OLD observed value was "420px" (300, no margin) — assert
+    //     468, never 420
+    const shrinkPadding = await modal(page).evaluate(
+      (el) => el.style.paddingBottom,
+    );
+    expect(shrinkPadding).toBe("468px");
+
+    // expect: self-calibrated lift lands the form's bottom edge exactly on the
+    //     visible bottom — form bottom 252 === visibleBottom; textarea + SEND
+    //     sit pb-4 (16px) above it → bottoms 236 (252 − 16); both ≤ 300, y ≥ 0
+    const shrinkFormBox = await modal(page).locator("form").boundingBox();
+    expect((shrinkFormBox?.y ?? 0) + (shrinkFormBox?.height ?? 0)).toBe(252);
+    const shrinkInputBox = await input(page).boundingBox();
+    const shrinkSendBox = await sendButton(page).boundingBox();
+    expect((shrinkInputBox?.y ?? 0) + (shrinkInputBox?.height ?? 0)).toBe(236);
+    expect((shrinkSendBox?.y ?? 0) + (shrinkSendBox?.height ?? 0)).toBe(236);
+    expect((shrinkInputBox?.y ?? 0) + (shrinkInputBox?.height ?? 0)).toBeLessThanOrEqual(
+      300,
+    );
+    expect((shrinkSendBox?.y ?? 0) + (shrinkSendBox?.height ?? 0)).toBeLessThanOrEqual(
+      300,
+    );
+    expect(shrinkInputBox?.y).toBeGreaterThanOrEqual(0);
+    expect(shrinkSendBox?.y).toBeGreaterThanOrEqual(0);
+
+    // expect: stable after ~400ms — the 500ms poll tick sees overflow 0 and
+    //     writes the same value; padding still "468px"
+    await page.waitForTimeout(400);
+    expect(await modal(page).evaluate((el) => el.style.paddingBottom)).toBe(
+      "468px",
+    );
+
+    // 4. Restore (keyboard closes): delete the own props — the prototype
+    //    getter takes over again (720) — and fire resize once more
+    const restored = await page.evaluate(() => {
+      const vv = window.visualViewport! as unknown as {
+        height?: number;
+        offsetTop?: number;
+        dispatchEvent: (event: Event) => boolean;
+      };
+      delete vv.height;
+      delete vv.offsetTop;
+      vv.dispatchEvent(new Event("resize"));
+      const dialog = document.getElementById("ai-judge-modal") as HTMLDialogElement;
+      return {
+        readHeight: vv.height,
+        hasOwnHeight: Object.prototype.hasOwnProperty.call(vv, "height"),
+        paddingBottom: dialog.style.paddingBottom,
+      };
+    });
+    // expect: own prop gone — visualViewport back to 720
+    expect(restored.readHeight).toBe(720);
+    expect(restored.hasOwnHeight).toBe(false);
+    // expect: keyboardUp false (720 < 720 is false) → visibleBottom = 720 − 0 =
+    //     720 → padding clears to "0px" — NOT "" (handler always writes px)
+    expect(restored.paddingBottom).toBe("0px");
+    const restoreDialogBox = await modal(page).boundingBox();
+    expect(restoreDialogBox?.height).toBe(720);
+
+    // expect: input row back at baseline — textarea + SEND bottoms 704
+    const restoreInputBox = await input(page).boundingBox();
+    const restoreSendBox = await sendButton(page).boundingBox();
+    expect((restoreInputBox?.y ?? 0) + (restoreInputBox?.height ?? 0)).toBe(704);
+    expect((restoreSendBox?.y ?? 0) + (restoreSendBox?.height ?? 0)).toBe(704);
+
+    // 5. Cleanup: close via CLOSE. No /api/judge call → no mock needed.
+    await closeButton(page).click();
+    await expect(modal(page)).not.toBeVisible();
+    // expect: no pageerror/console errors — the defineProperty/dispatchEvent
+    //     trick emits none (only benign _vercel/* 404s, filtered)
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  /* DESIGN §6.4 Keyboard + commit b289199 (app/globals.css) — the default
+     white <html> canvas used to flash below/around the black dialog during the
+     keyboard-open height transition; the JS paintCanvasBlack fix (38ef911) is
+     now commented out and the canvas is black permanently:
+     `html { background-color: var(--color-ui-belt) }` (#000000), applied at
+     load and never removed. No /api/judge call → no mock needed
+     (TC-AJ-34/35/36 pattern). */
+  test("TC-AJ-37: Canvas black permanently via globals.css (no JS paint, no restore)", async ({
+    page,
+  }) => {
+    // 1. Error collectors on (TC-AJ-36 pattern). Fresh page, modal closed.
+    const errors = errorCollectors(page);
+    await page.goto("/");
+
+    // expect: no inline paint — style.background and style.backgroundColor ""
+    const fresh = await page.evaluate(() => ({
+      background: document.documentElement.style.background,
+      backgroundColor: document.documentElement.style.backgroundColor,
+    }));
+    expect(fresh.background).toBe("");
+    expect(fresh.backgroundColor).toBe("");
+    // expect: computed black from globals.css — rgb(0, 0, 0) (permanent CSS;
+    //     was rgba(0, 0, 0, 0) under the old JS contract — this is the
+    //     contract change)
+    const freshComputed = await page.evaluate(
+      () => getComputedStyle(document.documentElement).backgroundColor,
+    );
+    expect(freshComputed).toBe("rgb(0, 0, 0)");
+
+    // 2. Open the modal (prelude)
+    await openJudgeModal(page);
+    // expect: #ai-judge-modal visible/open (has open attr)
+    await expect(modal(page)).toHaveAttribute("open", "");
+
+    // expect: inline still unpainted — black comes from CSS, not inline (the
+    //     JS paint path is commented out)
+    const painted = await page.evaluate(() => ({
+      background: document.documentElement.style.background,
+      backgroundColor: document.documentElement.style.backgroundColor,
+    }));
+    expect(painted.background).toBe("");
+    expect(painted.backgroundColor).toBe("");
+    // expect: computed backgroundColor black
+    const paintedComputed = await page.evaluate(
+      () => getComputedStyle(document.documentElement).backgroundColor,
+    );
+    expect(paintedComputed).toBe("rgb(0, 0, 0)");
+
+    // 3. Close via CLOSE button
+    await closeButton(page).click();
+    await expect(modal(page)).not.toBeVisible();
+
+    // expect: STILL black — permanent CSS, no restore step exists
+    const closed = await page.evaluate(() => ({
+      background: document.documentElement.style.background,
+      backgroundColor: document.documentElement.style.backgroundColor,
+      computed: getComputedStyle(document.documentElement).backgroundColor,
+    }));
+    expect(closed.background).toBe("");
+    expect(closed.backgroundColor).toBe("");
+    expect(closed.computed).toBe("rgb(0, 0, 0)");
+
+    // 4. Reopen — belt auto-closed on modal close; reopenJudgeModal's
+    //    belt-open-if-needed guard handles it
+    await reopenJudgeModal(page);
+    await expect(modal(page)).toHaveAttribute("open", "");
+    // expect: open attr present; computed black; inline ""
+    const reopened = await page.evaluate(() => ({
+      background: document.documentElement.style.background,
+      backgroundColor: document.documentElement.style.backgroundColor,
+      computed: getComputedStyle(document.documentElement).backgroundColor,
+    }));
+    expect(reopened.background).toBe("");
+    expect(reopened.backgroundColor).toBe("");
+    expect(reopened.computed).toBe("rgb(0, 0, 0)");
+
+    // 5. Close via Escape — textarea focused (autoFocus); the document-level
+    //    capture keydown handler catches it regardless of focus; no CLOSE
+    //    pre-focus needed (unlike TC-AJ-13's streaming case)
+    await page.keyboard.press("Escape");
+    await expect(modal(page)).not.toBeVisible();
+
+    // expect: still black — computed rgb(0, 0, 0); inline ""
+    const escaped = await page.evaluate(() => ({
+      background: document.documentElement.style.background,
+      backgroundColor: document.documentElement.style.backgroundColor,
+      computed: getComputedStyle(document.documentElement).backgroundColor,
+    }));
+    expect(escaped.background).toBe("");
+    expect(escaped.backgroundColor).toBe("");
+    expect(escaped.computed).toBe("rgb(0, 0, 0)");
+
+    // 6. Cleanup
+    // expect: no pageerror/console errors (only benign _vercel/* 404s, filtered)
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  /* DESIGN §6.4 Keyboard + commit c351995 (JudgeModal.tsx) — the
+     VirtualKeyboard API is the PRIMARY keyboard-lift path (Chrome Android):
+     boundingRect.top = the keyboard's exact top edge (Gboard toolbar
+     included) — no margin approximation; the effect opts into overlay mode
+     (vk.overlayContent = true) so the layout viewport never resizes;
+     geometrychange events drive syncViaKeyboardApi. Gate (commit c351995):
+     boundingRect.height <= 0 (the degenerate { top: 0, height: 0 } = no
+     keyboard) falls back to the vv path — which clears the lift on keyboard
+     close. Playwright cannot open a real virtual keyboard, AND the real
+     headless navigator.virtualKeyboard reports { top: 0, height: 0 } at rest
+     (gate → vv fallback; the API branch never runs). So this test stubs
+     navigator.virtualKeyboard as a CONTROLLABLE own property via addInitScript
+     BEFORE goto (the effect runs at app mount): the height-240 geometry drives
+     the API branch, and invoking the captured geometrychange callbacks
+     ((window.__vkCbs || []).forEach((cb) => cb())) simulates show/grow/hide
+     with exact boundingRect values. TC-AJ-36 pins the vv fallback + 48px
+     margin; this TC pins the API path's exact geometry + the overlayContent
+     opt-in (the two paths must agree on the lift contract). No /api/judge call
+     → no mock needed (TC-AJ-34/35/36 pattern). */
+  test("TC-AJ-38: VirtualKeyboard API path — exact geometry lift (overlayContent opt-in, geometrychange show/grow/hide)", async ({
+    page,
+  }) => {
+    // 1. Error collectors on (TC-AJ-03 pattern). Add the vk stub FIRST — the
+    //    controllable own property (height 240 > 0 drives the API branch;
+    //    geometrychange callbacks captured on window.__vkCbs) — then
+    //    openJudgeModal at the default 1280x720
+    const errors = errorCollectors(page);
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "virtualKeyboard", {
+        value: {
+          overlayContent: false,
+          boundingRect: { top: 480, height: 240 },
+          /* Verification harness (spec §1.34 step 5): wrap the registered
+             callback with an invocation counter — __vkInvocations counts
+             geometrychange DISPATCHES (test-driven only), so the no-event
+             regression steps can prove zero callbacks fired. */
+          addEventListener(type: string, cb: () => void) {
+            const w = window as unknown as {
+              __vkCbs?: Array<() => void>;
+              __vkInvocations?: number;
+            };
+            w.__vkCbs = w.__vkCbs ?? [];
+            w.__vkCbs.push(() => {
+              w.__vkInvocations = (w.__vkInvocations ?? 0) + 1;
+              cb();
+            });
+          },
+          removeEventListener() {},
+        },
+        configurable: true,
+      });
+    });
+    await openJudgeModal(page);
+
+    // expect: stub installed — own property; the effect opted in at MOUNT
+    //     (overlayContent flipped true before the modal ever opened); exactly
+    //     1 geometrychange listener registered (mount-time addEventListener;
+    //     still 1 after open — no re-registration on open)
+    const mounted = await page.evaluate(() => {
+      const vk = (
+        navigator as Navigator & {
+          virtualKeyboard?: {
+            overlayContent: boolean;
+            boundingRect: { top: number; height: number };
+          };
+        }
+      ).virtualKeyboard;
+      return {
+        hasOwn: Object.prototype.hasOwnProperty.call(navigator, "virtualKeyboard"),
+        overlayContent: vk?.overlayContent,
+        cbCount: ((window as unknown as { __vkCbs?: unknown[] }).__vkCbs ?? [])
+          .length,
+      };
+    });
+    expect(mounted.hasOwn).toBe(true);
+    expect(mounted.overlayContent).toBe(true);
+    expect(mounted.cbCount).toBe(1);
+
+    // expect: opened → API branch active (height 240 > 0) — padding "240px"
+    //     (720 − 480 = boundingRect.top; exact, NO margin on this path); form
+    //     bottom 480 === boundingRect.top; textarea + SEND bottoms 464 (480 −
+    //     16 pb-4); dialog height 720 (layout viewport never resized —
+    //     overlayContent opt-in holds)
+    await expect(modal(page)).toHaveAttribute("open", "");
+    expect(await modal(page).evaluate((el) => el.style.paddingBottom)).toBe(
+      "240px",
+    );
+    const openFormBox = await modal(page).locator("form").boundingBox();
+    expect((openFormBox?.y ?? 0) + (openFormBox?.height ?? 0)).toBe(480);
+    const openInputBox = await input(page).boundingBox();
+    const openSendBox = await sendButton(page).boundingBox();
+    expect((openInputBox?.y ?? 0) + (openInputBox?.height ?? 0)).toBe(464);
+    expect((openSendBox?.y ?? 0) + (openSendBox?.height ?? 0)).toBe(464);
+    expect((openInputBox?.y ?? 0) + (openInputBox?.height ?? 0)).toBeLessThanOrEqual(
+      480,
+    );
+    expect((openSendBox?.y ?? 0) + (openSendBox?.height ?? 0)).toBeLessThanOrEqual(
+      480,
+    );
+    expect(openInputBox?.y).toBeGreaterThanOrEqual(0);
+    expect(openSendBox?.y).toBeGreaterThanOrEqual(0);
+    expect((await modal(page).boundingBox())?.height).toBe(720);
+
+    // 2. Simulate keyboard GROWTH (in-page): update the stub's boundingRect
+    //    and invoke the captured geometrychange callbacks
+    const grown = await page.evaluate(() => {
+      const vk = (
+        navigator as Navigator & {
+          virtualKeyboard: { boundingRect: { top: number; height: number } };
+        }
+      ).virtualKeyboard;
+      vk.boundingRect = { top: 360, height: 360 };
+      ((window as unknown as { __vkCbs?: Array<() => void> }).__vkCbs ?? []).forEach(
+        (cb) => cb(),
+      );
+      const dialog = document.getElementById("ai-judge-modal") as HTMLDialogElement;
+      const form = dialog.querySelector("form")!;
+      const textarea = dialog.querySelector("textarea")!;
+      const send = Array.from(dialog.querySelectorAll("button")).find(
+        (b) => b.getAttribute("aria-label") === "Send question",
+      )!;
+      const tb = textarea.getBoundingClientRect();
+      const sb = send.getBoundingClientRect();
+      const fb = form.getBoundingClientRect();
+      return {
+        paddingBottom: dialog.style.paddingBottom,
+        formBottom: fb.bottom,
+        textareaBottom: tb.bottom,
+        sendBottom: sb.bottom,
+      };
+    });
+    // expect: padding "360px" — 240 + (480 − 360) = 360 (self-calibrating:
+    //     re-measured from the already-moved form, additive accumulation
+    //     (current padding + overflow)); form bottom 360 === boundingRect.top;
+    //     textarea + SEND bottoms 344 (360 − 16); both ≤ 360, y ≥ 0
+    expect(grown.paddingBottom).toBe("360px");
+    expect(grown.formBottom).toBe(360);
+    expect(grown.textareaBottom).toBe(344);
+    expect(grown.sendBottom).toBe(344);
+    expect(grown.textareaBottom).toBeLessThanOrEqual(360);
+    expect(grown.sendBottom).toBeLessThanOrEqual(360);
+
+    // 3. Simulate keyboard HIDE: height 0 → the gate fires → syncViaViewport()
+    //    fallback; the REAL visualViewport is 720 (never stubbed here) →
+    //    keyboardUp false → visibleBottom = 720 − 0 = 720 → padding clears
+    const hidden = await page.evaluate(() => {
+      const vk = (
+        navigator as Navigator & {
+          virtualKeyboard: { boundingRect: { top: number; height: number } };
+        }
+      ).virtualKeyboard;
+      vk.boundingRect = { top: 720, height: 0 };
+      ((window as unknown as { __vkCbs?: Array<() => void> }).__vkCbs ?? []).forEach(
+        (cb) => cb(),
+      );
+      const dialog = document.getElementById("ai-judge-modal") as HTMLDialogElement;
+      const form = dialog.querySelector("form")!;
+      const textarea = dialog.querySelector("textarea")!;
+      const send = Array.from(dialog.querySelectorAll("button")).find(
+        (b) => b.getAttribute("aria-label") === "Send question",
+      )!;
+      const tb = textarea.getBoundingClientRect();
+      const sb = send.getBoundingClientRect();
+      const fb = form.getBoundingClientRect();
+      return {
+        paddingBottom: dialog.style.paddingBottom,
+        formBottom: fb.bottom,
+        textareaBottom: tb.bottom,
+        sendBottom: sb.bottom,
+        invocations: (window as unknown as { __vkInvocations?: number })
+          .__vkInvocations ?? 0,
+      };
+    });
+    // expect: padding "0px" (NOT ""); form bottom 720; textarea + SEND 704
+    //     (vv fallback — keyboardUp false, so the 48px margin is NOT subtracted)
+    expect(hidden.paddingBottom).toBe("0px");
+    expect(hidden.formBottom).toBe(720);
+    expect(hidden.textareaBottom).toBe(704);
+    expect(hidden.sendBottom).toBe(704);
+
+    // 4. Settle stability (hidden state): wait ~400ms — since commit 2ed1b9e
+    //    the re-check is the 500ms poll (the 300ms settle timer is gone);
+    //    idempotent on the hidden state: any tick that lands hits the gate →
+    //    vv fallback → overflow 0; no drift
+    await page.waitForTimeout(400);
+    expect(await modal(page).evaluate((el) => el.style.paddingBottom)).toBe(
+      "0px",
+    );
+
+    // 5. Regression — second keyboard show with NO events (poll-driven
+    //    recovery, commit 2ed1b9e): mutate the stub ONLY — never invoke the
+    //    geometrychange callbacks (Chrome does not reliably fire
+    //    geometrychange on the second show; with overlayContent the layout
+    //    viewport stops resizing so vv events don't fire either — the 500ms
+    //    poll is the backstop)
+    const reShown = await page.evaluate(() => {
+      const vk = (
+        navigator as Navigator & {
+          virtualKeyboard: { boundingRect: { top: number; height: number } };
+        }
+      ).virtualKeyboard;
+      vk.boundingRect = { top: 480, height: 240 };
+      const w = window as unknown as {
+        __vkCbs?: unknown[];
+        __vkInvocations?: number;
+      };
+      return {
+        cbCount: (w.__vkCbs ?? []).length,
+        invocations: w.__vkInvocations ?? 0,
+        paddingRightAfterMutation: (
+          document.getElementById("ai-judge-modal") as HTMLDialogElement
+        ).style.paddingBottom,
+      };
+    });
+    // expect: no listener churn — exactly 1 callback still registered; the
+    //     invocation count is UNCHANGED since the step-3 hide dispatch — zero
+    //     geometrychange events fired
+    expect(reShown.cbCount).toBe(1);
+    expect(reShown.invocations).toBe(hidden.invocations);
+    // expect: still "0px" right after the mutation (no events → no sync)
+    expect(reShown.paddingRightAfterMutation).toBe("0px");
+
+    // expect: poll-driven recovery — the 500ms interval re-runs sync → height
+    //     240 > 0 → API branch → applyLift(480) → overflow 720 − 480 = 240.
+    //     NO event source fired; the poll alone drives it (1500ms ≈ 3× the
+    //     live-measured worst case, spec §1.34)
+    await expect
+      .poll(
+        () => modal(page).evaluate((el) => el.style.paddingBottom),
+        { timeout: 1500 },
+      )
+      .toBe("240px");
+
+    // expect: recovered geometry exact — form bottom 480 === boundingRect.top;
+    //     textarea + SEND bottoms 464 (480 − 16 pb-4); both ≤ 480, y ≥ 0;
+    //     dialog height still 720; counts still unchanged (poll-driven, not
+    //     event-driven)
+    const recovered = await page.evaluate(() => {
+      const dialog = document.getElementById("ai-judge-modal") as HTMLDialogElement;
+      const form = dialog.querySelector("form")!;
+      const textarea = dialog.querySelector("textarea")!;
+      const send = Array.from(dialog.querySelectorAll("button")).find(
+        (b) => b.getAttribute("aria-label") === "Send question",
+      )!;
+      const w = window as unknown as {
+        __vkCbs?: unknown[];
+        __vkInvocations?: number;
+      };
+      const tb = textarea.getBoundingClientRect();
+      const sb = send.getBoundingClientRect();
+      const fb = form.getBoundingClientRect();
+      return {
+        formBottom: fb.bottom,
+        textareaBottom: tb.bottom,
+        sendBottom: sb.bottom,
+        dialogHeight: dialog.getBoundingClientRect().height,
+        cbCount: (w.__vkCbs ?? []).length,
+        invocations: w.__vkInvocations ?? 0,
+      };
+    });
+    expect(recovered.formBottom).toBe(480);
+    expect(recovered.textareaBottom).toBe(464);
+    expect(recovered.sendBottom).toBe(464);
+    expect(recovered.textareaBottom).toBeLessThanOrEqual(480);
+    expect(recovered.sendBottom).toBeLessThanOrEqual(480);
+    expect(recovered.dialogHeight).toBe(720);
+    expect(recovered.cbCount).toBe(1);
+    expect(recovered.invocations).toBe(hidden.invocations);
+
+    // 6. Optional hardening — second full no-event cycle (spec §1.34 step 6):
+    //    hide → poll → "0px"; show → poll → "240px"; STILL zero dispatches
+
+    // (in-page) boundingRect = { top: 720, height: 0 } — no dispatch
+    await page.evaluate(() => {
+      const vk = (
+        navigator as Navigator & {
+          virtualKeyboard: { boundingRect: { top: number; height: number } };
+        }
+      ).virtualKeyboard;
+      vk.boundingRect = { top: 720, height: 0 };
+    });
+    // expect: gate fires — height 0 → vv fallback → real vv 720 → overflow 0
+    await expect
+      .poll(
+        () => modal(page).evaluate((el) => el.style.paddingBottom),
+        { timeout: 1500 },
+      )
+      .toBe("0px");
+    // expect: form bottom 720; textarea + SEND bottoms 704
+    const reHidden = await page.evaluate(() => {
+      const dialog = document.getElementById("ai-judge-modal") as HTMLDialogElement;
+      const form = dialog.querySelector("form")!;
+      const textarea = dialog.querySelector("textarea")!;
+      const send = Array.from(dialog.querySelectorAll("button")).find(
+        (b) => b.getAttribute("aria-label") === "Send question",
+      )!;
+      const tb = textarea.getBoundingClientRect();
+      const sb = send.getBoundingClientRect();
+      const fb = form.getBoundingClientRect();
+      return {
+        formBottom: fb.bottom,
+        textareaBottom: tb.bottom,
+        sendBottom: sb.bottom,
+      };
+    });
+    expect(reHidden.formBottom).toBe(720);
+    expect(reHidden.textareaBottom).toBe(704);
+    expect(reHidden.sendBottom).toBe(704);
+
+    // (in-page) boundingRect = { top: 480, height: 240 } — no dispatch
+    await page.evaluate(() => {
+      const vk = (
+        navigator as Navigator & {
+          virtualKeyboard: { boundingRect: { top: number; height: number } };
+        }
+      ).virtualKeyboard;
+      vk.boundingRect = { top: 480, height: 240 };
+    });
+    // expect: API branch again — applyLift(480) → overflow 720 − 480 = 240
+    await expect
+      .poll(
+        () => modal(page).evaluate((el) => el.style.paddingBottom),
+        { timeout: 1500 },
+      )
+      .toBe("240px");
+    // expect: form bottom 480; textarea + SEND bottoms 464; still zero events
+    const reShownAgain = await page.evaluate(() => {
+      const dialog = document.getElementById("ai-judge-modal") as HTMLDialogElement;
+      const form = dialog.querySelector("form")!;
+      const textarea = dialog.querySelector("textarea")!;
+      const send = Array.from(dialog.querySelectorAll("button")).find(
+        (b) => b.getAttribute("aria-label") === "Send question",
+      )!;
+      const tb = textarea.getBoundingClientRect();
+      const sb = send.getBoundingClientRect();
+      const fb = form.getBoundingClientRect();
+      return {
+        formBottom: fb.bottom,
+        textareaBottom: tb.bottom,
+        sendBottom: sb.bottom,
+        invocations: (window as unknown as { __vkInvocations?: number })
+          .__vkInvocations ?? 0,
+      };
+    });
+    expect(reShownAgain.formBottom).toBe(480);
+    expect(reShownAgain.textareaBottom).toBe(464);
+    expect(reShownAgain.sendBottom).toBe(464);
+    expect(reShownAgain.invocations).toBe(hidden.invocations);
+
+    // 7. Cleanup: close via CLOSE. No /api/judge call → no mock needed.
+    await closeButton(page).click();
+    await expect(modal(page)).not.toBeVisible();
+    // expect: no pageerror/console errors — the defineProperty/stub/dispatch
+    //     tricks emit none (only benign _vercel/* 404s, filtered)
     expect(errors.pageErrors).toEqual([]);
     expect(errors.consoleErrors).toEqual([]);
   });

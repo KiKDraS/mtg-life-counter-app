@@ -1,6 +1,6 @@
 # AI Judge — E2E Test Plan (specs/ai-judge.spec.md)
 
-Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target: `tests/e2e/ai-judge.spec.ts` (single describe, **20 tests**). Config: baseURL `http://localhost:3000`, chromium, 1 worker, 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state per test; dev machine has NO OpenRouter key → real route 503s — **every test MUST mock `/api/judge`** via in-page fetch override, never hit real route.
+Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target: `tests/e2e/ai-judge.spec.ts` (single describe, **35 tests**). Config: baseURL `http://localhost:3000`, chromium, 1 worker, 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state per test; dev machine has NO OpenRouter key → real route 503s — **every test MUST mock `/api/judge`** via in-page fetch override, never hit real route.
 
 ## Contract sources
 DESIGN.md §6.4 (chat window), §6.4.0 (offline), §6.4.1 (answer formatting). SPEC.md §9.5 (SSE), §9.9 (history/sessionId), §9.10 (UI/offline).
@@ -14,12 +14,14 @@ DESIGN.md §6.4 (chat window), §6.4.0 (offline), §6.4.1 (answer formatting). S
 ## Selectors (current DOM — no testids)
 - DIALOG `#ai-judge-modal` (aria-modal="true", aria-labelledby="ai-judge-title")
 - CLOSE `getByRole("button", { name: "Close AI Judge" })`
-- INPUT `getByRole("textbox", { name: "Ask about a card or rule" })` — placeholder exact `Ask about a card or rule…` (U+2026). autoFocus on open.
+- INPUT `getByRole("textbox", { name: "Ask about a card or rule" })` — now `<textarea>` (branch feature/judge-input-grow): wraps (no x-overflow), grows up with newlines (`field-sizing: content`), cap 160px (`max-h-40`) then internal scroll; placeholder exact `Ask about a card or rule…` (U+2026); autoFocus on open (DESIGN §6.4).
+- SEND `getByRole("button", { name: "Send question" })` — `type="submit"`, glyph ⏎, bottom-right of input row. Disabled when draft trim-empty OR streaming OR offline (`useJudgeChat.inputDisabled` or `draft.trim() === ""`).
 - STATUS `modal.locator("[role='status']")` — offline alert
 - TYPING `page.getByLabel("AI Judge is typing")` — 3-dot span
 - SCROLL `modal.locator("div[class*='overflow-y-auto']")` — chat list (bubble locators scoped here; offline alert also carries `bg-mana-b`, so never scope to modal root)
 - SYSTEM bubble `scroll.locator(".bg-mana-b")` (left). USER bubble `scroll.locator(".bg-mana-c")` (right). Error bubble = `.bg-mana-b` with error text.
 - TITLE `#ai-judge-title` (sr-only h2, text "AI Judge")
+- META `page.locator('meta[name="viewport"]')` — head-level viewport tag (global; never inside the modal)
 - MarkdownText output (inside system bubble): `strong` (bold), `ul>li` / `ol>li` (lists), `p` (paragraphs), `i` (rule-ref suffix)
 
 NO chip selectors. NO citation pills — removed from UI. UI never renders citations (DESIGN §6.4, SPEC §9.5).
@@ -73,7 +75,7 @@ Retrieval pipeline, card RAG context injection (SPEC §9.7), language mirror (es
 
 ### 1. AI Judge
 
-**Seed:** `tests/seed.spec.ts` — all 20 tests in `tests/e2e/ai-judge.spec.ts`.
+**Seed:** `tests/seed.spec.ts` — all 35 tests in `tests/e2e/ai-judge.spec.ts`.
 
 #### 1.1. TC-AJ-01: Modal opens from belt with input
 1. Open-modal prelude.
@@ -252,3 +254,213 @@ Retrieval pipeline, card RAG context injection (SPEC §9.7), language mirror (es
 3. Close via CLOSE; re-open.
    - expect: in-memory history survives modal close (1 user + 1 system)
 4. Cleanup assertions: no pageerror / console errors (blocked IDB swallowed everywhere).
+
+#### 1.21. TC-AJ-25: Send button — visible, disabled on empty/whitespace draft, enabled after typing
+1. Mock FULL. `openJudgeModal`.
+   - expect: `sendButton(page)` = `getByRole("button", { name: "Send question" })` visible inside modal, bottom-right of input row; glyph ⏎; `type="submit"` (DESIGN §6.4)
+2. Fresh draft.
+   - expect: send button `toBeDisabled()` (draft empty)
+3. `input(page).fill("   ")` (whitespace only).
+   - expect: send button still `toBeDisabled()` (trim-empty guard `draft.trim() === ""`)
+4. `input(page).fill("Is this play legal?")`.
+   - expect: send button `toBeEnabled()`; input value exact
+
+#### 1.22. TC-AJ-26: Click send button submits POST; input cleared
+1. Mock FULL. `openJudgeModal`.
+2. `input(page).fill("Click send test")`; click `sendButton(page)` (button path only — no Enter).
+   - expect: `waitForBodies(page, 1)`; `bodies[0].question` exact `Click send test`; `sessionId` `aijudge-0`; `gameContext` undefined
+   - expect: input value `""` (cleared after send — same contract as TC-AJ-02)
+3. Wait done.
+   - expect: user bubble "Click send test" + system bubble "When you gain life"; input + send button enabled
+
+#### 1.23. TC-AJ-27: Enter still sends after input→textarea swap (regression pointer)
+Full Enter coverage lives in TC-AJ-02 (bubbles, colors, typing indicator, body contract) — do not re-test here. Element type changed `<input>` → `<textarea>` (feature/judge-input-grow); this TC is the minimal swap guard only.
+1. Mock FULL. `openJudgeModal`. `sendQuestion(page, "Enter still works")` (fill + Enter helper).
+   - expect: `waitForBodies(page, 1)`; `bodies[0].question` exact `Enter still works`
+2. Wait done.
+   - expect: user + system bubbles render; input + send button enabled
+
+#### 1.24. TC-AJ-28: Shift+Enter inserts newline, does NOT send; Enter then sends multi-line draft
+1. Mock FULL. `openJudgeModal`.
+2. `input(page).fill("line one")`; `input(page).press("Shift+Enter")`; `input(page).pressSequentially("line two")`.
+   - expect: input value `line one\nline two` (newline inserted, NOT submitted)
+   - expect: POST count stays 0 — `expect.poll(async () => (await judgeBodies(page)).length).toBe(0)` (1s window)
+3. Press Enter (no Shift).
+   - expect: `waitForBodies(page, 1)`; `bodies[0].question` exact `line one\nline two` (multi-line draft sent intact; `trim()` strips edges only)
+
+#### 1.25. TC-AJ-29: Textarea grows up with content; soft-wraps — no x-overflow
+1. Mock FULL. `openJudgeModal`.
+2. Baseline: `h0 = await input(page).evaluate((el) => el.offsetHeight)` (1 row; observed 46px at 1280x720).
+3. `input(page).fill("a\nb\nc")` (3 explicit lines).
+   - expect: `h3 = offsetHeight` > `h0` (grew up with newlines — `field-sizing: content`, DESIGN §6.4; observed 86px)
+4. `input(page).fill("x".repeat(300))` (single unbroken word — soft-wrap stress).
+   - expect: `scrollWidth <= clientWidth` (wraps; no x-overflow)
+   - expect: `offsetHeight` > `h0` (wrapped lines count toward content height)
+
+#### 1.26. TC-AJ-30: Send button disabled while streaming and while offline; re-enabled after state clears
+1. Mock STREAM_NEVER_ENDS. Error collectors on. `openJudgeModal`.
+2. `input(page).fill("Stream button test")`; click `sendButton(page)`.
+   - expect: `waitForBodies(page, 1)`; user bubble visible; stream bubble "partial " visible
+3. Streaming state.
+   - expect: send button `toBeDisabled()` (`inputDisabled` = isStreaming — same state TC-AJ-06 asserts on the input)
+4. Close via `closeButton(page)` (abort cleanup, TC-AJ-06/13 pattern); `reopenJudgeModal`.
+   - expect: send button `toBeEnabled()` (stream reset on close, SPEC §9.9)
+5. `input(page).fill("Offline button test")`; `context.setOffline(true)` (TC-AJ-08 pattern).
+   - expect: status alert visible; send button `toBeDisabled()` (offline → inputDisabled)
+6. `context.setOffline(false)`.
+   - expect: status gone; send button `toBeEnabled()` (no reload, SPEC §9.10)
+7. Cleanup: no console/page errors.
+
+#### 1.27. TC-AJ-31: Send button re-enabled after done; stays functional (click path)
+1. Mock FULL. `openJudgeModal`.
+2. `sendQuestion(page, "Done re-enable")`; wait done (input enabled — TC-AJ-03 pattern).
+   - expect: send button `toBeEnabled()`
+3. `input(page).fill("Second click")`; click `sendButton(page)`; wait done.
+   - expect: `waitForBodies(page, 2)`; 2 user + 2 system bubbles (button fully functional after stream end)
+
+#### 1.28. TC-AJ-32: Send button re-enabled after error
+1. Mock ERR_429 (200 + error event). `openJudgeModal`.
+2. `input(page).fill("Error button test")`; click `sendButton(page)`.
+   - expect: error bubble exact "The AI Judge is busy. Please wait a moment."
+   - expect: send button `toBeEnabled()` (input re-enabled — TC-AJ-04 pattern); typing gone
+
+#### 1.29. TC-AJ-33: Auto-grow cap — height stops at 160px (max-h-40), internal scroll
+1. Mock FULL. `openJudgeModal`.
+2. Baseline: `h0 = offsetHeight`; `input(page).fill("l0\nl1\nl2")` (3 lines).
+   - expect: `offsetHeight` > `h0` AND < 160 (grew, not yet capped)
+3. `input(page).fill(Array.from({ length: 12 }, (_, i) => `line ${i}`).join("\n"))` (12 lines).
+   - expect: `offsetHeight` === 160 (`max-h-40` = 10rem border-box; observed 160px)
+   - expect: `scrollHeight` > `clientHeight` (internal scroll past cap; observed 264 > 158)
+   - expect: computed `overflow-y` === `auto` (overflow-y-auto class)
+4. Press Enter (no Shift).
+   - expect: `waitForBodies(page, 1)`; `bodies[0].question` === 12-line text (full multi-line draft sent)
+
+#### 1.30. TC-AJ-34: Viewport meta = Next default `width=device-width, initial-scale=1` — no `interactive-widget` (global)
+
+Contract: DESIGN §6.4 Keyboard. Commit `53987c1` (`app/layout.tsx`) REMOVED `interactive-widget=resizes-content` from the viewport export — under it the layout viewport shrank stepwise when the mobile keyboard opened, exposing a white browser-window gap below the dialog (the white flash). Emitted meta is now the Next default `width=device-width, initial-scale=1` — NO `interactive-widget` key. Layout viewport NEVER shrinks (default `resizes-visual`, DESIGN §6.4); the keyboard is handled by the JudgeModal padding-lift (TC-AJ-36, commit `d1558cf`). This TC pins the negative meta contract — absence of `interactive-widget` IS the point. No `/api/judge` call → no mock needed (TC-AJ-01/14 pattern). Selectors: META (spec §Selectors).
+
+1. Error collectors on (TC-AJ-03 pattern). `page.goto("/")` (modal closed — meta is a root-layout concern, not modal-scoped).
+   - expect: exactly 1 viewport meta in `document.head` — `page.locator('meta[name="viewport"]')` count 1; `head meta[name="viewport"]` count 1 (global tag, not inside `#ai-judge-modal`).
+   - expect: `content` EXACTLY `width=device-width, initial-scale=1` — `toHaveAttribute("content", "width=device-width, initial-scale=1")`. Exact equality, NOT regex (observed live 2026-09-21, headless Chromium: `14 × locator resolved to <meta name="viewport" content="width=device-width, initial-scale=1"/>`; Next emits the default verbatim — single key, no order/spacing variance). Exact match subsumes the negative: content does NOT contain `interactive-widget` (no `interactive-widget=` token anywhere — the layout viewport must never shrink; padding-lift handles the keyboard).
+2. `openJudgeModal(page)`.
+   - expect: meta still exactly 1, still head-level; `modal(page).locator('meta[name="viewport"]')` count 0 (modal injects no duplicate).
+3. Cleanup: assert error collectors empty — no pageerror / console errors (no stream, no fetch; only benign `_vercel/*` 404s + MIME-type refusals in the prod build, filtered by `errorCollectors`, spec §Failure collection).
+
+#### 1.31. TC-AJ-35: Layout adapts when the viewport shrinks (keyboard proxy)
+
+Contract: DESIGN §6.4 Keyboard + input dock. Playwright cannot open a real virtual keyboard — `page.setViewportSize({ width: 390, height: 400 })` is a generic layout-viewport shrink proxy (keyboard-sized, portrait-ish). NOT the keyboard proxy anymore: the meta carries no `interactive-widget` (TC-AJ-34 — default `resizes-visual`), so the keyboard never shrinks the layout viewport; the input row is lifted by the padding-lift (TC-AJ-36). This TC pins pure layout containment — the dialog must track ANY layout-viewport shrink (window resize, browser UI). Mechanism: `#ai-judge-modal` is `position: fixed` (`JudgeModal` `fixed z-50 bg-black` overrides DialogShell's `absolute` via twMerge) + `h-full` → dialog height = 100% of the layout viewport; if the dialog failed to track, the bottom-docked input row would sit behind whatever shrunk the viewport. No `/api/judge` call → no mock.
+
+1. `openJudgeModal(page)` at the default 1280x720 (modal already open when the "keyboard" opens — the real bug scenario).
+   - expect: `#ai-judge-modal` visible/open; textarea focused; baseline textarea `offsetHeight` 46 (1 row).
+2. `page.setViewportSize({ width: 390, height: 400 })`.
+   - expect (a) dialog tracks viewport: `boundingBox()` `{ x: 0, y: 0, width: 390, height: 400 }`; height === `page.viewportSize().height` (observed exactly 400, down from 720).
+   - expect (b) input row fully inside: textarea bbox `{ y: 338, height: 46 }` → `y + height = 384 <= 400`; SEND bbox `{ y: 344, height: 40 }` → `y + height = 384 <= 400`; both `y >= 0`; form bottom = 400 (docked flush; `pb-4` is inside the viewport).
+   - expect: SCROLL bottom = 338 (form top), height 282.
+3. Long multi-line draft: ``input(page).fill(Array.from({ length: 12 }, (_, i) => `line ${i}`).join("\n"))`` (worst-case row height — hits the `max-h-40` cap, TC-AJ-33).
+   - expect (c) row grows UP, never below the bottom: textarea `offsetHeight` 160 > baseline 46; textarea bbox y drops 338 → 224; form bbox `{ y: 224, height: 176 }` → bottom still exactly 400; textarea bottom still 384; SEND bottom still 384 — every `y + height <= 400`.
+   - expect: dialog height unchanged (400); SCROLL shrinks 282 → 168 (`flex-1` absorbs the growth); draft value = 12 lines; SEND enabled (draft non-empty).
+4. Cleanup: none required — fresh page per test (no viewport restore needed; next test starts at 1280x720). Optional close via CLOSE.
+
+**Live-verified notes (2026-09-21, headless Chromium, `390x400`):**
+- `LockPortrait` does NOT interfere: overlay is `pointer-coarse:landscape:flex`; desktop Chromium has `(pointer: coarse)` false and 390x400 is portrait (`(orientation: landscape)` false) → `display: none`. Do NOT switch to a landscape proxy (e.g. 720x400) — wrong orientation, and it would show the overlay under touch emulation.
+- `FullscreenEnforcer` requests fullscreen on first pointerdown (belt click): `document.fullscreenElement` becomes `<html>` in headless Chromium, but `setViewportSize` still resizes normally — geometry identical whether the resize happens before or after opening the modal (both orders verified). Console emits a warning-level `Orientation lock failed… NotSupportedError`; `errorCollectors` captures error-level only, so tests stay green.
+- The meta contract is now NEGATIVE — no `interactive-widget` key (TC-AJ-34): the layout viewport never shrinks for the keyboard. TC-AJ-34 pins the meta, TC-AJ-35 pins layout containment under a shrunk layout viewport, TC-AJ-36 pins the padding-lift that actually handles the keyboard. None alone proves on-device Gboard behavior; together they cover the fix.
+
+#### 1.32. TC-AJ-36: visualViewport fallback lifts input via paddingBottom, with 48px toolbar margin (keyboard simulation)
+
+Contract: DESIGN §6.4 Keyboard + commits `d1558cf`/`ab97d62`/`c351995` (`JudgeModal.tsx`). Playwright cannot open a real virtual keyboard, so simulate the visual-viewport shrink it causes. The dialog keeps `h-full` (full-page black — the board never shows through, no white flash); the input row is lifted with inline `dialog.style.paddingBottom`, applied by a SELF-CALIBRATING measurement: `overflow = form.getBoundingClientRect().bottom − visibleBottom`, padding corrected by the overflow (clamped ≥ 0), plus a guaranteed 500ms poll re-check (commit `2ed1b9e` replaced the 300ms settle timer) — immune to stale/under-reported vv heights (e.g. Gboard toolbar settling after the last resize) and to event-less second keyboard shows (the self-calibrating measurement makes redundant ticks no-ops at overflow 0). The vv fallback computes `visibleBottom = vv.height + vv.offsetTop − (keyboardUp ? KEYBOARD_TOOLBAR_MARGIN(48) : 0)` where `keyboardUp = vv.height + vv.offsetTop < window.innerHeight` — the margin applies ONLY while the keyboard is up. Driven by `visualViewport` `resize`/`scroll` + `window` `resize` + dialog `focusin` listeners (else-branch only), the MutationObserver-on-open, the `setInterval(sync, 500)` poll, and once on mount.
+
+**CRITICAL env fact (verified live 2026-09-21):** Playwright Chromium on localhost (secure context) HAS `navigator.virtualKeyboard` — a prototype getter returning `boundingRect { top: 0, height: 0 }` at rest. The effect therefore takes the vk branch (`sync()`: `vk && vk.boundingRect.height > 0 ? syncViaKeyboardApi() : syncViaViewport()`; mount: `if (vk) { … } else { vv listeners }` — commit `c351995` gates the API path on `height > 0`) → the vv `resize` listeners NEVER attach → the OLD TC-AJ-36 simulation (vv dispatch with no shadow) does NOTHING: padding stays `"0px"` and every lift assertion fails. This test MUST shadow the API before app scripts: `page.addInitScript(() => { Object.defineProperty(navigator, "virtualKeyboard", { value: undefined, configurable: true }); })` BEFORE `goto("/")` (the JudgeModal effect runs at app mount) → `navigator.virtualKeyboard` reads `undefined` → the effect takes the vv branch and the vv listeners attach. In headless Chromium `visualViewport.height`/`offsetTop` are prototype getters — an own property (`Object.defineProperty`, `configurable: true`) shadows them, and `dispatchEvent(new Event("resize"))` on the visualViewport object fires the mounted handler (verified live, notes below). TC-AJ-34 (meta) + TC-AJ-35 (layout-viewport shrink) cover the layout half; TC-AJ-38 pins the VirtualKeyboard API path (the primary Chrome Android path this fallback approximates). No `/api/judge` call → no mock needed (TC-AJ-34/35 pattern). Selectors: DIALOG `#ai-judge-modal`, INPUT textbox, SEND button (spec §Selectors).
+
+1. Error collectors on (TC-AJ-03 pattern). **Add the vk shadow FIRST** — `page.addInitScript` `Object.defineProperty(navigator, "virtualKeyboard", { value: undefined, configurable: true })` — then `openJudgeModal(page)` at the default 1280x720 (modal already open when the "keyboard" opens — the real bug scenario).
+   - expect: shadow applied — `navigator.virtualKeyboard === undefined`; own data property (`Object.getOwnPropertyDescriptor` shows `{ value: undefined, configurable: true }`, `hasOwnProperty` true).
+   - expect: `#ai-judge-modal` visible/open; dialog bbox `{ x: 0, y: 0, width: 1280, height: 720 }` — full-page, NOT shrunk (`h-full`; the old inline `style.height`/`style.top` mechanism is gone — both read `""`).
+   - expect: mount sync already applied — `dialog.style.paddingBottom === "0px"` (inset 0 → `0px`; the handler always writes a `px` value, never clears to `""`).
+   - expect: baseline input row fully inside 720 — textarea bbox bottom 704, SEND bbox bottom 704 (form bottom 720; the form's `pb-4` sits between the input row and the form's bottom edge).
+2. Simulate keyboard shrink (in-page): `Object.defineProperty(window.visualViewport, "height", { value: 300, configurable: true })`; `Object.defineProperty(window.visualViewport, "offsetTop", { value: 0, configurable: true })`; `window.visualViewport.dispatchEvent(new Event("resize"))`.
+   - expect: `visualViewport.height` reads 300 (own prop shadows the getter — `Object.getOwnPropertyDescriptor` shows `{ value: 300, configurable: true }`); `keyboardUp` true (300 < 720); no throw from defineProperty or dispatchEvent.
+3. Input row lifts above the "keyboard" — INCLUDING the 48px toolbar margin; dialog height unchanged.
+   - expect: dialog bbox `{ y: 0, height: 720 }` — UNCHANGED (full-page black preserved; assert NOT 300).
+   - expect: `dialog.style.paddingBottom === "468px"` — `visibleBottom = 300 − 48 = 252` (margin applied, keyboardUp true); `overflow = 720 − 252 = 468`. **Contract change vs the pre-`c351995` effect: the OLD observed value was `"420px"` (300, no margin) — assert 468, never 420.**
+   - expect: form bottom 252 === `visibleBottom` (self-calibrated lift lands the form's bottom edge exactly on the visible bottom); textarea + SEND bottoms 236 (252 − 16 `pb-4`); both ≤ 300, both `y >= 0`; nothing clipped above the "keyboard".
+   - expect: settle re-check stable — after ~400ms padding STILL `"468px"` — since commit `2ed1b9e` the re-check is the 500ms poll (the 300ms settle timer is gone); any tick that lands re-reads overflow 0 and stops; no drift.
+4. Restore (keyboard closes): `delete (window.visualViewport as any).height; delete (window.visualViewport as any).offsetTop;` then `dispatchEvent(new Event("resize"))` again.
+   - expect: `visualViewport.height` back to 720 (own prop gone — `hasOwnProperty` false); `keyboardUp` false (720 < 720 is false) → `visibleBottom = 720 − 0 = 720` → padding clears.
+   - expect: `dialog.style.paddingBottom === "0px"` (inset 0 — NOT `""`, see notes).
+   - expect: input row back at baseline — textarea bottom 704, SEND bottom 704; dialog bbox height still 720.
+5. Cleanup: optional close via CLOSE. Assert error collectors empty — no pageerror / console errors (the defineProperty/dispatchEvent trick emits none; only the benign `_vercel/*` 404s + MIME-type refusals, filtered by `errorCollectors`).
+
+**Live-verified notes (2026-09-21, headless Chromium, 1280x720):**
+- The shadow WORKS: `Object.defineProperty(navigator, "virtualKeyboard", { value: undefined, configurable: true })` makes `navigator.virtualKeyboard` read `undefined` (own data prop shadows the prototype getter) → the effect's else-branch attaches the vv listeners (verified: vv resize dispatch drives the lift end-to-end). Without the shadow the vv dispatch is a NO-OP on this branch (see env fact above) — the OLD test-file TC-AJ-36 implementation is DEAD and must be rewritten with the shadow.
+- Observed geometry at shrink 300: paddingBottom exactly `"468px"`, form bottom 252 (=== visibleBottom 300−48), textarea bottom 236, SEND bottom 236, dialog bbox height exactly 720. Restore: paddingBottom `"0px"`, bottoms 704. Assert exact values; tolerance ±1 acceptable if a CI renderer rounds differently.
+- **Quirk — textarea/SEND bottoms ≠ visibleBottom.** The form's 16px `pb-4` sits between the input row and the form's bottom edge, so the lifted row lands at `visibleBottom − 16` (252 − 16 = 236). The OLD test asserted bottoms 284 at visibleBottom 300 — the same relationship (`300 − 16`). Assert `form.bottom === visibleBottom` and `textarea/SEND bottom === visibleBottom − 16`.
+- **Quirk — never assert `paddingBottom === ""`.** The handler always assigns `` `${inset}px` ``; at inset 0 it writes `"0px"` (mount + restore both observed).
+- **Quirk — the re-check is idempotent (since commit `2ed1b9e` it is the 500ms poll; the 300ms settle timer is gone).** Verified stable at `"468px"` after 400ms; a tick that lands after the restore dispatch re-reads vv.height 720 → overflow 0 → stays `"0px"`. No explicit wait required, but if a CI flake appears, assert padding via `expect.poll`.
+- `offsetTop` stays 0 in this setup; the measurement includes it (`overflow = form.bottom − (vv.height + vv.offsetTop)`) — a nonzero offsetTop only occurs on-device where the keyboard pushes the visual viewport down.
+- Baseline console errors are the benign Vercel 404s (`_vercel/*`, incl. the MIME-type-refusal lines) — `errorCollectors` already filters them (spec §Failure collection).
+
+#### 1.33. TC-AJ-37: Canvas black permanently via globals.css (no JS paint, no restore)
+
+Contract: DESIGN §6.4 Keyboard + commit `b289199` (`app/globals.css`). The default white `<html>` canvas used to flash below/around the black dialog during the mobile keyboard-open height transition; the JS `paintCanvasBlack` fix (38ef911) painted it black while open and restored `""` on close. That JS path is now commented out (`JudgeModal.tsx`) and the canvas is black permanently: `html { background-color: var(--color-ui-belt) }` (`#000000`) in `globals.css`, applied at load and never removed. This TC pins the permanent contract: computed black on fresh load, on open, and on BOTH close paths (✕ and Escape), with NO inline style manipulation at any point. No `/api/judge` call → no mock needed (TC-AJ-34/35/36 pattern). Selectors: DIALOG `#ai-judge-modal`, CLOSE button (spec §Selectors).
+
+1. Error collectors on (TC-AJ-36 pattern). `page.goto("/")` (fresh page, modal closed).
+   - expect: no inline paint — `document.documentElement.style.background` === `""` and `style.backgroundColor` === `""`.
+   - expect: computed black from globals.css — `getComputedStyle(document.documentElement).backgroundColor` === `"rgb(0, 0, 0)"` (permanent CSS; was `rgba(0, 0, 0, 0)` under the old JS contract — this is the contract change).
+2. `openJudgeModal(page)`.
+   - expect: `#ai-judge-modal` visible/open (has `open` attr).
+   - expect: inline still unpainted — `style.background` === `""`, `style.backgroundColor` === `""` (the JS paint path is commented out; black comes from CSS, not inline).
+   - expect: computed backgroundColor === `"rgb(0, 0, 0)"`.
+3. Close via `closeButton(page)`.
+   - expect: modal not visible (`open` attr gone).
+   - expect: STILL black — computed backgroundColor === `"rgb(0, 0, 0)"` (no restore — permanent CSS).
+   - expect: inline still `""` (nothing to restore).
+4. Reopen via `reopenJudgeModal(page)` (belt auto-closed on modal close — helper's belt-open guard required).
+   - expect: open attr present; computed backgroundColor === `"rgb(0, 0, 0)"`; inline `""`.
+5. Close via Escape — `page.keyboard.press("Escape")` with the textarea focused (autoFocus; the document-level capture keydown handler catches it regardless of focus — no need to focus CLOSE first, unlike TC-AJ-13's streaming case).
+   - expect: modal not visible.
+   - expect: computed backgroundColor === `"rgb(0, 0, 0)"` (still black); inline `""`.
+6. Cleanup: assert error collectors empty — no pageerror / console errors (only benign `_vercel/*` 404s + MIME-type refusals in the prod build, filtered by `errorCollectors`).
+
+**Live-verified notes (2026-09-21, headless Chromium, 1280x720):**
+- **Contract flipped: assert computed, never inline.** The old test asserted `style.background === "rgb(0, 0, 0)"` on open and `""` after close. Now the inline style stays `""` for the entire session — the canvas black is `html { background-color: var(--color-ui-belt) }` in globals.css (computed `rgb(0, 0, 0)`), so ONLY `getComputedStyle` assertions are meaningful. Asserting inline `"rgb(0, 0, 0)"` FAILS.
+- **No restore step exists.** Both ✕ and Escape leave the canvas black (verified live). Do not assert a return to `rgba(0, 0, 0, 0)` — that value is gone from the codebase.
+- Escape closes with the textarea focused — the JudgeModal document-level capture keydown handler (not just DialogShell) catches it. No pre-focus needed in the plain (non-streaming) case.
+- Closing the modal also closes the spellbook belt (observed) — the reopen step must use `reopenJudgeModal`'s belt-open-if-needed guard.
+- `window.visualViewport` exists in headless Chromium, so the effect guard passes (verified).
+- The observer now only re-syncs `paddingBottom` on open (no height/top, no paint) — that half is pinned by TC-AJ-36, not re-asserted here.
+
+#### 1.34. TC-AJ-38: VirtualKeyboard API path — exact geometry lift (overlayContent opt-in, geometrychange show/grow/hide)
+
+Contract: DESIGN §6.4 Keyboard + commit `c351995` (`JudgeModal.tsx`). The VirtualKeyboard API is the PRIMARY keyboard-lift path (Chrome Android): `navigator.virtualKeyboard.boundingRect.top` = the keyboard's EXACT top edge (Gboard toolbar included) — no margin approximation; the code opts into overlay mode (`vk.overlayContent = true`) so the layout viewport never resizes; `geometrychange` events drive the re-sync (`syncViaKeyboardApi`). Gate (commit `c351995`): `boundingRect.height <= 0` (the degenerate `{ top: 0, height: 0 }` = no keyboard) falls back to the vv path — which clears the lift on keyboard close. Playwright cannot open a real virtual keyboard, AND the real headless `navigator.virtualKeyboard` reports `{ top: 0, height: 0 }` at rest (gate → vv fallback; the API branch never runs). So stub `navigator.virtualKeyboard` as a CONTROLLABLE own property via `page.addInitScript` BEFORE `goto("/")` (effect runs at app mount): `Object.defineProperty(navigator, "virtualKeyboard", { configurable: true, value: { overlayContent: false, boundingRect: { top: 480, height: 240 }, addEventListener(type, cb) { window.__vkCbs = window.__vkCbs || []; window.__vkCbs.push(cb); }, removeEventListener() {} } })` — the height-240 geometry drives the API branch, and invoking the captured `geometrychange` callbacks (`(window.__vkCbs || []).forEach((cb) => cb())`) simulates show/grow/hide with exact `boundingRect` values. TC-AJ-36 pins the vv fallback + 48px margin; this TC pins the API path's exact geometry + the overlayContent opt-in (the two paths must agree on the lift contract). Commit `2ed1b9e` extends the triggers: multi-source events (geometrychange, visualViewport resize/scroll, window resize, dialog focusin) + a guaranteed `setInterval(sync, 500)` poll — Chrome does NOT reliably fire `geometrychange` on the SECOND keyboard show, and with `overlayContent = true` the layout viewport stops resizing so vv events don't fire either; the poll is the backstop (the self-calibrating measurement makes redundant ticks no-ops at overflow 0). No `/api/judge` call → no mock needed (TC-AJ-34/35/36 pattern). Selectors: DIALOG `#ai-judge-modal`, INPUT textbox, SEND button (spec §Selectors).
+
+1. Error collectors on (TC-AJ-03 pattern). **Add the vk stub FIRST** — `page.addInitScript` defining the controllable stub (code above) — then `openJudgeModal(page)` at 1280x720.
+   - expect: stub installed — `navigator.virtualKeyboard !== undefined`, own property (`hasOwnProperty` true).
+   - expect: effect opted in at mount — `navigator.virtualKeyboard.overlayContent === true` (stub started `false`; the effect set it — the API branch ran).
+   - expect: exactly 1 geometrychange listener registered — `(window.__vkCbs || []).length === 1` (the effect's mount-time `addEventListener`; still 1 after open — no re-registration on open).
+   - expect: opened → API branch active (`height 240 > 0`) — `dialog.style.paddingBottom === "240px"` (720 − 480 = `boundingRect.top`; exact, NO margin on this path); form bottom 480 === `boundingRect.top`; textarea + SEND bottoms 464 (480 − 16 `pb-4`); dialog bbox height 720 (layout viewport never resized — overlayContent opt-in holds).
+2. Simulate keyboard GROWTH (in-page): `navigator.virtualKeyboard.boundingRect = { top: 360, height: 360 }`; then `(window.__vkCbs || []).forEach((cb) => cb())`.
+   - expect: `dialog.style.paddingBottom === "360px"` (240 + (480 − 360) = 360 — self-calibrating: re-measured from the already-moved form, additive accumulation (current padding + overflow)); form bottom 360 === `boundingRect.top`; textarea + SEND bottoms 344 (360 − 16); both ≤ 360, both `y >= 0`.
+3. Simulate keyboard HIDE: `navigator.virtualKeyboard.boundingRect = { top: 720, height: 0 }`; dispatch the callbacks again.
+   - expect: gate fires — `height 0` → `syncViaViewport()` fallback; the REAL `visualViewport` is 720 (never stubbed here) → `keyboardUp` false → `visibleBottom = 720 − 0 = 720` → padding clears.
+   - expect: `dialog.style.paddingBottom === "0px"` (NOT `""`); textarea + SEND bottoms 704; form bottom 720.
+4. Settle stability (hidden state): wait ~400ms (since commit `2ed1b9e` the re-check is the 500ms poll — the 300ms settle timer is gone; idempotent on the hidden state).
+   - expect: padding STILL `"0px"` (every poll tick re-runs the gate → vv fallback → overflow 0; no drift).
+5. **Regression — second keyboard show with NO events (poll-driven recovery, commit `2ed1b9e`):** in-page, mutate the stub ONLY — `navigator.virtualKeyboard.boundingRect = { top: 480, height: 240 }`; do NOT invoke the captured `geometrychange` callbacks (simulates Chrome not firing `geometrychange` on the second show).
+   - expect: no listener churn — `(window.__vkCbs || []).length === 1` still; if the stub wraps the callback with an invocation counter (verification-harness pattern), the count is UNCHANGED since the step-3 hide dispatch — zero callbacks fired.
+   - expect: poll-driven recovery — `expect.poll` (timeout ~1500ms ≈ 3× the live-measured worst case; default 100ms interval) that `dialog.style.paddingBottom` becomes `"240px"` — the 500ms interval re-runs `sync` → `height 240 > 0` → API branch → `applyLift(480)` → overflow 720 − 480 = 240. NO event source fired; the poll alone drives it.
+   - expect: form bottom 480 === `boundingRect.top`; textarea + SEND bottoms 464 (480 − 16 `pb-4`); both ≤ 480, both `y >= 0`; dialog bbox height still 720.
+6. (Optional hardening) **Second full cycle, still NO events:** hide → poll → `"0px"`; show → poll → `"240px"`.
+   - (in-page) `boundingRect = { top: 720, height: 0 }` — no dispatch. `expect.poll` (timeout 1500ms): padding `"0px"` (gate `height 0` → vv fallback → real vv 720 → overflow 0); form bottom 720; textarea + SEND bottoms 704.
+   - (in-page) `boundingRect = { top: 480, height: 240 }` — no dispatch. `expect.poll` (timeout 1500ms): padding `"240px"`; form bottom 480; textarea + SEND bottoms 464.
+7. Cleanup: close via CLOSE. Assert error collectors empty — no pageerror / console errors (the defineProperty/stub/dispatch tricks emit none; only the benign `_vercel/*` 404s + MIME-type refusals, filtered by `errorCollectors`).
+
+**Live-verified notes (2026-09-21, headless Chromium, 1280x720):**
+- The stub's `addEventListener` IS called exactly once at mount (observed `__vkCbs.length === 1` at load AND after open) — the effect registers `geometrychange → syncViaKeyboardApi` once; the MutationObserver-on-open calls `sync()` directly (no re-registration).
+- `overlayContent` flips to `true` at MOUNT (observed before the modal ever opened) — assert it on the stub object, not on the dialog.
+- Exact observed geometry: opened `"240px"` / form bottom 480 / textarea+SEND 464; grown `"360px"` / form 360 / textarea+SEND 344; hidden `"0px"` / textarea+SEND 704. Form bottom always === `boundingRect.top` while the API branch is active (self-calibrating lift lands the form edge exactly on the keyboard top — no margin on this path); textarea/SEND sit `pb-4` (16px) above it. Assert exact values; tolerance ±1 acceptable if a CI renderer rounds differently.
+- **Quirk — never assert `paddingBottom === ""`.** Same rule as TC-AJ-36: the handler always writes `` `${inset}px` `` — `"0px"` on the hidden step, never `""`.
+- The hide step's vv fallback uses the REAL `visualViewport` (720) — vv is never stubbed in this test; `keyboardUp` false → the 48px margin is NOT subtracted (margin applies only while the keyboard is up; that path is pinned by TC-AJ-36, not here).
+- The re-check armed by the growth step is idempotent across the hide (verified: padding still `"0px"` after 400ms) — since commit `2ed1b9e` it is the 500ms poll (the 300ms settle timer is gone); every tick hits the gate (`height 0`) → vv fallback → overflow 0 → no drift. No need to wait it out before dispatching hide.
+- **Poll-driven recovery verified live (2026-09-21, headless Chromium, 1280x720):** stub `boundingRect` mutated to `{ top: 480, height: 240 }` with ZERO callback invocations (invocation counter flat at 1 across hide→show→hide→show — the only dispatch was the step-3 hide) → padding converged to `"240px"` in 51ms (a poll tick landed just after the mutation), hide-to-`"0px"` 459ms, show-again-`"240px"` 513ms. Convergence is bounded by the 500ms interval + phase: worst case ≈ 550ms at 50ms polling granularity. The 1500ms `expect.poll` timeout = 3× margin, safe against CI jitter. Recovered geometry exact: form bottom 480, textarea + SEND bottoms 464.
+- `expect.poll`'s default 100ms interval is finer than the app's 500ms poll — no risk of sampling past a transition.
+- Do NOT reuse the real `navigator.virtualKeyboard` for this test: at rest it reports `{ top: 0, height: 0 }` (no keyboard) → the gate sends every sync to the vv fallback and the API branch never runs — the stub shadows it precisely to unlock the API branch.
