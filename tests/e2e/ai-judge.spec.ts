@@ -1443,28 +1443,49 @@ test.describe("AI Judge", () => {
 
   /* feature/judge-input-grow — mobile keyboard viewport behavior (DESIGN §6.4). */
 
-  test("TC-AJ-34: Viewport meta emits interactive-widget=resizes-content (global)", async ({
+  /* DESIGN §6.4 Keyboard + commit 53987c1 (app/layout.tsx) — the viewport
+     export dropped interactive-widget=resizes-content (under it the layout
+     viewport shrank stepwise when the mobile keyboard opened, exposing a
+     white browser-window gap below the dialog). The emitted meta is now the
+     Next default width=device-width, initial-scale=1 — NO interactive-widget
+     key: the layout viewport NEVER shrinks (default resizes-visual) and the
+     keyboard is handled by the JudgeModal padding-lift (TC-AJ-36, commit
+     d1558cf). This TC pins the negative meta contract — absence of
+     interactive-widget IS the point. No /api/judge call → no mock needed
+     (TC-AJ-01/14 pattern). */
+  test("TC-AJ-34: Viewport meta = Next default width=device-width, initial-scale=1 — no interactive-widget (global)", async ({
     page,
   }) => {
-    // 1. Load the app root with the modal closed — the viewport meta is a
-    //    root-layout concern, not modal-scoped
+    // 1. Error collectors on (TC-AJ-03 pattern). Load the app root with the
+    //    modal closed — the viewport meta is a root-layout concern, not
+    //    modal-scoped
+    const errors = errorCollectors(page);
     await page.goto("/");
-    // expect: exactly 1 viewport meta, at head level
+    // expect: exactly 1 viewport meta in document.head (global tag, never
+    //     inside #ai-judge-modal)
     await expect(viewportMeta(page)).toHaveCount(1);
     await expect(page.locator('head meta[name="viewport"]')).toHaveCount(1);
-    // expect: content carries interactive-widget=resizes-content (token regex —
-    //     Next.js owns attribute order/spacing)
+    // expect: content EXACTLY "width=device-width, initial-scale=1" — Next
+    //     default, single key, no order/spacing variance. Exact equality, NOT
+    //     regex; the exact match subsumes the negative: no interactive-widget
+    //     token anywhere (the layout viewport must never shrink; the
+    //     padding-lift handles the keyboard)
     await expect(viewportMeta(page)).toHaveAttribute(
       "content",
-      /interactive-widget=resizes-content/,
+      "width=device-width, initial-scale=1",
     );
 
     // 2. Open the modal — no duplicate meta is injected into the dialog
     await openJudgeModal(page);
-    // expect: still exactly 1 head-level tag; 0 inside #ai-judge-modal
+    // expect: meta still exactly 1, still head-level; 0 inside #ai-judge-modal
     await expect(viewportMeta(page)).toHaveCount(1);
     await expect(page.locator('head meta[name="viewport"]')).toHaveCount(1);
     await expect(modal(page).locator('meta[name="viewport"]')).toHaveCount(0);
+
+    // 3. Cleanup — no pageerror/console errors (no stream, no fetch; only
+    //    benign _vercel/* 404s + MIME-type refusals, filtered by errorCollectors)
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
   });
 
   test("TC-AJ-35: Layout adapts when the viewport shrinks (keyboard proxy)", async ({

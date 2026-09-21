@@ -335,20 +335,20 @@ Full Enter coverage lives in TC-AJ-02 (bubbles, colors, typing indicator, body c
 4. Press Enter (no Shift).
    - expect: `waitForBodies(page, 1)`; `bodies[0].question` === 12-line text (full multi-line draft sent)
 
-#### 1.30. TC-AJ-34: Viewport meta emits `interactive-widget=resizes-content` (global)
+#### 1.30. TC-AJ-34: Viewport meta = Next default `width=device-width, initial-scale=1` — no `interactive-widget` (global)
 
-Contract: DESIGN §6.4 Keyboard — mobile virtual keyboard must not obscure input/send; layout viewport resizes (`interactive-widget=resizes-content`, Android). Fix `04a1d1f` (`app/layout.tsx` viewport export). No `/api/judge` call → no mock needed (TC-AJ-01/14 pattern).
+Contract: DESIGN §6.4 Keyboard. Commit `53987c1` (`app/layout.tsx`) REMOVED `interactive-widget=resizes-content` from the viewport export — under it the layout viewport shrank stepwise when the mobile keyboard opened, exposing a white browser-window gap below the dialog (the white flash). Emitted meta is now the Next default `width=device-width, initial-scale=1` — NO `interactive-widget` key. Layout viewport NEVER shrinks (default `resizes-visual`, DESIGN §6.4); the keyboard is handled by the JudgeModal padding-lift (TC-AJ-36, commit `d1558cf`). This TC pins the negative meta contract — absence of `interactive-widget` IS the point. No `/api/judge` call → no mock needed (TC-AJ-01/14 pattern). Selectors: META (spec §Selectors).
 
-1. `page.goto("/")` (modal closed — meta is a root-layout concern, not modal-scoped).
-   - expect: exactly 1 viewport meta in `document.head` — `page.locator('meta[name="viewport"]')` count 1; `head meta[name="viewport"]` resolves (global tag, not inside `#ai-judge-modal`).
-   - expect: `content` contains `interactive-widget=resizes-content` — `toHaveAttribute("content", /interactive-widget=resizes-content/)`. Token/regex only, NOT exact equality (Next.js owns order/spacing; observed exact string `width=device-width, initial-scale=1, interactive-widget=resizes-content`).
+1. Error collectors on (TC-AJ-03 pattern). `page.goto("/")` (modal closed — meta is a root-layout concern, not modal-scoped).
+   - expect: exactly 1 viewport meta in `document.head` — `page.locator('meta[name="viewport"]')` count 1; `head meta[name="viewport"]` count 1 (global tag, not inside `#ai-judge-modal`).
+   - expect: `content` EXACTLY `width=device-width, initial-scale=1` — `toHaveAttribute("content", "width=device-width, initial-scale=1")`. Exact equality, NOT regex (observed live 2026-09-21, headless Chromium: `14 × locator resolved to <meta name="viewport" content="width=device-width, initial-scale=1"/>`; Next emits the default verbatim — single key, no order/spacing variance). Exact match subsumes the negative: content does NOT contain `interactive-widget` (no `interactive-widget=` token anywhere — the layout viewport must never shrink; padding-lift handles the keyboard).
 2. `openJudgeModal(page)`.
    - expect: meta still exactly 1, still head-level; `modal(page).locator('meta[name="viewport"]')` count 0 (modal injects no duplicate).
-3. Cleanup: optional close. No error collectors — no stream, no fetch.
+3. Cleanup: assert error collectors empty — no pageerror / console errors (no stream, no fetch; only benign `_vercel/*` 404s + MIME-type refusals in the prod build, filtered by `errorCollectors`, spec §Failure collection).
 
 #### 1.31. TC-AJ-35: Layout adapts when the viewport shrinks (keyboard proxy)
 
-Contract: DESIGN §6.4 Keyboard + input dock. Playwright cannot open a real virtual keyboard — `page.setViewportSize({ width: 390, height: 400 })` is the layout-viewport shrink proxy for Android Chrome + `resizes-content` (keyboard-sized, portrait-ish). Mechanism: `#ai-judge-modal` is `position: fixed` (`JudgeModal` `fixed z-50 bg-black` overrides DialogShell's `absolute` via twMerge) + `h-full` → dialog height = 100% of the layout viewport; under the old default (`resizes-visual`) the dialog would keep the un-shrunk height and the bottom-docked input row would sit behind the keyboard. No `/api/judge` call → no mock.
+Contract: DESIGN §6.4 Keyboard + input dock. Playwright cannot open a real virtual keyboard — `page.setViewportSize({ width: 390, height: 400 })` is a generic layout-viewport shrink proxy (keyboard-sized, portrait-ish). NOT the keyboard proxy anymore: the meta carries no `interactive-widget` (TC-AJ-34 — default `resizes-visual`), so the keyboard never shrinks the layout viewport; the input row is lifted by the padding-lift (TC-AJ-36). This TC pins pure layout containment — the dialog must track ANY layout-viewport shrink (window resize, browser UI). Mechanism: `#ai-judge-modal` is `position: fixed` (`JudgeModal` `fixed z-50 bg-black` overrides DialogShell's `absolute` via twMerge) + `h-full` → dialog height = 100% of the layout viewport; if the dialog failed to track, the bottom-docked input row would sit behind whatever shrunk the viewport. No `/api/judge` call → no mock.
 
 1. `openJudgeModal(page)` at the default 1280x720 (modal already open when the "keyboard" opens — the real bug scenario).
    - expect: `#ai-judge-modal` visible/open; textarea focused; baseline textarea `offsetHeight` 46 (1 row).
@@ -364,7 +364,7 @@ Contract: DESIGN §6.4 Keyboard + input dock. Playwright cannot open a real virt
 **Live-verified notes (2026-09-21, headless Chromium, `390x400`):**
 - `LockPortrait` does NOT interfere: overlay is `pointer-coarse:landscape:flex`; desktop Chromium has `(pointer: coarse)` false and 390x400 is portrait (`(orientation: landscape)` false) → `display: none`. Do NOT switch to a landscape proxy (e.g. 720x400) — wrong orientation, and it would show the overlay under touch emulation.
 - `FullscreenEnforcer` requests fullscreen on first pointerdown (belt click): `document.fullscreenElement` becomes `<html>` in headless Chromium, but `setViewportSize` still resizes normally — geometry identical whether the resize happens before or after opening the modal (both orders verified). Console emits a warning-level `Orientation lock failed… NotSupportedError`; `errorCollectors` captures error-level only, so tests stay green.
-- `interactive-widget=resizes-content` is not emulable in Playwright: TC-AJ-34 pins the meta contract, TC-AJ-35 pins layout containment under a shrunk layout viewport. Neither alone proves on-device Gboard behavior; together they cover both halves of the fix.
+- The meta contract is now NEGATIVE — no `interactive-widget` key (TC-AJ-34): the layout viewport never shrinks for the keyboard. TC-AJ-34 pins the meta, TC-AJ-35 pins layout containment under a shrunk layout viewport, TC-AJ-36 pins the padding-lift that actually handles the keyboard. None alone proves on-device Gboard behavior; together they cover the fix.
 
 #### 1.32. TC-AJ-36: visualViewport shrink lifts input via paddingBottom (keyboard simulation)
 
