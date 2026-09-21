@@ -91,18 +91,32 @@ export function JudgeModal({ id }: JudgeModalProps) {
             event.preventDefault();
             chat.submit();
           }}
-          className="px-4 pb-4"
+          className="flex items-end gap-2 px-4 pb-4"
         >
-          <input
-            type="text"
+          <textarea
+            rows={1}
             value={chat.draft}
             onChange={(event) => chat.setDraft(event.target.value)}
             placeholder="Ask about a card or rule…"
             aria-label="Ask about a card or rule"
             autoFocus
             disabled={chat.inputDisabled}
-            className="w-full cursor-text rounded-lg border border-ui-textLight/40 bg-ui-overlay px-4 py-3 text-sm text-ui-textLight placeholder:text-white/50 focus-visible:outline-2 focus-visible:outline-white disabled:opacity-50"
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                chat.submit();
+              }
+            }}
+            className="w-full flex-1 resize-none rounded-lg border border-ui-textLight/40 bg-ui-overlay px-4 py-3 text-sm text-ui-textLight placeholder:text-white/50 focus-visible:outline-2 focus-visible:outline-white disabled:opacity-50 field-sizing-content max-h-40 overflow-y-auto"
           />
+          <button
+            type="submit"
+            aria-label="Send question"
+            disabled={chat.inputDisabled || chat.draft.trim() === ""}
+            className="flex size-10 cursor-pointer items-center justify-center rounded-full text-xl leading-none text-ui-textLight transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white disabled:cursor-default disabled:opacity-40"
+          >
+            ⏎
+          </button>
         </form>
       </div>
     </DialogShell>
