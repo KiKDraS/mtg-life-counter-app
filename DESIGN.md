@@ -404,9 +404,9 @@ Streaming response.
 │                    └──────────────────┘  │
 │  ┌─────────────┐  (typing indicator)     │  Streaming state
 │                                          │
-│  ┌──────────────────────────┐ [⏎]   │  Input, docked bottom.
-│  │  Ask about a card or rule…│       │  Grows up, send bottom-right
-│  └──────────────────────────┘        │
+│  ┌────────────────────────────────────┐ [⏎] │
+│  │  Ask about a card or rule…          │     │
+│  └────────────────────────────────────┘     │
 └──────────────────────────────────────────┘
 ```
 
@@ -432,9 +432,9 @@ Offline → chat read-only. No typing, no send. Alert explains why.
 
 ```
 │  ⚠️  You're offline — AI Judge needs internet.  ← alert row
-│  ┌──────────────────────────┐ [⏎]   │  input + send disabled
-│  │  Ask about a card or rule…│       │
-│  └──────────────────────────┘        │
+│  ┌────────────────────────────────────┐ [⏎] │  input + send disabled
+│  │  Ask about a card or rule…          │     │
+│  └────────────────────────────────────┘     │
 ```
 
 - **Alert row:** full-width, above input. BG `MANA.b`, text `#FAF8F5`,
