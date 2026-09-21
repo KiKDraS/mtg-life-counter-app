@@ -106,6 +106,12 @@ async function loadHtml() {
 try {
   const bundle = parseRules(await loadHtml());
 
+  // Version stamp missing (site layout change) → abort. Never merge a bundle
+  // whose rules version we can't name.
+  if (bundle.version === "unknown") {
+    throw new Error("rules version stamp not found — aborting refresh");
+  }
+
   let existing = null;
   try {
     existing = JSON.parse(await readFile(BUNDLE_PATH, "utf8"));
