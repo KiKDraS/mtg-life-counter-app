@@ -8,6 +8,8 @@ import { useCallback, useEffect } from "react";
 
 const AI_JUDGE_TITLE_ID = "ai-judge-title";
 
+const KEYBOARD_TOOLBAR_MARGIN = 48; // ponytail: physical calibration — Gboard toolbar row ~40dp not reflected in visualViewport; tune per device/keyboard.
+
 interface JudgeModalProps {
   readonly id: string;
 }
@@ -55,63 +57,108 @@ export function JudgeModal({ id }: JudgeModalProps) {
      Dialog keeps h-full (full-page black, canvas black via globals.css) so the
      board never shows through during the height transition. Self-calibrating
      lift: measure the input row's overflow past the visible edge rather than
-     trusting visualViewport height, re-applied on open (MutationObserver on
-     the `open` attribute; no native open event exists). */
+     trusting reported heights, re-applied on open (MutationObserver on the
+     `open` attribute; no native open event exists).
+
+     Two measurement paths, Chrome Android primary:
+     1. VirtualKeyboard API (navigator.virtualKeyboard.boundingRect) — exact
+        OSK geometry incl. Gboard toolbar row; opt into overlayContent so the
+        layout viewport never resizes.
+     2. visualViewport fallback — height + offsetTop, minus a tunable toolbar
+        margin (KEYBOARD_TOOLBAR_MARGIN) only while the keyboard is up. */
   useEffect(() => {
-    if (!window.visualViewport) return;
+    const vk = (
+      navigator as Navigator & {
+        virtualKeyboard?: {
+          overlayContent: boolean;
+          boundingRect: { top: number; height: number };
+          addEventListener: (type: "geometrychange", cb: () => void) => void;
+          removeEventListener: (type: "geometrychange", cb: () => void) => void;
+        };
+      }
+    ).virtualKeyboard;
+    const vv = window.visualViewport;
+    if (!vk && !vv) return;
     const dialog = document.getElementById(id) as HTMLDialogElement | null;
     if (!dialog) return;
     // const paintCanvasBlack = (on: boolean) => {
     //   document.documentElement.style.background = on ? "#000" : "";
     // };
     let settleTimer: ReturnType<typeof setTimeout> | undefined;
-    const syncDialogToViewport = () => {
-      if (!dialog.open) return;
+
+    const applyLift = (visibleBottom: number): number => {
+      if (!dialog.open) return 0;
       const form = dialog.querySelector("form");
-      if (!form) return;
-      const vv = window.visualViewport!;
-      /* DESIGN §6.4 — self-calibrating lift: measure where the input row
-         actually is vs the visible edge, correct by the overflow. Immune to
-         stale/under-reported visualViewport heights (e.g. Gboard toolbar
-         settling after the last resize event). */
-      const overflow =
-        form.getBoundingClientRect().bottom - (vv.height + vv.offsetTop);
+      if (!form) return 0;
+      const overflow = form.getBoundingClientRect().bottom - visibleBottom;
       const current = parseFloat(dialog.style.paddingBottom) || 0;
       dialog.style.paddingBottom = `${Math.max(0, current + overflow)}px`;
-      /* Late keyboard chrome (toolbar) can grow without further events —
-         settle re-check while the row is still below the visible edge;
-         stops once corrected (overflow ≤ 0 needs no lift). */
-      if (overflow > 0) {
+      return overflow;
+    };
+
+    const syncViaKeyboardApi = () => {
+      if (!dialog.open || !vk) return;
+      /* Degenerate geometry = no keyboard. Fall back to visualViewport
+         (clears lift; keyboard close also lands here so padding returns
+         to 0). */
+      if (vk.boundingRect.height <= 0) {
+        syncViaViewport();
+        return;
+      }
+      /* boundingRect.top = exact keyboard top edge (toolbar included). */
+      if (applyLift(vk.boundingRect.top) > 0) {
         clearTimeout(settleTimer);
-        settleTimer = setTimeout(syncDialogToViewport, 300);
+        settleTimer = setTimeout(syncViaKeyboardApi, 300);
       }
     };
-    // ponytail: also re-sync on open — modal mounts closed (SpellbookMenu
-    // renders it always), so the mount-time sync runs before open and the
-    // open attribute flip is the only event that applies the padding.
+
+    const syncViaViewport = () => {
+      if (!dialog.open || !vv) return;
+      const keyboardUp = vv.height + vv.offsetTop < window.innerHeight;
+      const visibleBottom =
+        vv.height + vv.offsetTop - (keyboardUp ? KEYBOARD_TOOLBAR_MARGIN : 0);
+      if (applyLift(visibleBottom) > 0) {
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(syncViaViewport, 300);
+      }
+    };
+
+    const sync = () =>
+      vk && vk.boundingRect.height > 0
+        ? syncViaKeyboardApi()
+        : syncViaViewport();
+
+    if (vk) {
+      try {
+        vk.overlayContent = true; /* opt into overlay mode: keyboard does not
+                                     resize the layout viewport */
+      } catch {
+        /* older Chrome — ignore, geometry events still fire */
+      }
+      vk.addEventListener("geometrychange", syncViaKeyboardApi);
+    } else {
+      vv!.addEventListener("resize", syncViaViewport);
+      vv!.addEventListener("scroll", syncViaViewport);
+      window.addEventListener("resize", syncViaViewport);
+    }
+
+    /* re-sync on open — modal mounts closed, open attr flip is the trigger */
     const observer = new MutationObserver(() => {
-      // paintCanvasBlack(dialog.open);
-      syncDialogToViewport();
+      // paintCanvasBlack(dialog.open); — kept as user left it
+      sync();
     });
     observer.observe(dialog, { attributes: true, attributeFilter: ["open"] });
-    window.visualViewport.addEventListener("resize", syncDialogToViewport);
-    window.visualViewport.addEventListener("scroll", syncDialogToViewport);
-    window.addEventListener("resize", syncDialogToViewport);
-    syncDialogToViewport();
-    // paintCanvasBlack(dialog.open);
+    sync();
+
     return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", syncDialogToViewport);
-      window.visualViewport?.removeEventListener(
-        "resize",
-        syncDialogToViewport,
-      );
-      window.visualViewport?.removeEventListener(
-        "scroll",
-        syncDialogToViewport,
-      );
       clearTimeout(settleTimer);
-      // paintCanvasBlack(false);
+      observer.disconnect();
+      if (vk) vk.removeEventListener("geometrychange", syncViaKeyboardApi);
+      else {
+        vv!.removeEventListener("resize", syncViaViewport);
+        vv!.removeEventListener("scroll", syncViaViewport);
+        window.removeEventListener("resize", syncViaViewport);
+      }
     };
   }, [id]);
 
