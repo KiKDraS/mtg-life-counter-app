@@ -1592,12 +1592,13 @@ test.describe("AI Judge", () => {
     await expect(sendButton(page)).toBeEnabled();
   });
 
-  /* DESIGN §6.4 Keyboard + commits d1558cf/ab97d62/c351995 (JudgeModal.tsx) —
-     the visualViewport fallback lifts the input row via inline paddingBottom.
-     The lift is self-calibrating (overflow = form bottom − visibleBottom,
-     clamped ≥ 0) with a 300ms settle re-check while overflow > 0; the 48px
-     KEYBOARD_TOOLBAR_MARGIN applies ONLY while the keyboard is up
-     (keyboardUp = vv.height + vv.offsetTop < window.innerHeight).
+  /* DESIGN §6.4 Keyboard + commits d1558cf/ab97d62/c351995/2ed1b9e
+     (JudgeModal.tsx) — the visualViewport fallback lifts the input row via
+     inline paddingBottom. The lift is self-calibrating (overflow = form bottom
+     − visibleBottom, clamped ≥ 0), re-applied by all trigger sources incl. a
+     500ms poll (no settle timer); the 48px KEYBOARD_TOOLBAR_MARGIN applies
+     ONLY while the keyboard is up (keyboardUp = vv.height + vv.offsetTop <
+     window.innerHeight).
 
      CRITICAL env fact (verified live 2026-09-21): Playwright Chromium on
      localhost (secure context) HAS navigator.virtualKeyboard — a prototype
@@ -1726,8 +1727,8 @@ test.describe("AI Judge", () => {
     expect(shrinkInputBox?.y).toBeGreaterThanOrEqual(0);
     expect(shrinkSendBox?.y).toBeGreaterThanOrEqual(0);
 
-    // expect: settle re-check stable — after ~400ms (past the 300ms settle
-    //     timer) the re-check sees overflow 0 and stops; padding still "468px"
+    // expect: stable after ~400ms — the 500ms poll tick sees overflow 0 and
+    //     writes the same value; padding still "468px"
     await page.waitForTimeout(400);
     expect(await modal(page).evaluate((el) => el.style.paddingBottom)).toBe(
       "468px",
