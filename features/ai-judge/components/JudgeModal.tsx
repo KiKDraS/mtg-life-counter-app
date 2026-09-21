@@ -67,8 +67,12 @@ export function JudgeModal({ id }: JudgeModalProps) {
     // };
     const syncDialogToViewport = () => {
       if (!dialog.open) return;
-      dialog.style.height = `${window.visualViewport!.height}px`;
-      dialog.style.top = `${window.visualViewport!.offsetTop}px`;
+      const vv = window.visualViewport!;
+      /* DESIGN §6.4 — lift the input row above the OSK with padding; dialog
+         keeps h-full (full-page black) so the board never shows through
+         during the height transition (no white flash). */
+      const inset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+      dialog.style.paddingBottom = `${inset}px`;
     };
     // ponytail: also re-sync on open — modal mounts closed (SpellbookMenu
     // renders it always), so the mount-time sync runs before open and the
