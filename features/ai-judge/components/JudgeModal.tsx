@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
-import { DialogShell } from "@/shared/components/DialogShell";
-import { useJudgeChat } from "@/features/ai-judge/hooks/use-judge-chat";
 import { ChatMessageList } from "@/features/ai-judge/components/ChatMessageList";
 import { OfflineAlert } from "@/features/ai-judge/components/OfflineAlert";
+import { useJudgeChat } from "@/features/ai-judge/hooks/use-judge-chat";
+import { DialogShell } from "@/shared/components/DialogShell";
+import { useCallback, useEffect } from "react";
 
 const AI_JUDGE_TITLE_ID = "ai-judge-title";
 
@@ -62,9 +62,9 @@ export function JudgeModal({ id }: JudgeModalProps) {
     if (!window.visualViewport) return;
     const dialog = document.getElementById(id) as HTMLDialogElement | null;
     if (!dialog) return;
-    const paintCanvasBlack = (on: boolean) => {
-      document.documentElement.style.background = on ? "#000" : "";
-    };
+    // const paintCanvasBlack = (on: boolean) => {
+    //   document.documentElement.style.background = on ? "#000" : "";
+    // };
     const syncDialogToViewport = () => {
       if (!dialog.open) return;
       dialog.style.height = `${window.visualViewport!.height}px`;
@@ -74,19 +74,25 @@ export function JudgeModal({ id }: JudgeModalProps) {
     // renders it always), so the mount-time sync runs before open and the
     // open attribute flip is the only event that applies the inline height.
     const observer = new MutationObserver(() => {
-      paintCanvasBlack(dialog.open);
+      // paintCanvasBlack(dialog.open);
       syncDialogToViewport();
     });
     observer.observe(dialog, { attributes: true, attributeFilter: ["open"] });
     window.visualViewport.addEventListener("resize", syncDialogToViewport);
     window.visualViewport.addEventListener("scroll", syncDialogToViewport);
     syncDialogToViewport();
-    paintCanvasBlack(dialog.open);
+    // paintCanvasBlack(dialog.open);
     return () => {
       observer.disconnect();
-      window.visualViewport?.removeEventListener("resize", syncDialogToViewport);
-      window.visualViewport?.removeEventListener("scroll", syncDialogToViewport);
-      paintCanvasBlack(false);
+      window.visualViewport?.removeEventListener(
+        "resize",
+        syncDialogToViewport,
+      );
+      window.visualViewport?.removeEventListener(
+        "scroll",
+        syncDialogToViewport,
+      );
+      // paintCanvasBlack(false);
     };
   }, [id]);
 
