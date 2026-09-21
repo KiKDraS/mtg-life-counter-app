@@ -51,6 +51,27 @@ export function JudgeModal({ id }: JudgeModalProps) {
     return () => document.removeEventListener("keydown", handleEscape, true);
   }, [id]);
 
+  /* DESIGN §6.4 — keep the dialog inside the visible viewport while the
+     virtual keyboard is open. visualViewport ALWAYS shrinks when the keyboard
+     shows (resizes-content meta alone is unreliable); inline height/top
+     override DialogShell's h-full on mobile, which is required. */
+  useEffect(() => {
+    if (!window.visualViewport) return;
+    const syncDialogToViewport = () => {
+      const dialog = document.getElementById(id) as HTMLDialogElement | null;
+      if (!dialog) return;
+      dialog.style.height = `${window.visualViewport!.height}px`;
+      dialog.style.top = `${window.visualViewport!.offsetTop}px`;
+    };
+    window.visualViewport.addEventListener("resize", syncDialogToViewport);
+    window.visualViewport.addEventListener("scroll", syncDialogToViewport);
+    syncDialogToViewport();
+    return () => {
+      window.visualViewport?.removeEventListener("resize", syncDialogToViewport);
+      window.visualViewport?.removeEventListener("scroll", syncDialogToViewport);
+    };
+  }, [id]);
+
   return (
     <DialogShell
       id={id}

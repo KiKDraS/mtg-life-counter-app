@@ -423,8 +423,9 @@ Streaming response.
   bottom-right, pinned to input bottom edge, disabled when empty/streaming/
   offline. Enter sends, Shift+Enter newline. Auto-scroll to newest message.
 - **Keyboard:** Escape closes. Focus on input on open. Mobile: virtual keyboard
-  must not obscure input/send — layout viewport resizes
-  (`interactive-widget=resizes-content`, Android).
+  must not obscure input/send — dialog height tracks `visualViewport`
+  (all mobile browsers); `interactive-widget=resizes-content` meta as Android
+  assist.
 - **History persistence:** per SPEC.md §9.9.
 
 #### 6.4.0 Offline Fallback (until local engine lands)
