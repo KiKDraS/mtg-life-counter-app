@@ -1,6 +1,6 @@
 # AI Judge — E2E Test Plan (specs/ai-judge.spec.md)
 
-Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target: `tests/e2e/ai-judge.spec.ts` (single describe, **32 tests**). Config: baseURL `http://localhost:3000`, chromium, 1 worker, 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state per test; dev machine has NO OpenRouter key → real route 503s — **every test MUST mock `/api/judge`** via in-page fetch override, never hit real route.
+Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target: `tests/e2e/ai-judge.spec.ts` (single describe, **33 tests**). Config: baseURL `http://localhost:3000`, chromium, 1 worker, 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state per test; dev machine has NO OpenRouter key → real route 503s — **every test MUST mock `/api/judge`** via in-page fetch override, never hit real route.
 
 ## Contract sources
 DESIGN.md §6.4 (chat window), §6.4.0 (offline), §6.4.1 (answer formatting). SPEC.md §9.5 (SSE), §9.9 (history/sessionId), §9.10 (UI/offline).
@@ -75,7 +75,7 @@ Retrieval pipeline, card RAG context injection (SPEC §9.7), language mirror (es
 
 ### 1. AI Judge
 
-**Seed:** `tests/seed.spec.ts` — all 32 tests in `tests/e2e/ai-judge.spec.ts`.
+**Seed:** `tests/seed.spec.ts` — all 33 tests in `tests/e2e/ai-judge.spec.ts`.
 
 #### 1.1. TC-AJ-01: Modal opens from belt with input
 1. Open-modal prelude.
@@ -365,3 +365,25 @@ Contract: DESIGN §6.4 Keyboard + input dock. Playwright cannot open a real virt
 - `LockPortrait` does NOT interfere: overlay is `pointer-coarse:landscape:flex`; desktop Chromium has `(pointer: coarse)` false and 390x400 is portrait (`(orientation: landscape)` false) → `display: none`. Do NOT switch to a landscape proxy (e.g. 720x400) — wrong orientation, and it would show the overlay under touch emulation.
 - `FullscreenEnforcer` requests fullscreen on first pointerdown (belt click): `document.fullscreenElement` becomes `<html>` in headless Chromium, but `setViewportSize` still resizes normally — geometry identical whether the resize happens before or after opening the modal (both orders verified). Console emits a warning-level `Orientation lock failed… NotSupportedError`; `errorCollectors` captures error-level only, so tests stay green.
 - `interactive-widget=resizes-content` is not emulable in Playwright: TC-AJ-34 pins the meta contract, TC-AJ-35 pins layout containment under a shrunk layout viewport. Neither alone proves on-device Gboard behavior; together they cover both halves of the fix.
+
+#### 1.32. TC-AJ-36: visualViewport shrink drives dialog height (keyboard simulation)
+
+Contract: DESIGN §6.4 Keyboard + fix `7fbf614` (`JudgeModal.tsx`). Playwright cannot open a real virtual keyboard, so simulate the visual-viewport shrink it causes. On mount the modal attaches `resize` + `scroll` listeners to `window.visualViewport` and sets the dialog's inline `style.height` = `visualViewport.height`, `style.top` = `visualViewport.offsetTop` (inline style overrides `h-full` on the `fixed` dialog); the handler also runs once on mount. In headless Chromium `visualViewport.height`/`offsetTop` are prototype getters — an own property (`Object.defineProperty`, `configurable: true`) shadows them, and `dispatchEvent(new Event("resize"))` on the visualViewport object fires the mounted handler (verified live, notes below). The handler reads `window.visualViewport.height` at event time — no cached values — so the synthetic event applies immediately. TC-AJ-34 (meta) + TC-AJ-35 (layout-viewport shrink) cover the layout half; this TC pins the visualViewport half the fix actually listens on. No `/api/judge` call → no mock needed (TC-AJ-34/35 pattern). Selectors: DIALOG `#ai-judge-modal`, INPUT textbox, SEND button (spec §Selectors).
+
+1. Error collectors on (TC-AJ-03 pattern). `openJudgeModal(page)` at the default 1280x720 (modal already open when the "keyboard" opens — the real bug scenario).
+   - expect: `#ai-judge-modal` visible/open; baseline dialog bbox `{ x: 0, y: 0, width: 1280, height: 720 }` (mount call already applied — `style.height` `720px`, `style.top` `0px`).
+   - expect: baseline input row fully inside 720 — textarea bbox `{ y: 658, height: 46 }` → bottom 704; SEND bbox `{ y: 664, height: 40 }` → bottom 704.
+2. Simulate keyboard shrink (in-page): `Object.defineProperty(window.visualViewport, "height", { value: 300, configurable: true })`; `Object.defineProperty(window.visualViewport, "offsetTop", { value: 0, configurable: true })`; `window.visualViewport.dispatchEvent(new Event("resize"))`.
+   - expect: `visualViewport.height` reads 300 (own prop shadows getter — `Object.getOwnPropertyDescriptor` shows `{ value: 300, configurable: true }`); no throw from defineProperty or dispatchEvent.
+3. Dialog follows the shrink.
+   - expect: dialog `style.height === "300px"`, `style.top === "0px"` (inline style applied); dialog bbox `{ y: 0, height: 300 }` (observed exact 300, down from 720).
+   - expect: input row fully inside — textarea bbox `{ y: 238, height: 46 }` → bottom 284 ≤ 300; SEND bbox `{ y: 244, height: 40 }` → bottom 284 ≤ 300; both `y >= 0`; nothing clipped (docked textarea + ⏎ stay visible above the "keyboard").
+4. Restore (keyboard closes): `delete (window.visualViewport as any).height; delete (window.visualViewport as any).offsetTop;` then `dispatchEvent(new Event("resize"))` again.
+   - expect: `visualViewport.height` back to 720 (own prop gone — `hasOwnProperty` false); dialog `style.height` `720px`; dialog bbox height back to ≈ full viewport (observed exact 720).
+5. Cleanup: optional close via CLOSE. Assert error collectors empty — no pageerror / console errors (the defineProperty/dispatchEvent trick emits none; only the benign `_vercel/*` 404s, filtered by `errorCollectors`).
+
+**Live-verified notes (2026-09-21, headless Chromium, 1280x720):**
+- The defineProperty/dispatchEvent trick DRIVES the dialog in headless Chromium: `visualViewport.height` own property shadows the prototype getter, and `dispatchEvent(new Event("resize"))` on the visualViewport object fires the mounted listener — no rejection, no alternative mechanism needed. Do NOT dispatch on `window` instead: the code listens on `window.visualViewport` only.
+- Observed geometry at shrink 300: textarea `{ y: 238, height: 46, bottom: 284 }`, SEND `{ y: 244, height: 40, bottom: 284 }`, dialog bbox height exactly 300. Restore: dialog bbox height exactly 720. Assert exact values; tolerance ±1 acceptable if a CI renderer rounds differently.
+- `offsetTop` stays 0 in this setup; assert `style.top === "0px"` (inline style) — the top-follow behavior is only observable on-device where the keyboard pushes the visual viewport down.
+- Baseline console errors are the benign Vercel 404s (`_vercel/*`) — `errorCollectors` already filters them (spec §Failure collection).

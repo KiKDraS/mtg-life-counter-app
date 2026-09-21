@@ -1570,4 +1570,124 @@ test.describe("AI Judge", () => {
     await expect(input(page)).toHaveValue(twelveLines);
     await expect(sendButton(page)).toBeEnabled();
   });
+
+  test("TC-AJ-36: visualViewport shrink drives dialog height (keyboard simulation)", async ({
+    page,
+  }) => {
+    // 1. Error collectors on (TC-AJ-03 pattern). Open the modal at the default
+    //    1280x720 — the modal is already open when the "keyboard" opens (the
+    //    real bug scenario)
+    const errors = errorCollectors(page);
+    await openJudgeModal(page);
+    await expect(modal(page)).toHaveAttribute("open", "");
+    await expect(input(page)).toBeFocused();
+
+    // expect: baseline dialog bbox = full viewport — the mount call already
+    //     applied inline style.height 720px / style.top 0px (DESIGN §6.4)
+    const baseStyle = await modal(page).evaluate((el) => ({
+      height: el.style.height,
+      top: el.style.top,
+    }));
+    expect(baseStyle.height).toBe("720px");
+    expect(baseStyle.top).toBe("0px");
+    const baseDialogBox = await modal(page).boundingBox();
+    expect(baseDialogBox?.x).toBeCloseTo(0, 0);
+    expect(baseDialogBox?.y).toBeCloseTo(0, 0);
+    expect(baseDialogBox?.width).toBe(1280);
+    expect(baseDialogBox?.height).toBe(720);
+
+    // expect: baseline input row fully inside 720 — textarea + SEND bottoms
+    //     exactly 704 (observed; docked textarea + ⏎)
+    const baseInputBox = await input(page).boundingBox();
+    const baseSendBox = await sendButton(page).boundingBox();
+    expect((baseInputBox?.y ?? 0) + (baseInputBox?.height ?? 0)).toBe(704);
+    expect((baseSendBox?.y ?? 0) + (baseSendBox?.height ?? 0)).toBe(704);
+    expect(baseInputBox?.y).toBeGreaterThanOrEqual(0);
+    expect(baseSendBox?.y).toBeGreaterThanOrEqual(0);
+
+    // 2. Simulate the keyboard shrink in-page: an own property shadows the
+    //    visualViewport prototype getter, then a resize event on the
+    //    visualViewport object fires the mounted handler (listens there only —
+    //    NOT on window). No throw expected.
+    const shrunk = await page.evaluate(() => {
+      const vv = window.visualViewport!;
+      Object.defineProperty(vv, "height", { value: 300, configurable: true });
+      Object.defineProperty(vv, "offsetTop", { value: 0, configurable: true });
+      vv.dispatchEvent(new Event("resize"));
+      const desc = Object.getOwnPropertyDescriptor(vv, "height");
+      return {
+        readHeight: vv.height,
+        descValue: desc?.value,
+        descConfigurable: desc?.configurable,
+      };
+    });
+    // expect: own prop shadows the getter — height reads 300, configurable
+    expect(shrunk.readHeight).toBe(300);
+    expect(shrunk.descValue).toBe(300);
+    expect(shrunk.descConfigurable).toBe(true);
+
+    // 3. Dialog follows the shrink (inline style overrides h-full on the fixed
+    //    dialog)
+    const shrinkStyle = await modal(page).evaluate((el) => ({
+      height: el.style.height,
+      top: el.style.top,
+    }));
+    expect(shrinkStyle.height).toBe("300px");
+    expect(shrinkStyle.top).toBe("0px");
+    const shrinkDialogBox = await modal(page).boundingBox();
+    expect(shrinkDialogBox?.y).toBeCloseTo(0, 0);
+    expect(shrinkDialogBox?.height).toBe(300);
+
+    // expect: input row fully inside the shrunk dialog — textarea + SEND
+    //     bottoms exactly 284, both ≤ 300 and y ≥ 0 (nothing clipped behind
+    //     the "keyboard")
+    const shrinkInputBox = await input(page).boundingBox();
+    const shrinkSendBox = await sendButton(page).boundingBox();
+    expect((shrinkInputBox?.y ?? 0) + (shrinkInputBox?.height ?? 0)).toBe(284);
+    expect((shrinkSendBox?.y ?? 0) + (shrinkSendBox?.height ?? 0)).toBe(284);
+    expect((shrinkInputBox?.y ?? 0) + (shrinkInputBox?.height ?? 0)).toBeLessThanOrEqual(
+      300,
+    );
+    expect((shrinkSendBox?.y ?? 0) + (shrinkSendBox?.height ?? 0)).toBeLessThanOrEqual(
+      300,
+    );
+    expect(shrinkInputBox?.y).toBeGreaterThanOrEqual(0);
+    expect(shrinkSendBox?.y).toBeGreaterThanOrEqual(0);
+
+    // 4. Restore (keyboard closes): delete the own props — prototype getter
+    //    takes over again — and fire resize once more
+    const restored = await page.evaluate(() => {
+      const vv = window.visualViewport! as unknown as {
+        height?: number;
+        offsetTop?: number;
+        dispatchEvent: (event: Event) => boolean;
+      };
+      delete vv.height;
+      delete vv.offsetTop;
+      vv.dispatchEvent(new Event("resize"));
+      const dialog = document.getElementById("ai-judge-modal") as HTMLDialogElement;
+      return {
+        readHeight: vv.height,
+        hasOwnHeight: Object.prototype.hasOwnProperty.call(vv, "height"),
+        styleHeight: dialog.style.height,
+        styleTop: dialog.style.top,
+      };
+    });
+    // expect: own prop gone — visualViewport back to 720
+    expect(restored.readHeight).toBe(720);
+    expect(restored.hasOwnHeight).toBe(false);
+    // expect: dialog inline style back to full height
+    expect(restored.styleHeight).toBe("720px");
+    expect(restored.styleTop).toBe("0px");
+    const restoreDialogBox = await modal(page).boundingBox();
+    expect(restoreDialogBox?.height).toBe(720);
+
+    // 5. Cleanup: close via CLOSE. No /api/judge call → no mock needed.
+    await closeButton(page).click();
+    await expect(modal(page)).not.toBeVisible();
+    // expect: no pageerror/console errors — the defineProperty/dispatchEvent
+    //     trick emits none (only benign _vercel/* 404s, filtered)
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
 });
