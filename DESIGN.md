@@ -423,10 +423,11 @@ Streaming response.
   bottom-right, pinned to input bottom edge, disabled when empty/streaming/
   offline. Enter sends, Shift+Enter newline. Auto-scroll to newest message.
 - **Keyboard:** Escape closes. Focus on input on open. Mobile: virtual keyboard
-  must not obscure input/send — input row lifted by measured overflow (form
-  bottom vs `visualViewport` bottom, self-correcting, settle re-check while
-  still below the edge); layout viewport never shrinks, dialog stays full-window
-  black, board never shows during transition. Canvas black via CSS
+  must not obscure input/send — input row lifted by measured overflow vs the
+  keyboard's top edge: VirtualKeyboard API `boundingRect` (Chrome Android,
+  exact, toolbar included) or `visualViewport` fallback + 48px toolbar margin
+  while the keyboard is up; layout viewport never shrinks, dialog stays
+  full-window black, board never shows during transition. Canvas black via CSS
   (`--color-ui-belt`).
 - **History persistence:** per SPEC.md §9.9.
 
