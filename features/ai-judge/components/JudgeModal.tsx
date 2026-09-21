@@ -54,21 +54,39 @@ export function JudgeModal({ id }: JudgeModalProps) {
   /* DESIGN §6.4 — keep the dialog inside the visible viewport while the
      virtual keyboard is open. visualViewport ALWAYS shrinks when the keyboard
      shows (resizes-content meta alone is unreliable); inline height/top
-     override DialogShell's h-full on mobile, which is required. */
+     override DialogShell's h-full on mobile, which is required. The default
+     white <html> canvas flashes below/around the black dialog during the
+     height transition — paint it black while the dialog is open (MutationObserver
+     on the `open` attribute; no native open event exists). */
   useEffect(() => {
     if (!window.visualViewport) return;
+    const dialog = document.getElementById(id) as HTMLDialogElement | null;
+    if (!dialog) return;
+    const paintCanvasBlack = (on: boolean) => {
+      document.documentElement.style.background = on ? "#000" : "";
+    };
     const syncDialogToViewport = () => {
-      const dialog = document.getElementById(id) as HTMLDialogElement | null;
-      if (!dialog) return;
+      if (!dialog.open) return;
       dialog.style.height = `${window.visualViewport!.height}px`;
       dialog.style.top = `${window.visualViewport!.offsetTop}px`;
     };
+    // ponytail: also re-sync on open — modal mounts closed (SpellbookMenu
+    // renders it always), so the mount-time sync runs before open and the
+    // open attribute flip is the only event that applies the inline height.
+    const observer = new MutationObserver(() => {
+      paintCanvasBlack(dialog.open);
+      syncDialogToViewport();
+    });
+    observer.observe(dialog, { attributes: true, attributeFilter: ["open"] });
     window.visualViewport.addEventListener("resize", syncDialogToViewport);
     window.visualViewport.addEventListener("scroll", syncDialogToViewport);
     syncDialogToViewport();
+    paintCanvasBlack(dialog.open);
     return () => {
+      observer.disconnect();
       window.visualViewport?.removeEventListener("resize", syncDialogToViewport);
       window.visualViewport?.removeEventListener("scroll", syncDialogToViewport);
+      paintCanvasBlack(false);
     };
   }, [id]);
 

@@ -425,7 +425,8 @@ Streaming response.
 - **Keyboard:** Escape closes. Focus on input on open. Mobile: virtual keyboard
   must not obscure input/send — dialog height tracks `visualViewport`
   (modern mobile browsers); `interactive-widget=resizes-content` meta as
-  Android assist.
+  Android assist. Canvas bg black while dialog open — no white flash during
+  viewport-height transition.
 - **History persistence:** per SPEC.md §9.9.
 
 #### 6.4.0 Offline Fallback (until local engine lands)
