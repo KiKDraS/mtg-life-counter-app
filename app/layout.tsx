@@ -24,6 +24,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#292A2A",
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({ children }: Readonly<PropsWithChildren>) {
