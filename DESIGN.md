@@ -426,9 +426,10 @@ Streaming response.
   must not obscure input/send — input row lifted by measured overflow vs the
   keyboard's top edge: VirtualKeyboard API `boundingRect` (Chrome Android,
   exact, toolbar included) or `visualViewport` fallback + 48px toolbar margin
-  while the keyboard is up; layout viewport never shrinks, dialog stays
-  full-window black, board never shows during transition. Canvas black via CSS
-  (`--color-ui-belt`).
+  while the keyboard is up; all event sources (geometrychange, viewport
+  resize/scroll, window resize, focusin) plus a 500ms poll re-apply the lift;
+  layout viewport never shrinks, dialog stays full-window black, board never
+  shows during transition. Canvas black via CSS (`--color-ui-belt`).
 - **History persistence:** per SPEC.md §9.9.
 
 #### 6.4.0 Offline Fallback (until local engine lands)
