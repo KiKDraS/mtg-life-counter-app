@@ -418,13 +418,13 @@ Streaming response.
 - **Streaming:** Response renders incrementally in system bubble. Typing
   indicator (3 dots) while waiting. Input disabled while streaming.
 - **Input:** Docked bottom, textarea. Wraps — no x-overflow. Grows UP with
-  newlines (`field-sizing: content`), cap ~8 lines then scroll. Placeholder
-  "Ask about a card or rule…" (50% white opacity). Send button `⏎`
+  newlines (`field-sizing: content`), cap `max-h-40` (~7 lines) then scroll.
+  Placeholder "Ask about a card or rule…" (50% white opacity). Send button `⏎`
   bottom-right, pinned to input bottom edge, disabled when empty/streaming/
   offline. Enter sends, Shift+Enter newline. Auto-scroll to newest message.
-- **Keyboard:** Escape closes. Focus on input on open. Enter sends (no Shift),
-  Shift+Enter newline. Mobile: virtual keyboard must not obscure input/send —
-  layout viewport resizes (`interactive-widget=resizes-content`, Android).
+- **Keyboard:** Escape closes. Focus on input on open. Mobile: virtual keyboard
+  must not obscure input/send — layout viewport resizes
+  (`interactive-widget=resizes-content`, Android).
 - **History persistence:** per SPEC.md §9.9.
 
 #### 6.4.0 Offline Fallback (until local engine lands)
