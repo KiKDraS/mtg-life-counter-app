@@ -1,7 +1,7 @@
 name: refresh-rules
 on:
   schedule:
-    - cron: "0 4 * * 1"   # Monday 04:00 UTC
+    - cron: "0 4 * * *"   # daily 04:00 UTC — future-dated rules merge on their effective date
   workflow_dispatch:
 permissions:
   contents: write
@@ -20,6 +20,19 @@ jobs:
           set -euo pipefail
           if git diff --quiet -- features/ai-judge/lib/rag/rules-bundle.json; then
             echo "bundle unchanged — nothing to do"; exit 0
+          fi
+
+          # Future-dated rules: wait until effective date — daily cron re-runs until then.
+          EFFECTIVE="$(node -e "
+const v = require('./features/ai-judge/lib/rag/rules-bundle.json').version;
+const m = v.match(/effective as of (.+?)\.?\s*$/i);
+if (!m) { console.error('cannot parse effective date: ' + v); process.exit(1); }
+console.log(new Date(Date.parse(m[1])).toISOString().slice(0, 10));
+")"
+          TODAY="$(date -u +%Y-%m-%d)"
+          if [[ "$EFFECTIVE" > "$TODAY" ]]; then
+            echo "rules effective $EFFECTIVE — future vs today $TODAY, skipping merge until effective date"
+            exit 0
           fi
 
           git config user.name "github-actions[bot]"
