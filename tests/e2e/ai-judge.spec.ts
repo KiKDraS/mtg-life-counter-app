@@ -338,6 +338,8 @@ function errorCollectors(page: Page): {
 const modal = (page: Page): Locator => page.locator("#ai-judge-modal");
 const input = (page: Page): Locator =>
   page.getByRole("textbox", { name: "Ask about a card or rule" });
+const sendButton = (page: Page): Locator =>
+  page.getByRole("button", { name: "Send question" });
 const typing = (page: Page): Locator => page.getByLabel("AI Judge is typing");
 const scroll = (page: Page): Locator =>
   modal(page).locator("div[class*='overflow-y-auto']");
@@ -1156,5 +1158,283 @@ test.describe("AI Judge", () => {
     // expect: no console/page errors
     expect(errors.pageErrors).toEqual([]);
     expect(errors.consoleErrors).toEqual([]);
+  });
+
+  /* feature/judge-input-grow — send button + auto-grow textarea (DESIGN §6.4). */
+
+  test("TC-AJ-25: Send button — visible, disabled on empty/whitespace draft, enabled after typing", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL, open modal
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // expect: send button visible inside modal (bottom-right of input row),
+    //     glyph ⏎, type="submit" (DESIGN §6.4)
+    await expect(sendButton(page)).toBeVisible();
+    await expect(sendButton(page)).toHaveText("⏎");
+    await expect(sendButton(page)).toHaveAttribute("type", "submit");
+
+    // 2. Fresh draft — empty
+    // expect: send button disabled (draft empty → trim guard, DESIGN §6.4)
+    await expect(sendButton(page)).toBeDisabled();
+
+    // 3. Whitespace-only draft
+    await input(page).fill("   ");
+    // expect: send button still disabled (trim-empty guard draft.trim() === "")
+    await expect(sendButton(page)).toBeDisabled();
+
+    // 4. Real draft
+    await input(page).fill("Is this play legal?");
+    // expect: send button enabled; input value exact
+    await expect(sendButton(page)).toBeEnabled();
+    await expect(input(page)).toHaveValue("Is this play legal?");
+  });
+
+  test("TC-AJ-26: Click send button submits POST; input cleared", async ({ page }) => {
+    // 1. Mock the judge route → FULL, open modal
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // 2. Fill draft and CLICK send (button path only — no Enter)
+    await input(page).fill("Click send test");
+    await sendButton(page).click();
+
+    // expect: exactly 1 request captured; question exact; sessionId
+    //     version-derived (SPEC §9.9); no gameContext
+    const bodies = await waitForBodies(page, 1);
+    expect(bodies[0].question).toBe("Click send test");
+    expect(bodies[0].sessionId).toBe(sessionIdFor(0));
+    expect(bodies[0].gameContext).toBeUndefined();
+    // expect: input value "" (cleared after send — same contract as TC-AJ-02)
+    await expect(input(page)).toHaveValue("");
+
+    // 3. Wait done
+    // expect: user bubble with question text, system bubble with answer
+    await expect(userBubbles(page)).toHaveText("Click send test");
+    await expect(systemBubbles(page)).toHaveText("When you gain life");
+    // expect: input enabled (streaming ended, SPEC §9.10)
+    await expect(input(page)).toBeEnabled();
+    // expect: send button functional after stream end — its disabled state is
+    //     the empty-draft trim guard only (DESIGN §6.4), so a draft re-enables it
+    await input(page).fill("next");
+    await expect(sendButton(page)).toBeEnabled();
+  });
+
+  test("TC-AJ-27: Enter still sends after input→textarea swap (regression pointer)", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL, open modal; send via fill + Enter helper
+    //    (full Enter coverage lives in TC-AJ-02 — this is the swap guard only)
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+    await sendQuestion(page, "Enter still works");
+
+    // expect: exactly 1 request captured; question exact
+    const bodies = await waitForBodies(page, 1);
+    expect(bodies[0].question).toBe("Enter still works");
+
+    // 2. Wait done
+    // expect: user + system bubbles render
+    await expect(userBubbles(page)).toHaveText("Enter still works");
+    await expect(systemBubbles(page)).toHaveText("When you gain life");
+    // expect: input enabled; send button not blocked by streaming — only the
+    //     empty-draft trim guard holds it (DESIGN §6.4)
+    await expect(input(page)).toBeEnabled();
+    await input(page).fill("ready");
+    await expect(sendButton(page)).toBeEnabled();
+  });
+
+  test("TC-AJ-28: Shift+Enter inserts newline, does NOT send; Enter then sends multi-line draft", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL, open modal
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // 2. Fill "line one", press Shift+Enter (newline — no submit), type "line two"
+    await input(page).fill("line one");
+    await input(page).press("Shift+Enter");
+    await input(page).pressSequentially("line two");
+
+    // expect: newline inserted, NOT submitted
+    await expect(input(page)).toHaveValue("line one\nline two");
+    // expect: POST count stays 0 (1s window)
+    await expect.poll(async () => (await judgeBodies(page)).length).toBe(0);
+
+    // 3. Press Enter (no Shift)
+    await input(page).press("Enter");
+    // expect: exactly 1 request; multi-line draft sent intact (\n preserved;
+    //     trim() strips edges only)
+    const bodies = await waitForBodies(page, 1);
+    expect(bodies[0].question).toBe("line one\nline two");
+  });
+
+  test("TC-AJ-29: Textarea grows up with content; soft-wraps — no x-overflow", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL, open modal
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // 2. Baseline height (1 row)
+    const h0 = await input(page).evaluate((el) => (el as HTMLElement).offsetHeight);
+
+    // 3. 3 explicit lines
+    await input(page).fill("a\nb\nc");
+    // expect: grew up with newlines (field-sizing: content, DESIGN §6.4)
+    const h3 = await input(page).evaluate((el) => (el as HTMLElement).offsetHeight);
+    expect(h3).toBeGreaterThan(h0);
+
+    // 4. Single 300-char unbroken word — soft-wrap stress
+    await input(page).fill("x".repeat(300));
+    const wrapped = await input(page).evaluate((el) => ({
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+      offsetHeight: (el as HTMLElement).offsetHeight,
+    }));
+    // expect: wraps — no x-overflow
+    expect(wrapped.scrollWidth).toBeLessThanOrEqual(wrapped.clientWidth);
+    // expect: wrapped lines count toward content height
+    expect(wrapped.offsetHeight).toBeGreaterThan(h0);
+  });
+
+  test("TC-AJ-30: Send button disabled while streaming and while offline; re-enabled after state clears", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → STREAM_NEVER_ENDS (1 token, held open)
+    const errors = errorCollectors(page);
+    await mockJudge(page, FIXTURE_NEVER_ENDS);
+    await openJudgeModal(page);
+
+    // 2. Fill draft and CLICK send
+    await input(page).fill("Stream button test");
+    await sendButton(page).click();
+    await waitForBodies(page, 1);
+    await expect(userBubbles(page)).toHaveText("Stream button test");
+    await expect(systemBubbles(page).last()).toHaveText("partial");
+
+    // 3. Streaming state — inputDisabled = isStreaming (same state TC-AJ-06
+    //    asserts on the input)
+    await expect(sendButton(page)).toBeDisabled();
+    await expect(input(page)).toBeDisabled();
+
+    // 4. Close via CLOSE (abort cleanup, TC-AJ-06/13 pattern); reopen
+    await closeButton(page).click();
+    await expect(modal(page)).not.toBeVisible();
+    await reopenJudgeModal(page);
+    // expect: stream reset on close (SPEC §9.9) — input enabled again
+    await expect(input(page)).toBeEnabled();
+    // expect: send button governed by the empty-draft trim guard only
+    //     (DESIGN §6.4) — typing re-enables it
+    await input(page).fill("x");
+    await expect(sendButton(page)).toBeEnabled();
+
+    // 5. Fill draft, then go offline (TC-AJ-08 pattern)
+    await input(page).fill("Offline button test");
+    await page.context().setOffline(true);
+    // expect: status alert visible; send button disabled (offline → inputDisabled)
+    await expect(status(page)).toBeVisible();
+    await expect(sendButton(page)).toBeDisabled();
+
+    // 6. Back online — no reload (SPEC §9.10)
+    await page.context().setOffline(false);
+    // expect: status gone; send button enabled (draft non-empty)
+    await expect(status(page)).toHaveCount(0);
+    await expect(sendButton(page)).toBeEnabled();
+
+    // 7. Cleanup
+    // expect: no console/page errors
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
+
+  test("TC-AJ-31: Send button re-enabled after done; stays functional (click path)", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL, open modal
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // 2. Send "Done re-enable" (Enter); wait done
+    await sendQuestion(page, "Done re-enable");
+    await expect(systemBubbles(page)).toHaveText("When you gain life");
+    await expect(input(page)).toBeEnabled();
+    // expect: send button not blocked by streaming after done — only the
+    //     empty-draft trim guard holds it (DESIGN §6.4); typing re-enables it
+    await input(page).fill("Second click");
+    await expect(sendButton(page)).toBeEnabled();
+
+    // 3. Click send for the second question; wait done
+    await sendButton(page).click();
+    const bodies = await waitForBodies(page, 2);
+    await expect(systemBubbles(page).last()).toHaveText("When you gain life");
+    // expect: same version thread, sessionId unchanged
+    expect(bodies[1].sessionId).toBe(sessionIdFor(0));
+    // expect: 2 user + 2 system bubbles (button fully functional after stream end)
+    await expect(userBubbles(page)).toHaveCount(2);
+    await expect(systemBubbles(page)).toHaveCount(2);
+  });
+
+  test("TC-AJ-32: Send button re-enabled after error", async ({ page }) => {
+    // 1. Mock the judge route → ERR_429 (200 + error event), open modal
+    await mockJudge(page, FIXTURE_ERR_429);
+    await openJudgeModal(page);
+
+    // 2. Fill draft and CLICK send
+    await input(page).fill("Error button test");
+    await sendButton(page).click();
+
+    // expect: error bubble with exact text (TC-AJ-04 pattern)
+    await expect(systemBubbles(page)).toHaveText(
+      "The AI Judge is busy. Please wait a moment.",
+    );
+    // expect: typing indicator gone
+    await expect(typing(page)).toHaveCount(0);
+    // expect: input re-enabled (SPEC §9.10 error → re-enable)
+    await expect(input(page)).toBeEnabled();
+    // expect: send button re-enabled — only the empty-draft trim guard holds
+    //     it after the error (DESIGN §6.4), so a draft re-enables it
+    await input(page).fill("next");
+    await expect(sendButton(page)).toBeEnabled();
+  });
+
+  test("TC-AJ-33: Auto-grow cap — height stops at 160px (max-h-40), internal scroll", async ({
+    page,
+  }) => {
+    // 1. Mock the judge route → FULL, open modal
+    await mockJudge(page, FIXTURE_FULL);
+    await openJudgeModal(page);
+
+    // 2. Baseline height, then 3 lines
+    const h0 = await input(page).evaluate((el) => (el as HTMLElement).offsetHeight);
+    await input(page).fill("l0\nl1\nl2");
+    const h3 = await input(page).evaluate((el) => (el as HTMLElement).offsetHeight);
+    // expect: grew, not yet capped
+    expect(h3).toBeGreaterThan(h0);
+    expect(h3).toBeLessThan(160);
+
+    // 3. 12 lines — cap (max-h-40 = 10rem border-box)
+    const twelveLines = Array.from({ length: 12 }, (_, i) => `line ${i}`).join("\n");
+    await input(page).fill(twelveLines);
+    // expect: offsetHeight === 160
+    await expect
+      .poll(() => input(page).evaluate((el) => (el as HTMLElement).offsetHeight))
+      .toBe(160);
+    const capped = await input(page).evaluate((el) => ({
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+      overflowY: getComputedStyle(el).overflowY,
+    }));
+    // expect: internal scroll past cap (scrollHeight > clientHeight)
+    expect(capped.scrollHeight).toBeGreaterThan(capped.clientHeight);
+    // expect: computed overflow-y === auto (overflow-y-auto class)
+    expect(capped.overflowY).toBe("auto");
+
+    // 4. Press Enter (no Shift)
+    await input(page).press("Enter");
+    const bodies = await waitForBodies(page, 1);
+    // expect: full 12-line draft sent intact
+    expect(bodies[0].question).toBe(twelveLines);
   });
 });

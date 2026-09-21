@@ -1,6 +1,6 @@
 # AI Judge — E2E Test Plan (specs/ai-judge.spec.md)
 
-Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target: `tests/e2e/ai-judge.spec.ts` (single describe, **20 tests**). Config: baseURL `http://localhost:3000`, chromium, 1 worker, 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state per test; dev machine has NO OpenRouter key → real route 503s — **every test MUST mock `/api/judge`** via in-page fetch override, never hit real route.
+Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target: `tests/e2e/ai-judge.spec.ts` (single describe, **29 tests**). Config: baseURL `http://localhost:3000`, chromium, 1 worker, 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state per test; dev machine has NO OpenRouter key → real route 503s — **every test MUST mock `/api/judge`** via in-page fetch override, never hit real route.
 
 ## Contract sources
 DESIGN.md §6.4 (chat window), §6.4.0 (offline), §6.4.1 (answer formatting). SPEC.md §9.5 (SSE), §9.9 (history/sessionId), §9.10 (UI/offline).
@@ -14,7 +14,8 @@ DESIGN.md §6.4 (chat window), §6.4.0 (offline), §6.4.1 (answer formatting). S
 ## Selectors (current DOM — no testids)
 - DIALOG `#ai-judge-modal` (aria-modal="true", aria-labelledby="ai-judge-title")
 - CLOSE `getByRole("button", { name: "Close AI Judge" })`
-- INPUT `getByRole("textbox", { name: "Ask about a card or rule" })` — placeholder exact `Ask about a card or rule…` (U+2026). autoFocus on open.
+- INPUT `getByRole("textbox", { name: "Ask about a card or rule" })` — now `<textarea>` (branch feature/judge-input-grow): wraps (no x-overflow), grows up with newlines (`field-sizing: content`), cap 160px (`max-h-40`) then internal scroll; placeholder exact `Ask about a card or rule…` (U+2026); autoFocus on open (DESIGN §6.4).
+- SEND `getByRole("button", { name: "Send question" })` — `type="submit"`, glyph ⏎, bottom-right of input row. Disabled when draft trim-empty OR streaming OR offline (`useJudgeChat.inputDisabled` or `draft.trim() === ""`).
 - STATUS `modal.locator("[role='status']")` — offline alert
 - TYPING `page.getByLabel("AI Judge is typing")` — 3-dot span
 - SCROLL `modal.locator("div[class*='overflow-y-auto']")` — chat list (bubble locators scoped here; offline alert also carries `bg-mana-b`, so never scope to modal root)
@@ -73,7 +74,7 @@ Retrieval pipeline, card RAG context injection (SPEC §9.7), language mirror (es
 
 ### 1. AI Judge
 
-**Seed:** `tests/seed.spec.ts` — all 20 tests in `tests/e2e/ai-judge.spec.ts`.
+**Seed:** `tests/seed.spec.ts` — all 29 tests in `tests/e2e/ai-judge.spec.ts`.
 
 #### 1.1. TC-AJ-01: Modal opens from belt with input
 1. Open-modal prelude.
@@ -252,3 +253,83 @@ Retrieval pipeline, card RAG context injection (SPEC §9.7), language mirror (es
 3. Close via CLOSE; re-open.
    - expect: in-memory history survives modal close (1 user + 1 system)
 4. Cleanup assertions: no pageerror / console errors (blocked IDB swallowed everywhere).
+
+#### 1.21. TC-AJ-25: Send button — visible, disabled on empty/whitespace draft, enabled after typing
+1. Mock FULL. `openJudgeModal`.
+   - expect: `sendButton(page)` = `getByRole("button", { name: "Send question" })` visible inside modal, bottom-right of input row; glyph ⏎; `type="submit"` (DESIGN §6.4)
+2. Fresh draft.
+   - expect: send button `toBeDisabled()` (draft empty)
+3. `input(page).fill("   ")` (whitespace only).
+   - expect: send button still `toBeDisabled()` (trim-empty guard `draft.trim() === ""`)
+4. `input(page).fill("Is this play legal?")`.
+   - expect: send button `toBeEnabled()`; input value exact
+
+#### 1.22. TC-AJ-26: Click send button submits POST; input cleared
+1. Mock FULL. `openJudgeModal`.
+2. `input(page).fill("Click send test")`; click `sendButton(page)` (button path only — no Enter).
+   - expect: `waitForBodies(page, 1)`; `bodies[0].question` exact `Click send test`; `sessionId` `aijudge-0`; `gameContext` undefined
+   - expect: input value `""` (cleared after send — same contract as TC-AJ-02)
+3. Wait done.
+   - expect: user bubble "Click send test" + system bubble "When you gain life"; input + send button enabled
+
+#### 1.23. TC-AJ-27: Enter still sends after input→textarea swap (regression pointer)
+Full Enter coverage lives in TC-AJ-02 (bubbles, colors, typing indicator, body contract) — do not re-test here. Element type changed `<input>` → `<textarea>` (feature/judge-input-grow); this TC is the minimal swap guard only.
+1. Mock FULL. `openJudgeModal`. `sendQuestion(page, "Enter still works")` (fill + Enter helper).
+   - expect: `waitForBodies(page, 1)`; `bodies[0].question` exact `Enter still works`
+2. Wait done.
+   - expect: user + system bubbles render; input + send button enabled
+
+#### 1.24. TC-AJ-28: Shift+Enter inserts newline, does NOT send; Enter then sends multi-line draft
+1. Mock FULL. `openJudgeModal`.
+2. `input(page).fill("line one")`; `input(page).press("Shift+Enter")`; `input(page).pressSequentially("line two")`.
+   - expect: input value `line one\nline two` (newline inserted, NOT submitted)
+   - expect: POST count stays 0 — `expect.poll(async () => (await judgeBodies(page)).length).toBe(0)` (1s window)
+3. Press Enter (no Shift).
+   - expect: `waitForBodies(page, 1)`; `bodies[0].question` exact `line one\nline two` (multi-line draft sent intact; `trim()` strips edges only)
+
+#### 1.25. TC-AJ-29: Textarea grows up with content; soft-wraps — no x-overflow
+1. Mock FULL. `openJudgeModal`.
+2. Baseline: `h0 = await input(page).evaluate((el) => el.offsetHeight)` (1 row; observed 46px at 1280x720).
+3. `input(page).fill("a\nb\nc")` (3 explicit lines).
+   - expect: `h3 = offsetHeight` > `h0` (grew up with newlines — `field-sizing: content`, DESIGN §6.4; observed 86px)
+4. `input(page).fill("x".repeat(300))` (single unbroken word — soft-wrap stress).
+   - expect: `scrollWidth <= clientWidth` (wraps; no x-overflow)
+   - expect: `offsetHeight` > `h0` (wrapped lines count toward content height)
+
+#### 1.26. TC-AJ-30: Send button disabled while streaming and while offline; re-enabled after state clears
+1. Mock STREAM_NEVER_ENDS. Error collectors on. `openJudgeModal`.
+2. `input(page).fill("Stream button test")`; click `sendButton(page)`.
+   - expect: `waitForBodies(page, 1)`; user bubble visible; stream bubble "partial " visible
+3. Streaming state.
+   - expect: send button `toBeDisabled()` (`inputDisabled` = isStreaming — same state TC-AJ-06 asserts on the input)
+4. Close via `closeButton(page)` (abort cleanup, TC-AJ-06/13 pattern); `reopenJudgeModal`.
+   - expect: send button `toBeEnabled()` (stream reset on close, SPEC §9.9)
+5. `input(page).fill("Offline button test")`; `context.setOffline(true)` (TC-AJ-08 pattern).
+   - expect: status alert visible; send button `toBeDisabled()` (offline → inputDisabled)
+6. `context.setOffline(false)`.
+   - expect: status gone; send button `toBeEnabled()` (no reload, SPEC §9.10)
+7. Cleanup: no console/page errors.
+
+#### 1.27. TC-AJ-31: Send button re-enabled after done; stays functional (click path)
+1. Mock FULL. `openJudgeModal`.
+2. `sendQuestion(page, "Done re-enable")`; wait done (input enabled — TC-AJ-03 pattern).
+   - expect: send button `toBeEnabled()`
+3. `input(page).fill("Second click")`; click `sendButton(page)`; wait done.
+   - expect: `waitForBodies(page, 2)`; 2 user + 2 system bubbles (button fully functional after stream end)
+
+#### 1.28. TC-AJ-32: Send button re-enabled after error
+1. Mock ERR_429 (200 + error event). `openJudgeModal`.
+2. `input(page).fill("Error button test")`; click `sendButton(page)`.
+   - expect: error bubble exact "The AI Judge is busy. Please wait a moment."
+   - expect: send button `toBeEnabled()` (input re-enabled — TC-AJ-04 pattern); typing gone
+
+#### 1.29. TC-AJ-33: Auto-grow cap — height stops at 160px (max-h-40), internal scroll
+1. Mock FULL. `openJudgeModal`.
+2. Baseline: `h0 = offsetHeight`; `input(page).fill("l0\nl1\nl2")` (3 lines).
+   - expect: `offsetHeight` > `h0` AND < 160 (grew, not yet capped)
+3. `input(page).fill(Array.from({ length: 12 }, (_, i) => `line ${i}`).join("\n"))` (12 lines).
+   - expect: `offsetHeight` === 160 (`max-h-40` = 10rem border-box; observed 160px)
+   - expect: `scrollHeight` > `clientHeight` (internal scroll past cap; observed 264 > 158)
+   - expect: computed `overflow-y` === `auto` (overflow-y-auto class)
+4. Press Enter (no Shift).
+   - expect: `waitForBodies(page, 1)`; `bodies[0].question` === 12-line text (full multi-line draft sent)
