@@ -54,9 +54,9 @@ export function JudgeModal({ id }: JudgeModalProps) {
   /* DESIGN §6.4 — mobile virtual keyboard: lift the input row above the OSK.
      Dialog keeps h-full (full-page black, canvas black via globals.css) so the
      board never shows through during the height transition. visualViewport
-     ALWAYS shrinks when the keyboard shows (resizes-content meta alone is
-     unreliable) — padding = keyboard inset, re-applied on open (MutationObserver
-     on the `open` attribute; no native open event exists). */
+     ALWAYS shrinks when the keyboard shows — padding = keyboard inset,
+     re-applied on open (MutationObserver on the `open` attribute; no native
+     open event exists). */
   useEffect(() => {
     if (!window.visualViewport) return;
     const dialog = document.getElementById(id) as HTMLDialogElement | null;

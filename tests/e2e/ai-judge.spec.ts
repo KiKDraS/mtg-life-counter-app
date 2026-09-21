@@ -1512,8 +1512,8 @@ test.describe("AI Judge", () => {
     expect(baselineHeight).toBeGreaterThanOrEqual(40);
     expect(baselineHeight).toBeLessThanOrEqual(52);
 
-    // 2. Shrink the layout viewport to 390x400 — keyboard-sized proxy for
-    //    Android Chrome + interactive-widget=resizes-content
+    // 2. Shrink the layout viewport to 390x400 — generic layout-containment
+    //    proxy (dialog must track the viewport; keyboard lift is TC-AJ-36)
     await page.setViewportSize({ width: 390, height: 400 });
     const viewport = page.viewportSize() ?? { width: 390, height: 400 };
 

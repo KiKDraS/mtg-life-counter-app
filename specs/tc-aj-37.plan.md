@@ -1,8 +1,8 @@
-# TC-AJ-37 — Canvas black while dialog open, restored on close
+# TC-AJ-37 — Canvas black permanently via globals.css (no JS paint, no restore)
 
 ## Application Overview
 
-MTG Life Counter PWA — AI Judge modal (features/ai-judge/components/JudgeModal.tsx, fix 38ef911). A MutationObserver on the #ai-judge-modal `open` attribute paints document.documentElement.style.background "#000" while the dialog is open and restores "" on close, preventing a white flash during the mobile keyboard-open height transition. TC-AJ-37 verifies the paint on open and the restore on BOTH close paths (✕ button and Escape), with error collectors on. No /api/judge call — no mock needed. Contract: DESIGN.md §6.4 Keyboard + SPEC §9.x; spec section 1.33 in specs/ai-judge.spec.md.
+MTG Life Counter PWA — AI Judge modal (features/ai-judge/components/JudgeModal.tsx). The document canvas is black permanently via `app/globals.css` (`html { background-color: var(--color-ui-belt) }`, #000) — no JS paint/restore. TC-AJ-37 verifies computed `rgb(0, 0, 0)` on fresh page, while open, and after BOTH close paths (✕ button and Escape), with inline style never set, and error collectors on. No /api/judge call — no mock needed. Contract: DESIGN.md §6.4 Keyboard + SPEC §9.10; spec section 1.33 in specs/ai-judge.spec.md.
 
 ## Test Scenarios
 
