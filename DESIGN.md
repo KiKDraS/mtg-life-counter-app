@@ -424,9 +424,9 @@ Streaming response.
   offline. Enter sends, Shift+Enter newline. Auto-scroll to newest message.
 - **Keyboard:** Escape closes. Focus on input on open. Mobile: virtual keyboard
   must not obscure input/send — input row lifted by keyboard inset
-  (`innerHeight − visualViewport.height`); dialog stays full-page black, board
-  never shows during transition. Canvas black via CSS (`--color-ui-belt`);
-  `interactive-widget=resizes-content` meta assists.
+  (`innerHeight − (visualViewport.height + offsetTop)`); dialog stays
+  full-page black, board never shows during transition. Canvas black via CSS
+  (`--color-ui-belt`); `interactive-widget=resizes-content` meta assists.
 - **History persistence:** per SPEC.md §9.9.
 
 #### 6.4.0 Offline Fallback (until local engine lands)

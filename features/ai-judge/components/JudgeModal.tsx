@@ -51,12 +51,11 @@ export function JudgeModal({ id }: JudgeModalProps) {
     return () => document.removeEventListener("keydown", handleEscape, true);
   }, [id]);
 
-  /* DESIGN §6.4 — keep the dialog inside the visible viewport while the
-     virtual keyboard is open. visualViewport ALWAYS shrinks when the keyboard
-     shows (resizes-content meta alone is unreliable); inline height/top
-     override DialogShell's h-full on mobile, which is required. The default
-     white <html> canvas flashes below/around the black dialog during the
-     height transition — paint it black while the dialog is open (MutationObserver
+  /* DESIGN §6.4 — mobile virtual keyboard: lift the input row above the OSK.
+     Dialog keeps h-full (full-page black, canvas black via globals.css) so the
+     board never shows through during the height transition. visualViewport
+     ALWAYS shrinks when the keyboard shows (resizes-content meta alone is
+     unreliable) — padding = keyboard inset, re-applied on open (MutationObserver
      on the `open` attribute; no native open event exists). */
   useEffect(() => {
     if (!window.visualViewport) return;
@@ -76,7 +75,7 @@ export function JudgeModal({ id }: JudgeModalProps) {
     };
     // ponytail: also re-sync on open — modal mounts closed (SpellbookMenu
     // renders it always), so the mount-time sync runs before open and the
-    // open attribute flip is the only event that applies the inline height.
+    // open attribute flip is the only event that applies the padding.
     const observer = new MutationObserver(() => {
       // paintCanvasBlack(dialog.open);
       syncDialogToViewport();
