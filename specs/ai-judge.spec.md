@@ -1,6 +1,6 @@
 # AI Judge — E2E Test Plan (specs/ai-judge.spec.md)
 
-Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target: `tests/e2e/ai-judge.spec.ts` (single describe, **33 tests**). Config: baseURL `http://localhost:3000`, chromium, 1 worker, 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state per test; dev machine has NO OpenRouter key → real route 503s — **every test MUST mock `/api/judge`** via in-page fetch override, never hit real route.
+Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target: `tests/e2e/ai-judge.spec.ts` (single describe, **34 tests**). Config: baseURL `http://localhost:3000`, chromium, 1 worker, 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state per test; dev machine has NO OpenRouter key → real route 503s — **every test MUST mock `/api/judge`** via in-page fetch override, never hit real route.
 
 ## Contract sources
 DESIGN.md §6.4 (chat window), §6.4.0 (offline), §6.4.1 (answer formatting). SPEC.md §9.5 (SSE), §9.9 (history/sessionId), §9.10 (UI/offline).
@@ -75,7 +75,7 @@ Retrieval pipeline, card RAG context injection (SPEC §9.7), language mirror (es
 
 ### 1. AI Judge
 
-**Seed:** `tests/seed.spec.ts` — all 33 tests in `tests/e2e/ai-judge.spec.ts`.
+**Seed:** `tests/seed.spec.ts` — all 34 tests in `tests/e2e/ai-judge.spec.ts`.
 
 #### 1.1. TC-AJ-01: Modal opens from belt with input
 1. Open-modal prelude.
@@ -387,3 +387,34 @@ Contract: DESIGN §6.4 Keyboard + fix `7fbf614` (`JudgeModal.tsx`). Playwright c
 - Observed geometry at shrink 300: textarea `{ y: 238, height: 46, bottom: 284 }`, SEND `{ y: 244, height: 40, bottom: 284 }`, dialog bbox height exactly 300. Restore: dialog bbox height exactly 720. Assert exact values; tolerance ±1 acceptable if a CI renderer rounds differently.
 - `offsetTop` stays 0 in this setup; assert `style.top === "0px"` (inline style) — the top-follow behavior is only observable on-device where the keyboard pushes the visual viewport down.
 - Baseline console errors are the benign Vercel 404s (`_vercel/*`) — `errorCollectors` already filters them (spec §Failure collection).
+
+#### 1.33. TC-AJ-37: Canvas black while dialog open, restored on close
+
+Contract: DESIGN §6.4 Keyboard + fix `38ef911` (`JudgeModal.tsx`). The default white `<html>` canvas flashes below/around the black dialog during the mobile keyboard-open height transition — the fix paints the document canvas black while the dialog is open: a MutationObserver on the dialog's `open` attribute calls `paintCanvasBlack(dialog.open)` (`document.documentElement.style.background = "#000"` when open, `""` when closed) and also re-syncs the inline dialog height/top on open (that half already pinned by TC-AJ-36). This TC pins the canvas paint: black on open, restored on every close path. No `/api/judge` call → no mock needed (TC-AJ-34/35/36 pattern). Selectors: DIALOG `#ai-judge-modal`, CLOSE button (spec §Selectors).
+
+1. Error collectors on (TC-AJ-36 pattern). `page.goto("/")` (fresh page, modal closed).
+   - expect: inline canvas unpainted — `page.evaluate(() => document.documentElement.style.background)` === `""` and `style.backgroundColor` === `""`.
+   - expect: computed not black — `getComputedStyle(document.documentElement).backgroundColor` === `rgba(0, 0, 0, 0)` (transparent; observed live).
+2. `openJudgeModal(page)`.
+   - expect: `#ai-judge-modal` visible/open (has `open` attr).
+   - expect: inline canvas painted — `style.background` === `rgb(0, 0, 0)` (CSSOM normalizes the `#000` shorthand — assert `rgb(0, 0, 0)`, NEVER the literal `#000`, see notes).
+   - expect: computed backgroundColor === `rgb(0, 0, 0)` (black).
+3. Close via `closeButton(page)`.
+   - expect: modal not visible (`open` attr gone).
+   - expect: inline restored — `style.background` === `""` and `style.backgroundColor` === `""`.
+   - expect: computed back to `rgba(0, 0, 0, 0)`.
+4. Reopen via `reopenJudgeModal(page)` (belt auto-closed on modal close — helper's belt-open guard required).
+   - expect: black again — `style.backgroundColor` === `rgb(0, 0, 0)`.
+5. Close via Escape — `page.keyboard.press("Escape")` with the textarea focused (autoFocus; the document-level capture keydown handler catches it regardless of focus — no need to focus CLOSE first, unlike TC-AJ-13's streaming case).
+   - expect: modal not visible.
+   - expect: restored — `style.background` === `""`, computed `rgba(0, 0, 0, 0)`.
+6. Cleanup: assert error collectors empty — no pageerror / console errors (only benign `_vercel/*` 404s in the prod build, filtered by `errorCollectors`).
+
+**Live-verified notes (2026-09-21, headless Chromium, 1280x720):**
+- **Assert `rgb(0, 0, 0)`, not `#000`.** The code sets `style.background = "#000"`, but CSSOM reflects the shorthand normalized: both `el.style.background` and `el.style.backgroundColor` read back `rgb(0, 0, 0)` (verified live). A literal `=== "#000"` assertion FAILS.
+- **Both close paths fire the observer identically.** ✕ button and Escape both end in `dialog.close()`, which removes the `open` attribute → MutationObserver fires → `paintCanvasBlack(false)`. Verified: restored to `""` via both.
+- Observer callback runs as a microtask after the attribute mutation; Playwright's click→evaluate round-trip lets it run first, so direct `evaluate` is reliable (verified). `expect.poll` acceptable fallback if a CI renderer flakes.
+- Escape closes with the textarea focused — the JudgeModal document-level capture keydown handler (not just DialogShell) catches it. No pre-focus needed in the plain (non-streaming) case.
+- Closing the modal also closes the spellbook belt (observed) — the reopen step must use `reopenJudgeModal`'s belt-open-if-needed guard.
+- `window.visualViewport` exists in headless Chromium, so the effect guard passes (verified).
+- Re-sync side-effect of the same observer (dialog inline `style.height`/`top` re-applied on open) observed at `720px`/`0px` — already pinned by TC-AJ-36, not re-asserted here.

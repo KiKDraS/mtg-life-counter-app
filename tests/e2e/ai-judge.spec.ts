@@ -1690,4 +1690,95 @@ test.describe("AI Judge", () => {
     expect(errors.pageErrors).toEqual([]);
     expect(errors.consoleErrors).toEqual([]);
   });
+
+  /* DESIGN §6.4 Keyboard + fix 38ef911 — the default white <html> canvas
+     flashes below/around the black dialog during the keyboard-open height
+     transition; the MutationObserver on the dialog's `open` attribute paints
+     it black while open and restores it on close. No /api/judge call → no
+     mock needed (TC-AJ-34/35/36 pattern). */
+  test("TC-AJ-37: Canvas black while dialog open, restored on close", async ({
+    page,
+  }) => {
+    // 1. Error collectors on (TC-AJ-36 pattern). Fresh page, modal closed.
+    const errors = errorCollectors(page);
+    await page.goto("/");
+
+    // expect: inline canvas unpainted — style.background and style.backgroundColor ""
+    const fresh = await page.evaluate(() => ({
+      background: document.documentElement.style.background,
+      backgroundColor: document.documentElement.style.backgroundColor,
+    }));
+    expect(fresh.background).toBe("");
+    expect(fresh.backgroundColor).toBe("");
+    // expect: computed not black — transparent (observed rgba(0, 0, 0, 0))
+    const freshComputed = await page.evaluate(
+      () => getComputedStyle(document.documentElement).backgroundColor,
+    );
+    expect(freshComputed).toBe("rgba(0, 0, 0, 0)");
+
+    // 2. Open the modal (prelude)
+    await openJudgeModal(page);
+    // expect: #ai-judge-modal visible/open (has open attr)
+    await expect(modal(page)).toHaveAttribute("open", "");
+
+    // expect: inline canvas painted — CSSOM normalizes the #000 shorthand to
+    //     rgb(0, 0, 0); assert the normalized form, NEVER the literal #000
+    const painted = await page.evaluate(() => ({
+      background: document.documentElement.style.background,
+      backgroundColor: document.documentElement.style.backgroundColor,
+    }));
+    expect(painted.background).toBe("rgb(0, 0, 0)");
+    expect(painted.backgroundColor).toBe("rgb(0, 0, 0)");
+    // expect: computed backgroundColor black
+    const paintedComputed = await page.evaluate(
+      () => getComputedStyle(document.documentElement).backgroundColor,
+    );
+    expect(paintedComputed).toBe("rgb(0, 0, 0)");
+
+    // 3. Close via CLOSE button
+    await closeButton(page).click();
+    await expect(modal(page)).not.toBeVisible();
+
+    // expect: inline restored — style.background and style.backgroundColor ""
+    const closed = await page.evaluate(() => ({
+      background: document.documentElement.style.background,
+      backgroundColor: document.documentElement.style.backgroundColor,
+    }));
+    expect(closed.background).toBe("");
+    expect(closed.backgroundColor).toBe("");
+    // expect: computed back to transparent
+    const closedComputed = await page.evaluate(
+      () => getComputedStyle(document.documentElement).backgroundColor,
+    );
+    expect(closedComputed).toBe("rgba(0, 0, 0, 0)");
+
+    // 4. Reopen — belt auto-closed on modal close; reopenJudgeModal's
+    //    belt-open-if-needed guard handles it
+    await reopenJudgeModal(page);
+    await expect(modal(page)).toHaveAttribute("open", "");
+    // expect: black again — style.backgroundColor rgb(0, 0, 0)
+    const reopened = await page.evaluate(
+      () => document.documentElement.style.backgroundColor,
+    );
+    expect(reopened).toBe("rgb(0, 0, 0)");
+
+    // 5. Close via Escape — textarea focused (autoFocus), but the
+    //    document-level capture keydown handler catches it regardless of
+    //    focus; no CLOSE pre-focus needed (unlike TC-AJ-13's streaming case)
+    await page.keyboard.press("Escape");
+    await expect(modal(page)).not.toBeVisible();
+
+    // expect: restored again — style.background "", computed transparent
+    const escaped = await page.evaluate(() => ({
+      background: document.documentElement.style.background,
+      computed: getComputedStyle(document.documentElement).backgroundColor,
+    }));
+    expect(escaped.background).toBe("");
+    expect(escaped.computed).toBe("rgba(0, 0, 0, 0)");
+
+    // 6. Cleanup
+    // expect: no pageerror/console errors (only benign _vercel/* 404s, filtered)
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
+  });
 });
