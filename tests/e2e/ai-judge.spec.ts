@@ -1672,8 +1672,8 @@ test.describe("AI Judge", () => {
 
     // 2. Simulate the keyboard shrink in-page: own properties shadow the
     //    visualViewport prototype getters, then a resize event on the
-    //    visualViewport object fires the mounted handler (listens there only —
-    //    NOT on window). No throw expected.
+    //    visualViewport object fires the mounted handler (vv + window resize
+    //    listeners both attached in the fallback branch). No throw expected.
     const shrunk = await page.evaluate(() => {
       const vv = window.visualViewport!;
       Object.defineProperty(vv, "height", { value: 300, configurable: true });
