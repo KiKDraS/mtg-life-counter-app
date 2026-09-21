@@ -10,10 +10,12 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with: { fetch-depth: 0 }
       - run: node scripts/fetch-rules.mjs
       - name: Open PR when the bundle changed
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if git diff --quiet -- features/ai-judge/lib/rag/rules-bundle.json; then
             echo "bundle unchanged — nothing to do"; exit 0
