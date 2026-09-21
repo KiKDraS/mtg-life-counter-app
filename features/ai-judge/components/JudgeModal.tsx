@@ -53,10 +53,10 @@ export function JudgeModal({ id }: JudgeModalProps) {
 
   /* DESIGN §6.4 — mobile virtual keyboard: lift the input row above the OSK.
      Dialog keeps h-full (full-page black, canvas black via globals.css) so the
-     board never shows through during the height transition. visualViewport
-     ALWAYS shrinks when the keyboard shows — padding = keyboard inset,
-     re-applied on open (MutationObserver on the `open` attribute; no native
-     open event exists). */
+     board never shows through during the height transition. Self-calibrating
+     lift: measure the input row's overflow past the visible edge rather than
+     trusting visualViewport height, re-applied on open (MutationObserver on
+     the `open` attribute; no native open event exists). */
   useEffect(() => {
     if (!window.visualViewport) return;
     const dialog = document.getElementById(id) as HTMLDialogElement | null;
@@ -64,14 +64,26 @@ export function JudgeModal({ id }: JudgeModalProps) {
     // const paintCanvasBlack = (on: boolean) => {
     //   document.documentElement.style.background = on ? "#000" : "";
     // };
+    let settleTimer: ReturnType<typeof setTimeout> | undefined;
     const syncDialogToViewport = () => {
       if (!dialog.open) return;
+      const form = dialog.querySelector("form");
+      if (!form) return;
       const vv = window.visualViewport!;
-      /* DESIGN §6.4 — lift the input row above the OSK with padding; dialog
-         keeps h-full (full-page black) so the board never shows through
-         during the height transition (no white flash). */
-      const inset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
-      dialog.style.paddingBottom = `${inset}px`;
+      /* DESIGN §6.4 — self-calibrating lift: measure where the input row
+         actually is vs the visible edge, correct by the overflow. Immune to
+         stale/under-reported visualViewport heights (e.g. Gboard toolbar
+         settling after the last resize event). */
+      const overflow =
+        form.getBoundingClientRect().bottom - (vv.height + vv.offsetTop);
+      const current = parseFloat(dialog.style.paddingBottom) || 0;
+      dialog.style.paddingBottom = `${Math.max(0, current + overflow)}px`;
+      /* Late keyboard chrome (toolbar) can grow without further events —
+         one bounded settle re-check; stops rescheduling once stable. */
+      if (overflow !== 0) {
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(syncDialogToViewport, 300);
+      }
     };
     // ponytail: also re-sync on open — modal mounts closed (SpellbookMenu
     // renders it always), so the mount-time sync runs before open and the
@@ -83,10 +95,12 @@ export function JudgeModal({ id }: JudgeModalProps) {
     observer.observe(dialog, { attributes: true, attributeFilter: ["open"] });
     window.visualViewport.addEventListener("resize", syncDialogToViewport);
     window.visualViewport.addEventListener("scroll", syncDialogToViewport);
+    window.addEventListener("resize", syncDialogToViewport);
     syncDialogToViewport();
     // paintCanvasBlack(dialog.open);
     return () => {
       observer.disconnect();
+      window.removeEventListener("resize", syncDialogToViewport);
       window.visualViewport?.removeEventListener(
         "resize",
         syncDialogToViewport,
@@ -95,6 +109,7 @@ export function JudgeModal({ id }: JudgeModalProps) {
         "scroll",
         syncDialogToViewport,
       );
+      clearTimeout(settleTimer);
       // paintCanvasBlack(false);
     };
   }, [id]);
