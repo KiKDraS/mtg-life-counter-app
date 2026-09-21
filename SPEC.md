@@ -66,13 +66,13 @@ Two stores — separate initial values from live state.
 
 ### 4.3 Store 3: `ai-judge-chat` — AI Judge History
 
-| Field      | Type                                             | Notes                    |
-| ---------- | ------------------------------------------------ | ------------------------ |
-| Key        | `chat-v<version>` (game version)                 | One entry per game       |
-| Schema     | `{version, sessionId, updatedAt, messages[]}`    | §9.9                     |
-| Written on | Every chat message change                        |                          |
-| Read on    | App start / modal open → restore chat            |                          |
-| Prune      | Keep 5 latest versions after save                | Reset creates new entry  |
+| Field      | Type                                          | Notes                   |
+| ---------- | --------------------------------------------- | ----------------------- |
+| Key        | `chat-v<version>` (game version)              | One entry per game      |
+| Schema     | `{version, sessionId, updatedAt, messages[]}` | §9.9                    |
+| Written on | Every chat message change                     |                         |
+| Read on    | App start / modal open → restore chat         |                         |
+| Prune      | Keep 5 latest versions after save             | Reset creates new entry |
 
 ### 4.4 Load Priority
 
@@ -89,23 +89,20 @@ Two stores — separate initial values from live state.
 
 ### 4.6 Extended Splash (hydration cover)
 
-- Purpose: suppress state flicker — SSR §3 defaults frame vs hydrated
-  IndexedDB values (§4.5). Cover hides transition, never blanks UI
-  permanently.
+- Purpose: suppress state flicker — SSR §3 defaults frame vs hydrated IndexedDB
+  values (§4.5). Cover hides transition, never blanks UI permanently.
 - `ExtendedSplashScreen` renders fixed overlay `#extended-splash-screen`
-  (z-9999, bg `#292A2A`, centered app icon). SSR-included → covers first
-  paint.
+  (z-9999, bg `#292A2A`, centered app icon). SSR-included → covers first paint.
 - Mounted inside `GameProvider` (GameShell) — needs `isHydrated` signal.
 - `HideSplashScreenHandler` — client leaf sibling of overlay. Effect on
   `gameCtx.state.isHydrated` (first flush included): `pointer-events-none` +
   `opacity-100`→`opacity-0` (300ms CSS transition) → element removed at 310ms.
-- No user dismiss paths: no tap/backdrop/Escape handlers. Close via effect
-  only.
-- All display modes (browser + PWA standalone): splash active. No `pwa:`
-  hiding — covers hydration flicker in standalone too (native OS splash
-  alone insufficient).
-- Scroll lock: `overflow-y-hidden` on `<body>` (layout.tsx). App never
-  scrolls; splash overlay is fixed, no scroll affordance beneath.
+- No user dismiss paths: no tap/backdrop/Escape handlers. Close via effect only.
+- All display modes (browser + PWA standalone): splash active. No `pwa:` hiding
+  — covers hydration flicker in standalone too (native OS splash alone
+  insufficient).
+- Scroll lock: `overflow-y-hidden` on `<body>` (layout.tsx). App never scrolls;
+  splash overlay is fixed, no scroll affordance beneath.
 - Re-run after removal → no-op (element gone).
 - Fast hydration (no/blocked IDB, §4.5): hydrator resolves → cover hides on
   first effect flush.
@@ -167,9 +164,8 @@ interface PlayerState {
 - ≥21 damage from any single commander → lethal.
 - Each damage point also −1 life: `adjustCommanderDamage(+3)` → life −3.
 - Decrement supported (undo/error correction): `adjustCommanderDamage(-2)` →
-  damage −2, life +2. Damage floors at 0 — never negative. Life restored
-  ONLY by applied delta (`max(0, value + delta) − value`), so a − at 0
-  changes nothing.
+  damage −2, life +2. Damage floors at 0 — never negative. Life restored ONLY by
+  applied delta (`max(0, value + delta) − value`), so a − at 0 changes nothing.
 
 ---
 
@@ -273,13 +269,13 @@ Edge cases:
 
 WYSIWYG multi-select. Dispatch on every toggle. Zone preview = live state.
 
-| Gesture              | Behavior                                                                                                                                  |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Gesture              | Behavior                                                                                                                                     |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tap unselected color | Current = single colorless `["c"]`? Replace → `[color]`. Otherwise add → `[...cur, color]` (default `["r"]` included). Dispatch immediately. |
-| Tap selected color   | Single-color (length 1)? No-op. Multi-color? Remove → filter out. Dispatch immediately.                                                   |
-| Tap Colorless        | Dispatch `setColor(["c"])`. Close immediately.                                                                                            |
-| Tap ✓ (CheckCircle)  | Close. No dispatch — colors already applied.                                                                                              |
-| Escape / backdrop    | Close. No dispatch — colors already applied.                                                                                              |
+| Tap selected color   | Single-color (length 1)? No-op. Multi-color? Remove → filter out. Dispatch immediately.                                                      |
+| Tap Colorless        | Dispatch `setColor(["c"])`. Close immediately.                                                                                               |
+| Tap ✓ (CheckCircle)  | Close. No dispatch — colors already applied.                                                                                                 |
+| Escape / backdrop    | Close. No dispatch — colors already applied.                                                                                                 |
 
 **Zone preview:** Real-time. Background reads `PlayerState.color` directly.
 
@@ -296,25 +292,24 @@ gradient.
 
 ### 8.6 ⬇️ Install App (PWA)
 
-| Property          | Value                                            |
-| ----------------- | ------------------------------------------------ |
-| Trigger           | Spellbook belt, left-far — DESIGN.md §5.2        |
-| Opens modal?      | No — native browser install prompt               |
-| Resets game?      | No                                               |
+| Property     | Value                                     |
+| ------------ | ----------------------------------------- |
+| Trigger      | Spellbook belt, left-far — DESIGN.md §5.2 |
+| Opens modal? | No — native browser install prompt        |
+| Resets game? | No                                        |
 
 - **Purpose:** Trigger native PWA install from browser mode. No server
   involvement, no forced prompts, no analytics.
 - **Installability gate (binding):** button renders ONLY after
-  `beforeinstallprompt` captured (handler `preventDefault()`s, stores
-  prompt). No event (iOS Safari, unsupported browser, already installed) →
-  button absent.
-- **Standalone:** hidden via CSS `pwa:` variant (`display-mode: standalone`)
-  — installed users never see it.
-- **Tap:** `deferredPrompt.prompt()` → `await userChoice` → clear stored
-  prompt (single-use per platform spec).
+  `beforeinstallprompt` captured (handler `preventDefault()`s, stores prompt).
+  No event (iOS Safari, unsupported browser, already installed) → button absent.
+- **Standalone:** hidden via CSS `pwa:` variant (`display-mode: standalone`) —
+  installed users never see it.
+- **Tap:** `deferredPrompt.prompt()` → `await userChoice` → clear stored prompt
+  (single-use per platform spec).
 - **`appinstalled`:** button removed immediately.
-- **Belt:** tap collapses belt via shared `MenuActionButton` behavior (§8).
-  PWA requirement: manifest + `sw.js` already served (§9.10, §9.11).
+- **Belt:** tap collapses belt via shared `MenuActionButton` behavior (§8). PWA
+  requirement: manifest + `sw.js` already served (§9.10, §9.11).
 
 ---
 
@@ -328,16 +323,16 @@ gradient.
 
 ### 9.2 Environment Config (server-only)
 
-| Var                           | Role                 | Required | Unset behavior                |
-| ----------------------------- | -------------------- | -------- | ----------------------------- |
-| `OPEN_ROUTER_API_KEY`         | OpenRouter SDK auth  | yes      | route 503 `misconfigured`     |
-| `OPEN_ROUTER_MODEL`           | primary judge model  | yes      | route 503 `misconfigured`     |
-| `OPEN_ROUTER_FALLBACK_MODEL`  | fallback judge model | no       | no fallback — primary only    |
-| `OPEN_ROUTER_EMBEDDING_MODEL` | semantic retrieval   | no       | lexical retrieval only (§9.4) |
-| `OPEN_ROUTER_ZDR`             | zero-data-retention provider filter | no | default true — "false" disables (no ZDR endpoints on account) |
-| `OPEN_ROUTER_REASONING_EFFORT` | reasoning depth for reasoning models | no | unset/invalid = `medium` floor; `none`/`low`/`medium`/`high` — see §9.5 |
-| `AXIOM_INGEST_TOKEN`          | Axiom ingest token — judge timing telemetry | no | telemetry off, judge unaffected |
-| `AXIOM_DATASET`               | Axiom dataset name | no | default `judge-timings` |
+| Var                            | Role                                        | Required | Unset behavior                                                          |
+| ------------------------------ | ------------------------------------------- | -------- | ----------------------------------------------------------------------- |
+| `OPEN_ROUTER_API_KEY`          | OpenRouter SDK auth                         | yes      | route 503 `misconfigured`                                               |
+| `OPEN_ROUTER_MODEL`            | primary judge model                         | yes      | route 503 `misconfigured`                                               |
+| `OPEN_ROUTER_FALLBACK_MODEL`   | fallback judge model                        | no       | no fallback — primary only                                              |
+| `OPEN_ROUTER_EMBEDDING_MODEL`  | semantic retrieval                          | no       | lexical retrieval only (§9.4)                                           |
+| `OPEN_ROUTER_ZDR`              | zero-data-retention provider filter         | no       | default true — "false" disables (no ZDR endpoints on account)           |
+| `OPEN_ROUTER_REASONING_EFFORT` | reasoning depth for reasoning models        | no       | unset/invalid = `medium` floor; `none`/`low`/`medium`/`high` — see §9.5 |
+| `AXIOM_INGEST_TOKEN`           | Axiom ingest token — judge timing telemetry | no       | telemetry off, judge unaffected                                         |
+| `AXIOM_DATASET`                | Axiom dataset name                          | no       | default `judge-timings`                                                 |
 
 - Validated at route module load. Model format `vendor/model` — else 503
   `misconfigured`.
@@ -356,10 +351,10 @@ artifacts (§9.11).
 
 #### 9.3.1 Scryfall (cards + rulings)
 
-| Operation | Endpoint                         | Cache            |
-| --------- | -------------------------------- | ---------------- |
-| Card      | `GET /cards/named?fuzzy={query}` | LRU 500, TTL 24h |
-| Rulings   | `GET rulings_uri` → fallback `GET /cards/{id}/rulings` | TTL 7d |
+| Operation | Endpoint                                               | Cache            |
+| --------- | ------------------------------------------------------ | ---------------- |
+| Card      | `GET /cards/named?fuzzy={query}`                       | LRU 500, TTL 24h |
+| Rulings   | `GET rulings_uri` → fallback `GET /cards/{id}/rulings` | TTL 7d           |
 
 - Canonical card schema = **raw Scryfall card JSON**. Never reshaped.
 - Card name extraction: quoted names in question, else fuzzy match on question
@@ -431,30 +426,28 @@ SSE events:
 
 - `token.content` = **answer text only**. Model emits plain-text answer
   immediately (no JSON wrapper, no reasoning), then `<<<CITATIONS>>>` delimiter
-  + compact JSON citation ids (§9.7). Server streams answer chars as they
-  arrive — nothing buffered, first visible char ≈ first model chunk. Never raw
-  JSON to client. Citations assembly failure → `citations: []` (answer intact).
-- `status` events: `{type:"status", phase:"context"|"thinking"}` — phase
-  markers before the answer streams. **Telemetry-only:** server logs `phases`,
-  client IGNORES them — UI renders 3-dot typing indicator, no status text
-  (DESIGN §6.4).
+  - compact JSON citation ids (§9.7). Server streams answer chars as they arrive
+    — nothing buffered, first visible char ≈ first model chunk. Never raw JSON
+    to client. Citations assembly failure → `citations: []` (answer intact).
+- `status` events: `{type:"status", phase:"context"|"thinking"}` — phase markers
+  before the answer streams. **Telemetry-only:** server logs `phases`, client
+  IGNORES them — UI renders 3-dot typing indicator, no status text (DESIGN
+  §6.4).
 - **Reasoning:** reasoning models may emit hidden chain-of-thought before the
   answer (`firstCharMs - firstTokenMs` = reasoning duration). Effort default
   `medium` (quality floor) — `OPEN_ROUTER_REASONING_EFFORT` overrides
   (none/low/medium/high). Latency/quality tradeoff measured via probe (§9.2).
 - `citations` assembled **server-side** from the model's compact ids: rule
-  excerpts = verbatim retrieved-rule text (§9.4), card excerpts = ruling
-  comment / oracle text (§9.7). Delivered once in `done` — server contract (UI
-  does not render them; answers carry inline rule refs formatted per DESIGN.md
-  §6.4.1).
+  excerpts = verbatim retrieved-rule text (§9.4), card excerpts = ruling comment
+  / oracle text (§9.7). Delivered once in `done` — server contract (UI does not
+  render them; answers carry inline rule refs formatted per DESIGN.md §6.4.1).
 - `done.timings` = phase ms from request start: `contextMs` (Scryfall + RAG
   build; parallel max), `scryfallMs` (card lookups), `rulesMs` (rules
   fetch/cache + retrieval), `firstTokenMs` (first model chunk), `firstCharMs`
   (first visible char), `totalMs`, `phases`
   (`[{phase:"context",atMs:0},{phase:"thinking",atMs:contextMs}]`). Client MAY
-  ignore. Server logs
-  `[ai-judge] timing` line + sends to Axiom when configured (§9.2). Telemetry
-  never delays response. Ingest = cloud REST endpoint
+  ignore. Server logs `[ai-judge] timing` line + sends to Axiom when configured
+  (§9.2). Telemetry never delays response. Ingest = cloud REST endpoint
   `/v1/datasets/{dataset}/ingest`, fetch bounded 5s (AbortSignal); timeout or
   non-2xx → `[ai-judge] telemetry ingest ...` failure line (status/name only).
 - Telemetry payload: timings + `model` + `inputTokens`/`outputTokens`/`cost`.
@@ -493,9 +486,9 @@ Q: {question}
 ```
 
 - Card block present whenever the card resolves — even with zero rulings.
-  `RULINGS:` block follows when rulings exist (`[name] (date) comment` per
-  line, max 3/card). No card → card block omitted. Source data verbatim —
-  framing labels only compressed.
+  `RULINGS:` block follows when rulings exist (`[name] (date) comment` per line,
+  max 3/card). No card → card block omitted. Source data verbatim — framing
+  labels only compressed.
 
 - Output contract: plain-text answer (markdown subset), then a line with the
   delimiter `<<<CITATIONS>>>`, then ONE compact JSON object
@@ -504,16 +497,16 @@ Q: {question}
   verbatim from context. No reasoning in output — final answer only. No JSON
   wrapper around the answer. Few-shot 2–3 Q&A pairs in system prompt.
 - **Language mirror:** system prompt mandates same-language response (es→es,
-  en→en, other→en). `buildUserPrompt` prepends "Answer Spanish." when
-  Spanish stopwords detected in question. Deterministic server-side.
+  en→en, other→en). `buildUserPrompt` prepends "Answer Spanish." when Spanish
+  stopwords detected in question. Deterministic server-side.
 - **Partial context:** system prompt — excerpts may be truncated; answer from
   excerpts + CR knowledge; never refuse over incomplete excerpt.
 - **Injected rule excerpts clipped** to 180 chars (word boundary) at prompt
   build — answer-side citations still assembled from the full verbatim rule
   text. Few-shot answers one sentence each; `<<<CITATIONS>>>` + citation JSON
   lines verbatim (format enforcers).
-- **Conciseness:** system prompt — shortest complete answer (2–6 short
-  sentences / short list); don't restate question; don't quote card text back.
+- **Conciseness:** system prompt — shortest complete answer (2–6 short sentences
+  / short list); don't restate question; don't quote card text back.
 - **No placeholders:** system prompt — never `[]`/`()`; cite only via citation
   id list. MarkdownText render guard strips stray empty placeholders.
 - **Formatting:** markdown subset + inline rule refs per DESIGN.md §6.4.1.
@@ -521,8 +514,8 @@ Q: {question}
   `citations` assembled server-side → `done` event. Client never renders raw
   JSON (DESIGN.md §6.4).
 - Citation assembly (server): rule id → verbatim rule text from the rules
-  artifact (§9.3.2), `section` = parent section header text; card name →
-  ruling comment (date), else oracle text. Unknown id → citation dropped (no
+  artifact (§9.3.2), `section` = parent section header text; card name → ruling
+  comment (date), else oracle text. Unknown id → citation dropped (no
   fabrication). Excerpts clipped to 300 chars.
 - Citation types:
   - rule:
@@ -621,7 +614,7 @@ thin `route.ts` only.
 
 | Feature                                                               | Phase |
 | --------------------------------------------------------------------- | ----- |
-| Semantic retrieval (`OPENROUTER_EMBEDDING_MODEL`)                     | 2     |
+| Semantic retrieval (`OPEN_ROUTER_EMBEDDING_MODEL`)                    | 2     |
 | AI Judge voice input                                                  | 2     |
 | Card art BGs from Scryfall                                            | 2     |
 | Offline AI rules engine — consumes §9 artifacts + §9.4 pure retrieval | 3     |
