@@ -60,6 +60,13 @@ export function JudgeModal({ id }: JudgeModalProps) {
      trusting reported heights, re-applied on open (MutationObserver on the
      `open` attribute; no native open event exists).
 
+     Multi-source triggers + 500ms poll (no settle timer): EVERY event source
+     (VirtualKeyboard API geometrychange, visualViewport resize/scroll, window
+     resize, focusin) plus a guaranteed poll re-applies the lift — Chrome
+     doesn't reliably fire geometrychange on the SECOND keyboard show, so the
+     poll is the backstop. The self-calibrating measurement makes redundant
+     ticks no-ops at overflow 0.
+
      Two measurement paths, Chrome Android primary:
      1. VirtualKeyboard API (navigator.virtualKeyboard.boundingRect) — exact
         OSK geometry incl. Gboard toolbar row; opt into overlayContent so the
@@ -84,7 +91,6 @@ export function JudgeModal({ id }: JudgeModalProps) {
     // const paintCanvasBlack = (on: boolean) => {
     //   document.documentElement.style.background = on ? "#000" : "";
     // };
-    let settleTimer: ReturnType<typeof setTimeout> | undefined;
 
     const applyLift = (visibleBottom: number): number => {
       if (!dialog.open) return 0;
@@ -97,19 +103,11 @@ export function JudgeModal({ id }: JudgeModalProps) {
     };
 
     const syncViaKeyboardApi = () => {
-      if (!dialog.open || !vk) return;
-      /* Degenerate geometry = no keyboard. Fall back to visualViewport
-         (clears lift; keyboard close also lands here so padding returns
-         to 0). */
-      if (vk.boundingRect.height <= 0) {
-        syncViaViewport();
-        return;
-      }
+      if (!dialog.open || !vk || vk.boundingRect.height <= 0) return;
+      /* Degenerate geometry (height <= 0) = no keyboard; sync() routes to the
+         visualViewport path instead (clears lift on close). */
       /* boundingRect.top = exact keyboard top edge (toolbar included). */
-      if (applyLift(vk.boundingRect.top) > 0) {
-        clearTimeout(settleTimer);
-        settleTimer = setTimeout(syncViaKeyboardApi, 300);
-      }
+      applyLift(vk.boundingRect.top);
     };
 
     const syncViaViewport = () => {
@@ -117,16 +115,14 @@ export function JudgeModal({ id }: JudgeModalProps) {
       const keyboardUp = vv.height + vv.offsetTop < window.innerHeight;
       const visibleBottom =
         vv.height + vv.offsetTop - (keyboardUp ? KEYBOARD_TOOLBAR_MARGIN : 0);
-      if (applyLift(visibleBottom) > 0) {
-        clearTimeout(settleTimer);
-        settleTimer = setTimeout(syncViaViewport, 300);
-      }
+      applyLift(visibleBottom);
     };
 
-    const sync = () =>
-      vk && vk.boundingRect.height > 0
-        ? syncViaKeyboardApi()
-        : syncViaViewport();
+    const sync = () => {
+      if (!dialog.open) return;
+      if (vk && vk.boundingRect.height > 0) syncViaKeyboardApi();
+      else syncViaViewport();
+    };
 
     if (vk) {
       try {
@@ -135,12 +131,16 @@ export function JudgeModal({ id }: JudgeModalProps) {
       } catch {
         /* older Chrome — ignore, geometry events still fire */
       }
-      vk.addEventListener("geometrychange", syncViaKeyboardApi);
-    } else {
-      vv!.addEventListener("resize", syncViaViewport);
-      vv!.addEventListener("scroll", syncViaViewport);
-      window.addEventListener("resize", syncViaViewport);
+      vk.addEventListener("geometrychange", sync);
     }
+    vv?.addEventListener("resize", sync);
+    vv?.addEventListener("scroll", sync);
+    window.addEventListener("resize", sync);
+    dialog.addEventListener("focusin", sync);
+
+    /* 500ms poll: the guarantee — even with zero events (Chrome's unreliable
+       second geometrychange), the self-calibrating measurement re-applies. */
+    const poll = setInterval(sync, 500);
 
     /* re-sync on open — modal mounts closed, open attr flip is the trigger */
     const observer = new MutationObserver(() => {
@@ -151,14 +151,13 @@ export function JudgeModal({ id }: JudgeModalProps) {
     sync();
 
     return () => {
-      clearTimeout(settleTimer);
+      clearInterval(poll);
       observer.disconnect();
-      if (vk) vk.removeEventListener("geometrychange", syncViaKeyboardApi);
-      else {
-        vv!.removeEventListener("resize", syncViaViewport);
-        vv!.removeEventListener("scroll", syncViaViewport);
-        window.removeEventListener("resize", syncViaViewport);
-      }
+      if (vk) vk.removeEventListener("geometrychange", sync);
+      vv?.removeEventListener("resize", sync);
+      vv?.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+      dialog.removeEventListener("focusin", sync);
     };
   }, [id]);
 
