@@ -1592,11 +1592,13 @@ test.describe("AI Judge", () => {
     await expect(sendButton(page)).toBeEnabled();
   });
 
-  /* DESIGN §6.4 Keyboard + commit d1558cf (JudgeModal.tsx) — the dialog keeps
-     h-full (full-page black) while the mobile keyboard is open; the input row
-     is lifted with inline paddingBottom = keyboard inset, applied by the
-     visualViewport resize/scroll listeners + MutationObserver-on-open. No
-     /api/judge call → no mock needed (TC-AJ-34/35 pattern). */
+  /* DESIGN §6.4 Keyboard + commits d1558cf/ab97d62 (JudgeModal.tsx) — the
+     dialog keeps h-full (full-page black) while the mobile keyboard is open;
+     the input row is lifted with inline paddingBottom via a self-calibrating
+     measurement (form bottom vs visualViewport bottom, settle re-check while
+     overflow > 0), applied by the visualViewport resize/scroll + window resize
+     listeners + MutationObserver-on-open. No /api/judge call → no mock needed
+     (TC-AJ-34/35 pattern). */
   test("TC-AJ-36: visualViewport shrink lifts input via paddingBottom (keyboard simulation)", async ({
     page,
   }) => {

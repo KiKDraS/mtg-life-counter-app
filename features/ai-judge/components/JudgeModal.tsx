@@ -79,8 +79,9 @@ export function JudgeModal({ id }: JudgeModalProps) {
       const current = parseFloat(dialog.style.paddingBottom) || 0;
       dialog.style.paddingBottom = `${Math.max(0, current + overflow)}px`;
       /* Late keyboard chrome (toolbar) can grow without further events —
-         one bounded settle re-check; stops rescheduling once stable. */
-      if (overflow !== 0) {
+         settle re-check while the row is still below the visible edge;
+         stops once corrected (overflow ≤ 0 needs no lift). */
+      if (overflow > 0) {
         clearTimeout(settleTimer);
         settleTimer = setTimeout(syncDialogToViewport, 300);
       }
