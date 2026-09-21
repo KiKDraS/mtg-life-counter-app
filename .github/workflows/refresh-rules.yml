@@ -23,12 +23,7 @@ jobs:
           fi
 
           # Future-dated rules: wait until effective date — daily cron re-runs until then.
-          EFFECTIVE="$(node -e "
-const v = require('./features/ai-judge/lib/rag/rules-bundle.json').version;
-const m = v.match(/effective as of (.+?)\.?\s*$/i);
-if (!m) { console.error('cannot parse effective date: ' + v); process.exit(1); }
-console.log(new Date(Date.parse(m[1])).toISOString().slice(0, 10));
-")"
+          EFFECTIVE="$(node -e "const v=require('./features/ai-judge/lib/rag/rules-bundle.json').version;const m=v.match(/effective as of (.+?)\.?\s*$/i);if(!m){console.error('cannot parse effective date: '+v);process.exit(1)}console.log(new Date(Date.parse(m[1])).toISOString().slice(0,10))")"
           TODAY="$(date -u +%Y-%m-%d)"
           if [[ "$EFFECTIVE" > "$TODAY" ]]; then
             echo "rules effective $EFFECTIVE — future vs today $TODAY, skipping merge until effective date"
