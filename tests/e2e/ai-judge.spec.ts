@@ -1571,7 +1571,12 @@ test.describe("AI Judge", () => {
     await expect(sendButton(page)).toBeEnabled();
   });
 
-  test("TC-AJ-36: visualViewport shrink drives dialog height (keyboard simulation)", async ({
+  /* DESIGN §6.4 Keyboard + commit d1558cf (JudgeModal.tsx) — the dialog keeps
+     h-full (full-page black) while the mobile keyboard is open; the input row
+     is lifted with inline paddingBottom = keyboard inset, applied by the
+     visualViewport resize/scroll listeners + MutationObserver-on-open. No
+     /api/judge call → no mock needed (TC-AJ-34/35 pattern). */
+  test("TC-AJ-36: visualViewport shrink lifts input via paddingBottom (keyboard simulation)", async ({
     page,
   }) => {
     // 1. Error collectors on (TC-AJ-03 pattern). Open the modal at the default
@@ -1582,14 +1587,18 @@ test.describe("AI Judge", () => {
     await expect(modal(page)).toHaveAttribute("open", "");
     await expect(input(page)).toBeFocused();
 
-    // expect: baseline dialog bbox = full viewport — the mount call already
-    //     applied inline style.height 720px / style.top 0px (DESIGN §6.4)
+    // expect: baseline dialog bbox = full viewport — h-full, NOT shrunk; the
+    //     old inline style.height/style.top mechanism is gone (both read "")
     const baseStyle = await modal(page).evaluate((el) => ({
       height: el.style.height,
       top: el.style.top,
+      paddingBottom: el.style.paddingBottom,
     }));
-    expect(baseStyle.height).toBe("720px");
-    expect(baseStyle.top).toBe("0px");
+    expect(baseStyle.height).toBe("");
+    expect(baseStyle.top).toBe("");
+    // expect: mount sync already applied — paddingBottom "0px" (inset 0; the
+    //     handler always writes a px value, never clears to "")
+    expect(baseStyle.paddingBottom).toBe("0px");
     const baseDialogBox = await modal(page).boundingBox();
     expect(baseDialogBox?.x).toBeCloseTo(0, 0);
     expect(baseDialogBox?.y).toBeCloseTo(0, 0);
@@ -1626,21 +1635,20 @@ test.describe("AI Judge", () => {
     expect(shrunk.descValue).toBe(300);
     expect(shrunk.descConfigurable).toBe(true);
 
-    // 3. Dialog follows the shrink (inline style overrides h-full on the fixed
-    //    dialog)
-    const shrinkStyle = await modal(page).evaluate((el) => ({
-      height: el.style.height,
-      top: el.style.top,
-    }));
-    expect(shrinkStyle.height).toBe("300px");
-    expect(shrinkStyle.top).toBe("0px");
+    // 3. Input row lifts above the "keyboard"; dialog height UNCHANGED
+    //    (full-page black preserved — h-full, no inline height)
     const shrinkDialogBox = await modal(page).boundingBox();
     expect(shrinkDialogBox?.y).toBeCloseTo(0, 0);
-    expect(shrinkDialogBox?.height).toBe(300);
+    expect(shrinkDialogBox?.height).toBe(720);
+    // expect: paddingBottom exactly 420px (720 − 300; observed)
+    const shrinkPadding = await modal(page).evaluate(
+      (el) => el.style.paddingBottom,
+    );
+    expect(shrinkPadding).toBe("420px");
 
-    // expect: input row fully inside the shrunk dialog — textarea + SEND
-    //     bottoms exactly 284, both ≤ 300 and y ≥ 0 (nothing clipped behind
-    //     the "keyboard")
+    // expect: input row fully inside the shrunk visual viewport — textarea +
+    //     SEND bottoms exactly 284, both ≤ 300 and y ≥ 0 (nothing clipped
+    //     behind the "keyboard")
     const shrinkInputBox = await input(page).boundingBox();
     const shrinkSendBox = await sendButton(page).boundingBox();
     expect((shrinkInputBox?.y ?? 0) + (shrinkInputBox?.height ?? 0)).toBe(284);
@@ -1669,18 +1677,22 @@ test.describe("AI Judge", () => {
       return {
         readHeight: vv.height,
         hasOwnHeight: Object.prototype.hasOwnProperty.call(vv, "height"),
-        styleHeight: dialog.style.height,
-        styleTop: dialog.style.top,
+        paddingBottom: dialog.style.paddingBottom,
       };
     });
     // expect: own prop gone — visualViewport back to 720
     expect(restored.readHeight).toBe(720);
     expect(restored.hasOwnHeight).toBe(false);
-    // expect: dialog inline style back to full height
-    expect(restored.styleHeight).toBe("720px");
-    expect(restored.styleTop).toBe("0px");
+    // expect: paddingBottom back to "0px" — NOT "" (handler always writes px)
+    expect(restored.paddingBottom).toBe("0px");
     const restoreDialogBox = await modal(page).boundingBox();
     expect(restoreDialogBox?.height).toBe(720);
+
+    // expect: input row back at baseline — textarea + SEND bottoms 704
+    const restoreInputBox = await input(page).boundingBox();
+    const restoreSendBox = await sendButton(page).boundingBox();
+    expect((restoreInputBox?.y ?? 0) + (restoreInputBox?.height ?? 0)).toBe(704);
+    expect((restoreSendBox?.y ?? 0) + (restoreSendBox?.height ?? 0)).toBe(704);
 
     // 5. Cleanup: close via CLOSE. No /api/judge call → no mock needed.
     await closeButton(page).click();
@@ -1691,44 +1703,48 @@ test.describe("AI Judge", () => {
     expect(errors.consoleErrors).toEqual([]);
   });
 
-  /* DESIGN §6.4 Keyboard + fix 38ef911 — the default white <html> canvas
-     flashes below/around the black dialog during the keyboard-open height
-     transition; the MutationObserver on the dialog's `open` attribute paints
-     it black while open and restores it on close. No /api/judge call → no
-     mock needed (TC-AJ-34/35/36 pattern). */
-  test("TC-AJ-37: Canvas black while dialog open, restored on close", async ({
+  /* DESIGN §6.4 Keyboard + commit b289199 (app/globals.css) — the default
+     white <html> canvas used to flash below/around the black dialog during the
+     keyboard-open height transition; the JS paintCanvasBlack fix (38ef911) is
+     now commented out and the canvas is black permanently:
+     `html { background-color: var(--color-ui-belt) }` (#000000), applied at
+     load and never removed. No /api/judge call → no mock needed
+     (TC-AJ-34/35/36 pattern). */
+  test("TC-AJ-37: Canvas black permanently via globals.css (no JS paint, no restore)", async ({
     page,
   }) => {
     // 1. Error collectors on (TC-AJ-36 pattern). Fresh page, modal closed.
     const errors = errorCollectors(page);
     await page.goto("/");
 
-    // expect: inline canvas unpainted — style.background and style.backgroundColor ""
+    // expect: no inline paint — style.background and style.backgroundColor ""
     const fresh = await page.evaluate(() => ({
       background: document.documentElement.style.background,
       backgroundColor: document.documentElement.style.backgroundColor,
     }));
     expect(fresh.background).toBe("");
     expect(fresh.backgroundColor).toBe("");
-    // expect: computed not black — transparent (observed rgba(0, 0, 0, 0))
+    // expect: computed black from globals.css — rgb(0, 0, 0) (permanent CSS;
+    //     was rgba(0, 0, 0, 0) under the old JS contract — this is the
+    //     contract change)
     const freshComputed = await page.evaluate(
       () => getComputedStyle(document.documentElement).backgroundColor,
     );
-    expect(freshComputed).toBe("rgba(0, 0, 0, 0)");
+    expect(freshComputed).toBe("rgb(0, 0, 0)");
 
     // 2. Open the modal (prelude)
     await openJudgeModal(page);
     // expect: #ai-judge-modal visible/open (has open attr)
     await expect(modal(page)).toHaveAttribute("open", "");
 
-    // expect: inline canvas painted — CSSOM normalizes the #000 shorthand to
-    //     rgb(0, 0, 0); assert the normalized form, NEVER the literal #000
+    // expect: inline still unpainted — black comes from CSS, not inline (the
+    //     JS paint path is commented out)
     const painted = await page.evaluate(() => ({
       background: document.documentElement.style.background,
       backgroundColor: document.documentElement.style.backgroundColor,
     }));
-    expect(painted.background).toBe("rgb(0, 0, 0)");
-    expect(painted.backgroundColor).toBe("rgb(0, 0, 0)");
+    expect(painted.background).toBe("");
+    expect(painted.backgroundColor).toBe("");
     // expect: computed backgroundColor black
     const paintedComputed = await page.evaluate(
       () => getComputedStyle(document.documentElement).backgroundColor,
@@ -1739,42 +1755,45 @@ test.describe("AI Judge", () => {
     await closeButton(page).click();
     await expect(modal(page)).not.toBeVisible();
 
-    // expect: inline restored — style.background and style.backgroundColor ""
+    // expect: STILL black — permanent CSS, no restore step exists
     const closed = await page.evaluate(() => ({
       background: document.documentElement.style.background,
       backgroundColor: document.documentElement.style.backgroundColor,
+      computed: getComputedStyle(document.documentElement).backgroundColor,
     }));
     expect(closed.background).toBe("");
     expect(closed.backgroundColor).toBe("");
-    // expect: computed back to transparent
-    const closedComputed = await page.evaluate(
-      () => getComputedStyle(document.documentElement).backgroundColor,
-    );
-    expect(closedComputed).toBe("rgba(0, 0, 0, 0)");
+    expect(closed.computed).toBe("rgb(0, 0, 0)");
 
     // 4. Reopen — belt auto-closed on modal close; reopenJudgeModal's
     //    belt-open-if-needed guard handles it
     await reopenJudgeModal(page);
     await expect(modal(page)).toHaveAttribute("open", "");
-    // expect: black again — style.backgroundColor rgb(0, 0, 0)
-    const reopened = await page.evaluate(
-      () => document.documentElement.style.backgroundColor,
-    );
-    expect(reopened).toBe("rgb(0, 0, 0)");
+    // expect: open attr present; computed black; inline ""
+    const reopened = await page.evaluate(() => ({
+      background: document.documentElement.style.background,
+      backgroundColor: document.documentElement.style.backgroundColor,
+      computed: getComputedStyle(document.documentElement).backgroundColor,
+    }));
+    expect(reopened.background).toBe("");
+    expect(reopened.backgroundColor).toBe("");
+    expect(reopened.computed).toBe("rgb(0, 0, 0)");
 
-    // 5. Close via Escape — textarea focused (autoFocus), but the
-    //    document-level capture keydown handler catches it regardless of
-    //    focus; no CLOSE pre-focus needed (unlike TC-AJ-13's streaming case)
+    // 5. Close via Escape — textarea focused (autoFocus); the document-level
+    //    capture keydown handler catches it regardless of focus; no CLOSE
+    //    pre-focus needed (unlike TC-AJ-13's streaming case)
     await page.keyboard.press("Escape");
     await expect(modal(page)).not.toBeVisible();
 
-    // expect: restored again — style.background "", computed transparent
+    // expect: still black — computed rgb(0, 0, 0); inline ""
     const escaped = await page.evaluate(() => ({
       background: document.documentElement.style.background,
+      backgroundColor: document.documentElement.style.backgroundColor,
       computed: getComputedStyle(document.documentElement).backgroundColor,
     }));
     expect(escaped.background).toBe("");
-    expect(escaped.computed).toBe("rgba(0, 0, 0, 0)");
+    expect(escaped.backgroundColor).toBe("");
+    expect(escaped.computed).toBe("rgb(0, 0, 0)");
 
     // 6. Cleanup
     // expect: no pageerror/console errors (only benign _vercel/* 404s, filtered)

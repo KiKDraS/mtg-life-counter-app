@@ -366,55 +366,60 @@ Contract: DESIGN §6.4 Keyboard + input dock. Playwright cannot open a real virt
 - `FullscreenEnforcer` requests fullscreen on first pointerdown (belt click): `document.fullscreenElement` becomes `<html>` in headless Chromium, but `setViewportSize` still resizes normally — geometry identical whether the resize happens before or after opening the modal (both orders verified). Console emits a warning-level `Orientation lock failed… NotSupportedError`; `errorCollectors` captures error-level only, so tests stay green.
 - `interactive-widget=resizes-content` is not emulable in Playwright: TC-AJ-34 pins the meta contract, TC-AJ-35 pins layout containment under a shrunk layout viewport. Neither alone proves on-device Gboard behavior; together they cover both halves of the fix.
 
-#### 1.32. TC-AJ-36: visualViewport shrink drives dialog height (keyboard simulation)
+#### 1.32. TC-AJ-36: visualViewport shrink lifts input via paddingBottom (keyboard simulation)
 
-Contract: DESIGN §6.4 Keyboard + fix `7fbf614` (`JudgeModal.tsx`). Playwright cannot open a real virtual keyboard, so simulate the visual-viewport shrink it causes. On mount the modal attaches `resize` + `scroll` listeners to `window.visualViewport` and sets the dialog's inline `style.height` = `visualViewport.height`, `style.top` = `visualViewport.offsetTop` (inline style overrides `h-full` on the `fixed` dialog); the handler also runs once on mount. In headless Chromium `visualViewport.height`/`offsetTop` are prototype getters — an own property (`Object.defineProperty`, `configurable: true`) shadows them, and `dispatchEvent(new Event("resize"))` on the visualViewport object fires the mounted handler (verified live, notes below). The handler reads `window.visualViewport.height` at event time — no cached values — so the synthetic event applies immediately. TC-AJ-34 (meta) + TC-AJ-35 (layout-viewport shrink) cover the layout half; this TC pins the visualViewport half the fix actually listens on. No `/api/judge` call → no mock needed (TC-AJ-34/35 pattern). Selectors: DIALOG `#ai-judge-modal`, INPUT textbox, SEND button (spec §Selectors).
+Contract: DESIGN §6.4 Keyboard + commit `d1558cf` (`JudgeModal.tsx`). Playwright cannot open a real virtual keyboard, so simulate the visual-viewport shrink it causes. The dialog now keeps `h-full` (full-page black — the board never shows through, no white flash); the input row is lifted above the keyboard with inline `dialog.style.paddingBottom = max(0, window.innerHeight − (visualViewport.height + visualViewport.offsetTop))px`, applied by the same `visualViewport` `resize`/`scroll` listeners plus the MutationObserver-on-open, and once on mount. In headless Chromium `visualViewport.height`/`offsetTop` are prototype getters — an own property (`Object.defineProperty`, `configurable: true`) shadows them, and `dispatchEvent(new Event("resize"))` on the visualViewport object fires the mounted handler (verified live, notes below). TC-AJ-34 (meta) + TC-AJ-35 (layout-viewport shrink) cover the layout half; this TC pins the paddingBottom half. No `/api/judge` call → no mock needed (TC-AJ-34/35 pattern). Selectors: DIALOG `#ai-judge-modal`, INPUT textbox, SEND button (spec §Selectors).
 
 1. Error collectors on (TC-AJ-03 pattern). `openJudgeModal(page)` at the default 1280x720 (modal already open when the "keyboard" opens — the real bug scenario).
-   - expect: `#ai-judge-modal` visible/open; baseline dialog bbox `{ x: 0, y: 0, width: 1280, height: 720 }` (mount call already applied — `style.height` `720px`, `style.top` `0px`).
+   - expect: `#ai-judge-modal` visible/open; dialog bbox `{ x: 0, y: 0, width: 1280, height: 720 }` — full-page, NOT shrunk (`h-full`; the old inline `style.height` mechanism is gone — `style.height`/`style.top` read `""`).
+   - expect: mount sync already applied — `dialog.style.paddingBottom === "0px"` (inset 0 → `0px`; the handler always writes a `px` value, never clears to `""`).
    - expect: baseline input row fully inside 720 — textarea bbox `{ y: 658, height: 46 }` → bottom 704; SEND bbox `{ y: 664, height: 40 }` → bottom 704.
 2. Simulate keyboard shrink (in-page): `Object.defineProperty(window.visualViewport, "height", { value: 300, configurable: true })`; `Object.defineProperty(window.visualViewport, "offsetTop", { value: 0, configurable: true })`; `window.visualViewport.dispatchEvent(new Event("resize"))`.
    - expect: `visualViewport.height` reads 300 (own prop shadows getter — `Object.getOwnPropertyDescriptor` shows `{ value: 300, configurable: true }`); no throw from defineProperty or dispatchEvent.
-3. Dialog follows the shrink.
-   - expect: dialog `style.height === "300px"`, `style.top === "0px"` (inline style applied); dialog bbox `{ y: 0, height: 300 }` (observed exact 300, down from 720).
-   - expect: input row fully inside — textarea bbox `{ y: 238, height: 46 }` → bottom 284 ≤ 300; SEND bbox `{ y: 244, height: 40 }` → bottom 284 ≤ 300; both `y >= 0`; nothing clipped (docked textarea + ⏎ stay visible above the "keyboard").
+3. Input row lifts above the "keyboard"; dialog height unchanged.
+   - expect: dialog bbox `{ y: 0, height: 720 }` — UNCHANGED (full-page black preserved; assert NOT 300).
+   - expect: `dialog.style.paddingBottom === "420px"` (720 − 300; exact observed).
+   - expect: input row fully inside the shrunk visual viewport — textarea bbox `{ y: 238, height: 46 }` → bottom 284 ≤ 300; SEND bbox `{ y: 244, height: 40 }` → bottom 284 ≤ 300; both `y >= 0`; nothing clipped (docked textarea + ⏎ stay visible above the "keyboard").
 4. Restore (keyboard closes): `delete (window.visualViewport as any).height; delete (window.visualViewport as any).offsetTop;` then `dispatchEvent(new Event("resize"))` again.
-   - expect: `visualViewport.height` back to 720 (own prop gone — `hasOwnProperty` false); dialog `style.height` `720px`; dialog bbox height back to ≈ full viewport (observed exact 720).
-5. Cleanup: optional close via CLOSE. Assert error collectors empty — no pageerror / console errors (the defineProperty/dispatchEvent trick emits none; only the benign `_vercel/*` 404s, filtered by `errorCollectors`).
+   - expect: `visualViewport.height` back to 720 (own prop gone — `hasOwnProperty` false).
+   - expect: `dialog.style.paddingBottom === "0px"` (inset 0 — NOT `""`, see notes).
+   - expect: input row back at baseline — textarea bottom 704, SEND bottom 704; dialog bbox height still 720.
+5. Cleanup: optional close via CLOSE. Assert error collectors empty — no pageerror / console errors (the defineProperty/dispatchEvent trick emits none; only the benign `_vercel/*` 404s + MIME-type refusals, filtered by `errorCollectors`).
 
 **Live-verified notes (2026-09-21, headless Chromium, 1280x720):**
-- The defineProperty/dispatchEvent trick DRIVES the dialog in headless Chromium: `visualViewport.height` own property shadows the prototype getter, and `dispatchEvent(new Event("resize"))` on the visualViewport object fires the mounted listener — no rejection, no alternative mechanism needed. Do NOT dispatch on `window` instead: the code listens on `window.visualViewport` only.
-- Observed geometry at shrink 300: textarea `{ y: 238, height: 46, bottom: 284 }`, SEND `{ y: 244, height: 40, bottom: 284 }`, dialog bbox height exactly 300. Restore: dialog bbox height exactly 720. Assert exact values; tolerance ±1 acceptable if a CI renderer rounds differently.
-- `offsetTop` stays 0 in this setup; assert `style.top === "0px"` (inline style) — the top-follow behavior is only observable on-device where the keyboard pushes the visual viewport down.
-- Baseline console errors are the benign Vercel 404s (`_vercel/*`) — `errorCollectors` already filters them (spec §Failure collection).
+- The defineProperty/dispatchEvent trick DRIVES the paddingBottom in headless Chromium: `visualViewport.height` own property shadows the prototype getter, and `dispatchEvent(new Event("resize"))` on the visualViewport object fires the mounted listener — no rejection, no alternative mechanism needed. Do NOT dispatch on `window` instead: the code listens on `window.visualViewport` only.
+- **Quirk — never assert `paddingBottom === ""`.** The handler always assigns `` `${inset}px` ``; at inset 0 it writes `"0px"` (mount + restore both observed). The old mechanism's "restore to empty inline style" is gone.
+- **Old mechanism dead:** the dialog no longer gets inline `style.height`/`style.top` (read `""` at every step); `h-full` keeps it at 720 while the "keyboard" is open. Assert bbox height 720 on the shrunk step, NOT 300.
+- Observed geometry at shrink 300: paddingBottom exactly `"420px"`, textarea `{ y: 238, height: 46, bottom: 284 }`, SEND `{ y: 244, height: 40, bottom: 284 }`, dialog bbox height exactly 720. Restore: paddingBottom `"0px"`, bottoms 704. Assert exact values; tolerance ±1 acceptable if a CI renderer rounds differently.
+- `offsetTop` stays 0 in this setup; the formula includes it (`inset = innerHeight − (vv.height + vv.offsetTop)`) — a nonzero offsetTop only occurs on-device where the keyboard pushes the visual viewport down.
+- Baseline console errors are the benign Vercel 404s (`_vercel/*`, incl. the MIME-type-refusal lines) — `errorCollectors` already filters them (spec §Failure collection).
 
-#### 1.33. TC-AJ-37: Canvas black while dialog open, restored on close
+#### 1.33. TC-AJ-37: Canvas black permanently via globals.css (no JS paint, no restore)
 
-Contract: DESIGN §6.4 Keyboard + fix `38ef911` (`JudgeModal.tsx`). The default white `<html>` canvas flashes below/around the black dialog during the mobile keyboard-open height transition — the fix paints the document canvas black while the dialog is open: a MutationObserver on the dialog's `open` attribute calls `paintCanvasBlack(dialog.open)` (`document.documentElement.style.background = "#000"` when open, `""` when closed) and also re-syncs the inline dialog height/top on open (that half already pinned by TC-AJ-36). This TC pins the canvas paint: black on open, restored on every close path. No `/api/judge` call → no mock needed (TC-AJ-34/35/36 pattern). Selectors: DIALOG `#ai-judge-modal`, CLOSE button (spec §Selectors).
+Contract: DESIGN §6.4 Keyboard + commit `b289199` (`app/globals.css`). The default white `<html>` canvas used to flash below/around the black dialog during the mobile keyboard-open height transition; the JS `paintCanvasBlack` fix (38ef911) painted it black while open and restored `""` on close. That JS path is now commented out (`JudgeModal.tsx`) and the canvas is black permanently: `html { background-color: var(--color-ui-belt) }` (`#000000`) in `globals.css`, applied at load and never removed. This TC pins the permanent contract: computed black on fresh load, on open, and on BOTH close paths (✕ and Escape), with NO inline style manipulation at any point. No `/api/judge` call → no mock needed (TC-AJ-34/35/36 pattern). Selectors: DIALOG `#ai-judge-modal`, CLOSE button (spec §Selectors).
 
 1. Error collectors on (TC-AJ-36 pattern). `page.goto("/")` (fresh page, modal closed).
-   - expect: inline canvas unpainted — `page.evaluate(() => document.documentElement.style.background)` === `""` and `style.backgroundColor` === `""`.
-   - expect: computed not black — `getComputedStyle(document.documentElement).backgroundColor` === `rgba(0, 0, 0, 0)` (transparent; observed live).
+   - expect: no inline paint — `document.documentElement.style.background` === `""` and `style.backgroundColor` === `""`.
+   - expect: computed black from globals.css — `getComputedStyle(document.documentElement).backgroundColor` === `"rgb(0, 0, 0)"` (permanent CSS; was `rgba(0, 0, 0, 0)` under the old JS contract — this is the contract change).
 2. `openJudgeModal(page)`.
    - expect: `#ai-judge-modal` visible/open (has `open` attr).
-   - expect: inline canvas painted — `style.background` === `rgb(0, 0, 0)` (CSSOM normalizes the `#000` shorthand — assert `rgb(0, 0, 0)`, NEVER the literal `#000`, see notes).
-   - expect: computed backgroundColor === `rgb(0, 0, 0)` (black).
+   - expect: inline still unpainted — `style.background` === `""`, `style.backgroundColor` === `""` (the JS paint path is commented out; black comes from CSS, not inline).
+   - expect: computed backgroundColor === `"rgb(0, 0, 0)"`.
 3. Close via `closeButton(page)`.
    - expect: modal not visible (`open` attr gone).
-   - expect: inline restored — `style.background` === `""` and `style.backgroundColor` === `""`.
-   - expect: computed back to `rgba(0, 0, 0, 0)`.
+   - expect: STILL black — computed backgroundColor === `"rgb(0, 0, 0)"` (no restore — permanent CSS).
+   - expect: inline still `""` (nothing to restore).
 4. Reopen via `reopenJudgeModal(page)` (belt auto-closed on modal close — helper's belt-open guard required).
-   - expect: black again — `style.backgroundColor` === `rgb(0, 0, 0)`.
+   - expect: open attr present; computed backgroundColor === `"rgb(0, 0, 0)"`; inline `""`.
 5. Close via Escape — `page.keyboard.press("Escape")` with the textarea focused (autoFocus; the document-level capture keydown handler catches it regardless of focus — no need to focus CLOSE first, unlike TC-AJ-13's streaming case).
    - expect: modal not visible.
-   - expect: restored — `style.background` === `""`, computed `rgba(0, 0, 0, 0)`.
-6. Cleanup: assert error collectors empty — no pageerror / console errors (only benign `_vercel/*` 404s in the prod build, filtered by `errorCollectors`).
+   - expect: computed backgroundColor === `"rgb(0, 0, 0)"` (still black); inline `""`.
+6. Cleanup: assert error collectors empty — no pageerror / console errors (only benign `_vercel/*` 404s + MIME-type refusals in the prod build, filtered by `errorCollectors`).
 
 **Live-verified notes (2026-09-21, headless Chromium, 1280x720):**
-- **Assert `rgb(0, 0, 0)`, not `#000`.** The code sets `style.background = "#000"`, but CSSOM reflects the shorthand normalized: both `el.style.background` and `el.style.backgroundColor` read back `rgb(0, 0, 0)` (verified live). A literal `=== "#000"` assertion FAILS.
-- **Both close paths fire the observer identically.** ✕ button and Escape both end in `dialog.close()`, which removes the `open` attribute → MutationObserver fires → `paintCanvasBlack(false)`. Verified: restored to `""` via both.
-- Observer callback runs as a microtask after the attribute mutation; Playwright's click→evaluate round-trip lets it run first, so direct `evaluate` is reliable (verified). `expect.poll` acceptable fallback if a CI renderer flakes.
+- **Contract flipped: assert computed, never inline.** The old test asserted `style.background === "rgb(0, 0, 0)"` on open and `""` after close. Now the inline style stays `""` for the entire session — the canvas black is `html { background-color: var(--color-ui-belt) }` in globals.css (computed `rgb(0, 0, 0)`), so ONLY `getComputedStyle` assertions are meaningful. Asserting inline `"rgb(0, 0, 0)"` FAILS.
+- **No restore step exists.** Both ✕ and Escape leave the canvas black (verified live). Do not assert a return to `rgba(0, 0, 0, 0)` — that value is gone from the codebase.
 - Escape closes with the textarea focused — the JudgeModal document-level capture keydown handler (not just DialogShell) catches it. No pre-focus needed in the plain (non-streaming) case.
 - Closing the modal also closes the spellbook belt (observed) — the reopen step must use `reopenJudgeModal`'s belt-open-if-needed guard.
 - `window.visualViewport` exists in headless Chromium, so the effect guard passes (verified).
-- Re-sync side-effect of the same observer (dialog inline `style.height`/`top` re-applied on open) observed at `720px`/`0px` — already pinned by TC-AJ-36, not re-asserted here.
+- The observer now only re-syncs `paddingBottom` on open (no height/top, no paint) — that half is pinned by TC-AJ-36, not re-asserted here.
