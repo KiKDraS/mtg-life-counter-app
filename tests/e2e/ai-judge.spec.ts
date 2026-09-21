@@ -1905,10 +1905,20 @@ test.describe("AI Judge", () => {
         value: {
           overlayContent: false,
           boundingRect: { top: 480, height: 240 },
+          /* Verification harness (spec §1.34 step 5): wrap the registered
+             callback with an invocation counter — __vkInvocations counts
+             geometrychange DISPATCHES (test-driven only), so the no-event
+             regression steps can prove zero callbacks fired. */
           addEventListener(type: string, cb: () => void) {
-            const w = window as unknown as { __vkCbs?: Array<() => void> };
+            const w = window as unknown as {
+              __vkCbs?: Array<() => void>;
+              __vkInvocations?: number;
+            };
             w.__vkCbs = w.__vkCbs ?? [];
-            w.__vkCbs.push(cb);
+            w.__vkCbs.push(() => {
+              w.__vkInvocations = (w.__vkInvocations ?? 0) + 1;
+              cb();
+            });
           },
           removeEventListener() {},
         },
@@ -1995,9 +2005,9 @@ test.describe("AI Judge", () => {
       };
     });
     // expect: padding "360px" — 240 + (480 − 360) = 360 (self-calibrating:
-    //     re-measured from the already-moved form, additive like the settle
-    //     loop); form bottom 360 === boundingRect.top; textarea + SEND bottoms
-    //     344 (360 − 16); both ≤ 360, y ≥ 0
+    //     re-measured from the already-moved form, additive accumulation
+    //     (current padding + overflow)); form bottom 360 === boundingRect.top;
+    //     textarea + SEND bottoms 344 (360 − 16); both ≤ 360, y ≥ 0
     expect(grown.paddingBottom).toBe("360px");
     expect(grown.formBottom).toBe(360);
     expect(grown.textareaBottom).toBe(344);
@@ -2032,6 +2042,8 @@ test.describe("AI Judge", () => {
         formBottom: fb.bottom,
         textareaBottom: tb.bottom,
         sendBottom: sb.bottom,
+        invocations: (window as unknown as { __vkInvocations?: number })
+          .__vkInvocations ?? 0,
       };
     });
     // expect: padding "0px" (NOT ""); form bottom 720; textarea + SEND 704
@@ -2041,15 +2053,176 @@ test.describe("AI Judge", () => {
     expect(hidden.textareaBottom).toBe(704);
     expect(hidden.sendBottom).toBe(704);
 
-    // 4. Settle stability: wait ~400ms (the growth step armed a 300ms settle
-    //    re-check — must be idempotent on the hidden state: the late re-check
-    //    hits the gate → vv fallback → overflow 0; no drift)
+    // 4. Settle stability (hidden state): wait ~400ms — since commit 2ed1b9e
+    //    the re-check is the 500ms poll (the 300ms settle timer is gone);
+    //    idempotent on the hidden state: any tick that lands hits the gate →
+    //    vv fallback → overflow 0; no drift
     await page.waitForTimeout(400);
     expect(await modal(page).evaluate((el) => el.style.paddingBottom)).toBe(
       "0px",
     );
 
-    // 5. Cleanup: close via CLOSE. No /api/judge call → no mock needed.
+    // 5. Regression — second keyboard show with NO events (poll-driven
+    //    recovery, commit 2ed1b9e): mutate the stub ONLY — never invoke the
+    //    geometrychange callbacks (Chrome does not reliably fire
+    //    geometrychange on the second show; with overlayContent the layout
+    //    viewport stops resizing so vv events don't fire either — the 500ms
+    //    poll is the backstop)
+    const reShown = await page.evaluate(() => {
+      const vk = (
+        navigator as Navigator & {
+          virtualKeyboard: { boundingRect: { top: number; height: number } };
+        }
+      ).virtualKeyboard;
+      vk.boundingRect = { top: 480, height: 240 };
+      const w = window as unknown as {
+        __vkCbs?: unknown[];
+        __vkInvocations?: number;
+      };
+      return {
+        cbCount: (w.__vkCbs ?? []).length,
+        invocations: w.__vkInvocations ?? 0,
+        paddingRightAfterMutation: (
+          document.getElementById("ai-judge-modal") as HTMLDialogElement
+        ).style.paddingBottom,
+      };
+    });
+    // expect: no listener churn — exactly 1 callback still registered; the
+    //     invocation count is UNCHANGED since the step-3 hide dispatch — zero
+    //     geometrychange events fired
+    expect(reShown.cbCount).toBe(1);
+    expect(reShown.invocations).toBe(hidden.invocations);
+    // expect: still "0px" right after the mutation (no events → no sync)
+    expect(reShown.paddingRightAfterMutation).toBe("0px");
+
+    // expect: poll-driven recovery — the 500ms interval re-runs sync → height
+    //     240 > 0 → API branch → applyLift(480) → overflow 720 − 480 = 240.
+    //     NO event source fired; the poll alone drives it (1500ms ≈ 3× the
+    //     live-measured worst case, spec §1.34)
+    await expect
+      .poll(
+        () => modal(page).evaluate((el) => el.style.paddingBottom),
+        { timeout: 1500 },
+      )
+      .toBe("240px");
+
+    // expect: recovered geometry exact — form bottom 480 === boundingRect.top;
+    //     textarea + SEND bottoms 464 (480 − 16 pb-4); both ≤ 480, y ≥ 0;
+    //     dialog height still 720; counts still unchanged (poll-driven, not
+    //     event-driven)
+    const recovered = await page.evaluate(() => {
+      const dialog = document.getElementById("ai-judge-modal") as HTMLDialogElement;
+      const form = dialog.querySelector("form")!;
+      const textarea = dialog.querySelector("textarea")!;
+      const send = Array.from(dialog.querySelectorAll("button")).find(
+        (b) => b.getAttribute("aria-label") === "Send question",
+      )!;
+      const w = window as unknown as {
+        __vkCbs?: unknown[];
+        __vkInvocations?: number;
+      };
+      const tb = textarea.getBoundingClientRect();
+      const sb = send.getBoundingClientRect();
+      const fb = form.getBoundingClientRect();
+      return {
+        formBottom: fb.bottom,
+        textareaBottom: tb.bottom,
+        sendBottom: sb.bottom,
+        dialogHeight: dialog.getBoundingClientRect().height,
+        cbCount: (w.__vkCbs ?? []).length,
+        invocations: w.__vkInvocations ?? 0,
+      };
+    });
+    expect(recovered.formBottom).toBe(480);
+    expect(recovered.textareaBottom).toBe(464);
+    expect(recovered.sendBottom).toBe(464);
+    expect(recovered.textareaBottom).toBeLessThanOrEqual(480);
+    expect(recovered.sendBottom).toBeLessThanOrEqual(480);
+    expect(recovered.dialogHeight).toBe(720);
+    expect(recovered.cbCount).toBe(1);
+    expect(recovered.invocations).toBe(hidden.invocations);
+
+    // 6. Optional hardening — second full no-event cycle (spec §1.34 step 6):
+    //    hide → poll → "0px"; show → poll → "240px"; STILL zero dispatches
+
+    // (in-page) boundingRect = { top: 720, height: 0 } — no dispatch
+    await page.evaluate(() => {
+      const vk = (
+        navigator as Navigator & {
+          virtualKeyboard: { boundingRect: { top: number; height: number } };
+        }
+      ).virtualKeyboard;
+      vk.boundingRect = { top: 720, height: 0 };
+    });
+    // expect: gate fires — height 0 → vv fallback → real vv 720 → overflow 0
+    await expect
+      .poll(
+        () => modal(page).evaluate((el) => el.style.paddingBottom),
+        { timeout: 1500 },
+      )
+      .toBe("0px");
+    // expect: form bottom 720; textarea + SEND bottoms 704
+    const reHidden = await page.evaluate(() => {
+      const dialog = document.getElementById("ai-judge-modal") as HTMLDialogElement;
+      const form = dialog.querySelector("form")!;
+      const textarea = dialog.querySelector("textarea")!;
+      const send = Array.from(dialog.querySelectorAll("button")).find(
+        (b) => b.getAttribute("aria-label") === "Send question",
+      )!;
+      const tb = textarea.getBoundingClientRect();
+      const sb = send.getBoundingClientRect();
+      const fb = form.getBoundingClientRect();
+      return {
+        formBottom: fb.bottom,
+        textareaBottom: tb.bottom,
+        sendBottom: sb.bottom,
+      };
+    });
+    expect(reHidden.formBottom).toBe(720);
+    expect(reHidden.textareaBottom).toBe(704);
+    expect(reHidden.sendBottom).toBe(704);
+
+    // (in-page) boundingRect = { top: 480, height: 240 } — no dispatch
+    await page.evaluate(() => {
+      const vk = (
+        navigator as Navigator & {
+          virtualKeyboard: { boundingRect: { top: number; height: number } };
+        }
+      ).virtualKeyboard;
+      vk.boundingRect = { top: 480, height: 240 };
+    });
+    // expect: API branch again — applyLift(480) → overflow 720 − 480 = 240
+    await expect
+      .poll(
+        () => modal(page).evaluate((el) => el.style.paddingBottom),
+        { timeout: 1500 },
+      )
+      .toBe("240px");
+    // expect: form bottom 480; textarea + SEND bottoms 464; still zero events
+    const reShownAgain = await page.evaluate(() => {
+      const dialog = document.getElementById("ai-judge-modal") as HTMLDialogElement;
+      const form = dialog.querySelector("form")!;
+      const textarea = dialog.querySelector("textarea")!;
+      const send = Array.from(dialog.querySelectorAll("button")).find(
+        (b) => b.getAttribute("aria-label") === "Send question",
+      )!;
+      const tb = textarea.getBoundingClientRect();
+      const sb = send.getBoundingClientRect();
+      const fb = form.getBoundingClientRect();
+      return {
+        formBottom: fb.bottom,
+        textareaBottom: tb.bottom,
+        sendBottom: sb.bottom,
+        invocations: (window as unknown as { __vkInvocations?: number })
+          .__vkInvocations ?? 0,
+      };
+    });
+    expect(reShownAgain.formBottom).toBe(480);
+    expect(reShownAgain.textareaBottom).toBe(464);
+    expect(reShownAgain.sendBottom).toBe(464);
+    expect(reShownAgain.invocations).toBe(hidden.invocations);
+
+    // 7. Cleanup: close via CLOSE. No /api/judge call → no mock needed.
     await closeButton(page).click();
     await expect(modal(page)).not.toBeVisible();
     // expect: no pageerror/console errors — the defineProperty/stub/dispatch
