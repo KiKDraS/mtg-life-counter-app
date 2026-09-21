@@ -1,6 +1,6 @@
 # AI Judge — E2E Test Plan (specs/ai-judge.spec.md)
 
-Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target: `tests/e2e/ai-judge.spec.ts` (single describe, **29 tests**). Config: baseURL `http://localhost:3000`, chromium, 1 worker, 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state per test; dev machine has NO OpenRouter key → real route 503s — **every test MUST mock `/api/judge`** via in-page fetch override, never hit real route.
+Feature: `feature/ai-judge`. App: MTG Life Counter PWA, Next.js 16 App Router. Target: `tests/e2e/ai-judge.spec.ts` (single describe, **32 tests**). Config: baseURL `http://localhost:3000`, chromium, 1 worker, 1280x720. Seed: `tests/seed.spec.ts` (goto `/` only). Assumptions: blank/fresh state per test; dev machine has NO OpenRouter key → real route 503s — **every test MUST mock `/api/judge`** via in-page fetch override, never hit real route.
 
 ## Contract sources
 DESIGN.md §6.4 (chat window), §6.4.0 (offline), §6.4.1 (answer formatting). SPEC.md §9.5 (SSE), §9.9 (history/sessionId), §9.10 (UI/offline).
@@ -21,6 +21,7 @@ DESIGN.md §6.4 (chat window), §6.4.0 (offline), §6.4.1 (answer formatting). S
 - SCROLL `modal.locator("div[class*='overflow-y-auto']")` — chat list (bubble locators scoped here; offline alert also carries `bg-mana-b`, so never scope to modal root)
 - SYSTEM bubble `scroll.locator(".bg-mana-b")` (left). USER bubble `scroll.locator(".bg-mana-c")` (right). Error bubble = `.bg-mana-b` with error text.
 - TITLE `#ai-judge-title` (sr-only h2, text "AI Judge")
+- META `page.locator('meta[name="viewport"]')` — head-level viewport tag (global; never inside the modal)
 - MarkdownText output (inside system bubble): `strong` (bold), `ul>li` / `ol>li` (lists), `p` (paragraphs), `i` (rule-ref suffix)
 
 NO chip selectors. NO citation pills — removed from UI. UI never renders citations (DESIGN §6.4, SPEC §9.5).
@@ -74,7 +75,7 @@ Retrieval pipeline, card RAG context injection (SPEC §9.7), language mirror (es
 
 ### 1. AI Judge
 
-**Seed:** `tests/seed.spec.ts` — all 29 tests in `tests/e2e/ai-judge.spec.ts`.
+**Seed:** `tests/seed.spec.ts` — all 32 tests in `tests/e2e/ai-judge.spec.ts`.
 
 #### 1.1. TC-AJ-01: Modal opens from belt with input
 1. Open-modal prelude.
@@ -333,3 +334,34 @@ Full Enter coverage lives in TC-AJ-02 (bubbles, colors, typing indicator, body c
    - expect: computed `overflow-y` === `auto` (overflow-y-auto class)
 4. Press Enter (no Shift).
    - expect: `waitForBodies(page, 1)`; `bodies[0].question` === 12-line text (full multi-line draft sent)
+
+#### 1.30. TC-AJ-34: Viewport meta emits `interactive-widget=resizes-content` (global)
+
+Contract: DESIGN §6.4 Keyboard — mobile virtual keyboard must not obscure input/send; layout viewport resizes (`interactive-widget=resizes-content`, Android). Fix `04a1d1f` (`app/layout.tsx` viewport export). No `/api/judge` call → no mock needed (TC-AJ-01/14 pattern).
+
+1. `page.goto("/")` (modal closed — meta is a root-layout concern, not modal-scoped).
+   - expect: exactly 1 viewport meta in `document.head` — `page.locator('meta[name="viewport"]')` count 1; `head meta[name="viewport"]` resolves (global tag, not inside `#ai-judge-modal`).
+   - expect: `content` contains `interactive-widget=resizes-content` — `toHaveAttribute("content", /interactive-widget=resizes-content/)`. Token/regex only, NOT exact equality (Next.js owns order/spacing; observed exact string `width=device-width, initial-scale=1, interactive-widget=resizes-content`).
+2. `openJudgeModal(page)`.
+   - expect: meta still exactly 1, still head-level; `modal(page).locator('meta[name="viewport"]')` count 0 (modal injects no duplicate).
+3. Cleanup: optional close. No error collectors — no stream, no fetch.
+
+#### 1.31. TC-AJ-35: Layout adapts when the viewport shrinks (keyboard proxy)
+
+Contract: DESIGN §6.4 Keyboard + input dock. Playwright cannot open a real virtual keyboard — `page.setViewportSize({ width: 390, height: 400 })` is the layout-viewport shrink proxy for Android Chrome + `resizes-content` (keyboard-sized, portrait-ish). Mechanism: `#ai-judge-modal` is `position: fixed` (`JudgeModal` `fixed z-50 bg-black` overrides DialogShell's `absolute` via twMerge) + `h-full` → dialog height = 100% of the layout viewport; under the old default (`resizes-visual`) the dialog would keep the un-shrunk height and the bottom-docked input row would sit behind the keyboard. No `/api/judge` call → no mock.
+
+1. `openJudgeModal(page)` at the default 1280x720 (modal already open when the "keyboard" opens — the real bug scenario).
+   - expect: `#ai-judge-modal` visible/open; textarea focused; baseline textarea `offsetHeight` 46 (1 row).
+2. `page.setViewportSize({ width: 390, height: 400 })`.
+   - expect (a) dialog tracks viewport: `boundingBox()` `{ x: 0, y: 0, width: 390, height: 400 }`; height === `page.viewportSize().height` (observed exactly 400, down from 720).
+   - expect (b) input row fully inside: textarea bbox `{ y: 338, height: 46 }` → `y + height = 384 <= 400`; SEND bbox `{ y: 344, height: 40 }` → `y + height = 384 <= 400`; both `y >= 0`; form bottom = 400 (docked flush; `pb-4` is inside the viewport).
+   - expect: SCROLL bottom = 338 (form top), height 282.
+3. Long multi-line draft: ``input(page).fill(Array.from({ length: 12 }, (_, i) => `line ${i}`).join("\n"))`` (worst-case row height — hits the `max-h-40` cap, TC-AJ-33).
+   - expect (c) row grows UP, never below the bottom: textarea `offsetHeight` 160 > baseline 46; textarea bbox y drops 338 → 224; form bbox `{ y: 224, height: 176 }` → bottom still exactly 400; textarea bottom still 384; SEND bottom still 384 — every `y + height <= 400`.
+   - expect: dialog height unchanged (400); SCROLL shrinks 282 → 168 (`flex-1` absorbs the growth); draft value = 12 lines; SEND enabled (draft non-empty).
+4. Cleanup: none required — fresh page per test (no viewport restore needed; next test starts at 1280x720). Optional close via CLOSE.
+
+**Live-verified notes (2026-09-21, headless Chromium, `390x400`):**
+- `LockPortrait` does NOT interfere: overlay is `pointer-coarse:landscape:flex`; desktop Chromium has `(pointer: coarse)` false and 390x400 is portrait (`(orientation: landscape)` false) → `display: none`. Do NOT switch to a landscape proxy (e.g. 720x400) — wrong orientation, and it would show the overlay under touch emulation.
+- `FullscreenEnforcer` requests fullscreen on first pointerdown (belt click): `document.fullscreenElement` becomes `<html>` in headless Chromium, but `setViewportSize` still resizes normally — geometry identical whether the resize happens before or after opening the modal (both orders verified). Console emits a warning-level `Orientation lock failed… NotSupportedError`; `errorCollectors` captures error-level only, so tests stay green.
+- `interactive-widget=resizes-content` is not emulable in Playwright: TC-AJ-34 pins the meta contract, TC-AJ-35 pins layout containment under a shrunk layout viewport. Neither alone proves on-device Gboard behavior; together they cover both halves of the fix.

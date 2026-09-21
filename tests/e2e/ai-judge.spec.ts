@@ -352,6 +352,9 @@ const allBubbles = (page: Page): Locator =>
 const status = (page: Page): Locator => modal(page).locator("[role='status']");
 const closeButton = (page: Page): Locator =>
   page.getByRole("button", { name: "Close AI Judge" });
+/* META — head-level viewport tag (global; never inside the modal). */
+const viewportMeta = (page: Page): Locator =>
+  page.locator('meta[name="viewport"]');
 
 /* ───────────────────────────────────────────────
  * 1. AI Judge
@@ -1436,5 +1439,135 @@ test.describe("AI Judge", () => {
     const bodies = await waitForBodies(page, 1);
     // expect: full 12-line draft sent intact
     expect(bodies[0].question).toBe(twelveLines);
+  });
+
+  /* feature/judge-input-grow — mobile keyboard viewport behavior (DESIGN §6.4). */
+
+  test("TC-AJ-34: Viewport meta emits interactive-widget=resizes-content (global)", async ({
+    page,
+  }) => {
+    // 1. Load the app root with the modal closed — the viewport meta is a
+    //    root-layout concern, not modal-scoped
+    await page.goto("/");
+    // expect: exactly 1 viewport meta, at head level
+    await expect(viewportMeta(page)).toHaveCount(1);
+    await expect(page.locator('head meta[name="viewport"]')).toHaveCount(1);
+    // expect: content carries interactive-widget=resizes-content (token regex —
+    //     Next.js owns attribute order/spacing)
+    await expect(viewportMeta(page)).toHaveAttribute(
+      "content",
+      /interactive-widget=resizes-content/,
+    );
+
+    // 2. Open the modal — no duplicate meta is injected into the dialog
+    await openJudgeModal(page);
+    // expect: still exactly 1 head-level tag; 0 inside #ai-judge-modal
+    await expect(viewportMeta(page)).toHaveCount(1);
+    await expect(page.locator('head meta[name="viewport"]')).toHaveCount(1);
+    await expect(modal(page).locator('meta[name="viewport"]')).toHaveCount(0);
+  });
+
+  test("TC-AJ-35: Layout adapts when the viewport shrinks (keyboard proxy)", async ({
+    page,
+  }) => {
+    // Harness workaround (env, not app behavior): FullscreenEnforcer requests
+    // fullscreen on the first pointerdown (belt click) → the headless browser
+    // window locks into fullscreen and Playwright's setViewportSize fails with
+    // "Browser.setWindowBounds: restore to normal state first". Fullscreen is
+    // orthogonal to the shrink-layout contract, so neutralize it for this test.
+    await page.addInitScript(() => {
+      Element.prototype.requestFullscreen = () => Promise.resolve();
+    });
+
+    // 1. Open the modal at the default 1280x720 — the modal is already open
+    //    when the "keyboard" opens (the real bug scenario)
+    await openJudgeModal(page);
+    await expect(modal(page)).toHaveAttribute("open", "");
+    await expect(input(page)).toBeFocused();
+    const baselineHeight = await input(page).evaluate(
+      (el) => (el as HTMLElement).offsetHeight,
+    );
+    // expect: 1-row baseline (observed 46px; small tolerance)
+    expect(baselineHeight).toBeGreaterThanOrEqual(40);
+    expect(baselineHeight).toBeLessThanOrEqual(52);
+
+    // 2. Shrink the layout viewport to 390x400 — keyboard-sized proxy for
+    //    Android Chrome + interactive-widget=resizes-content
+    await page.setViewportSize({ width: 390, height: 400 });
+    const viewport = page.viewportSize() ?? { width: 390, height: 400 };
+
+    const dialogBox = await modal(page).boundingBox();
+    const textareaBox = await input(page).boundingBox();
+    const sendBox = await sendButton(page).boundingBox();
+    const formBox = await modal(page).locator("form").boundingBox();
+    const scrollBox = await scroll(page).boundingBox();
+
+    // expect (a): dialog tracks the layout viewport (fixed + h-full)
+    expect(dialogBox?.x).toBeCloseTo(0, 0);
+    expect(dialogBox?.y).toBeCloseTo(0, 0);
+    expect(dialogBox?.width).toBe(viewport.width);
+    expect(dialogBox?.height).toBe(viewport.height);
+
+    // expect (b): input row fully inside — nothing clipped behind the keyboard
+    expect(textareaBox?.y).toBeGreaterThanOrEqual(0);
+    expect(sendBox?.y).toBeGreaterThanOrEqual(0);
+    expect((textareaBox?.y ?? 0) + (textareaBox?.height ?? 0)).toBeLessThanOrEqual(
+      viewport.height,
+    );
+    expect((sendBox?.y ?? 0) + (sendBox?.height ?? 0)).toBeLessThanOrEqual(
+      viewport.height,
+    );
+    // expect: form docked flush to the bottom edge (pb-4 stays inside)
+    expect((formBox?.y ?? 0) + (formBox?.height ?? 0)).toBeCloseTo(
+      viewport.height,
+      0,
+    );
+    // expect: scroll container sits directly above the form; observed 338/282
+    expect((scrollBox?.y ?? 0) + (scrollBox?.height ?? 0)).toBeCloseTo(
+      formBox?.y ?? 0,
+      0,
+    );
+    expect(textareaBox?.y).toBeCloseTo(338, -1);
+    expect(scrollBox?.height).toBeCloseTo(282, -1);
+
+    // 3. Worst-case 12-line draft — hits the max-h-40 cap (TC-AJ-33)
+    const twelveLines = Array.from({ length: 12 }, (_, i) => `line ${i}`).join("\n");
+    await input(page).fill(twelveLines);
+    await expect
+      .poll(() => input(page).evaluate((el) => (el as HTMLElement).offsetHeight))
+      .toBe(160);
+
+    const grownDialogBox = await modal(page).boundingBox();
+    const grownTextareaBox = await input(page).boundingBox();
+    const grownSendBox = await sendButton(page).boundingBox();
+    const grownFormBox = await modal(page).locator("form").boundingBox();
+    const grownScrollBox = await scroll(page).boundingBox();
+
+    // expect (c): row grows UP, never below the bottom — textarea y drops
+    //     338 → 224 (observed); every y + height stays inside the viewport
+    expect(grownTextareaBox?.y).toBeLessThan(textareaBox?.y ?? 0);
+    expect(grownTextareaBox?.y).toBeCloseTo(224, -1);
+    expect(
+      (grownTextareaBox?.y ?? 0) + (grownTextareaBox?.height ?? 0),
+    ).toBeLessThanOrEqual(viewport.height);
+    expect((grownSendBox?.y ?? 0) + (grownSendBox?.height ?? 0)).toBeLessThanOrEqual(
+      viewport.height,
+    );
+    // expect: form bottom still pinned at the viewport bottom (observed 400)
+    expect((grownFormBox?.y ?? 0) + (grownFormBox?.height ?? 0)).toBeCloseTo(
+      viewport.height,
+      0,
+    );
+    // expect: dialog height unchanged (400)
+    expect(grownDialogBox?.height).toBe(viewport.height);
+    // expect: scroll container absorbs the growth (flex-1; 282 → 168)
+    expect(grownScrollBox?.height).toBeCloseTo(168, -1);
+    // expect: textarea bottom unchanged (still docked at 384)
+    expect(
+      (grownTextareaBox?.y ?? 0) + (grownTextareaBox?.height ?? 0),
+    ).toBeCloseTo((textareaBox?.y ?? 0) + (textareaBox?.height ?? 0), -1);
+    // expect: 12-line draft intact; send button enabled (draft non-empty)
+    await expect(input(page)).toHaveValue(twelveLines);
+    await expect(sendButton(page)).toBeEnabled();
   });
 });
