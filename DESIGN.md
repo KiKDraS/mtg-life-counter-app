@@ -117,6 +117,7 @@ Life total = hero. All else secondary.
 | Token            | Value                        | Weight      | Usage                       |
 | ---------------- | ---------------------------- | ----------- | --------------------------- |
 | `--text-life`    | `clamp(3.5rem, 15cqmin, 6rem)`  | Black 900   | Life total number           |
+| `--text-delta`   | `clamp(1.25rem, 4cqmin, 2rem)`  | Bold 700    | Life delta feedback (§4.2)  |
 | `--text-display` | `clamp(2.5rem, 6cqmin, 5rem)`   | Black 900   | Commander damage big number |
 | `--text-heading` | `clamp(1.8rem, 3cqmin, 2.8rem)` | Bold 700    | Modal titles                |
 | `--text-body`    | `1rem`                       | Medium 500  | UI labels, buttons          |
@@ -235,7 +236,7 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 | Col    | Width | Content                                                    |
 | ------ | ----- | ---------------------------------------------------------- |
 | Left   | 33.3% | **[-]** decrement. Borderless. Entire col = button.        |
-| Center | 33.3% | **Life total** `--text-life`, Archivo Black 900, centered. |
+| Center | 33.3% | **Life total** `--text-life`, Archivo Black 900, centered. **Delta** `--text-delta` above. |
 | Right  | 33.3% | **[+]** increment. Borderless. Entire col = button.        |
 
 - **Gear icon (⚙️):** Top-right of right column. Outside button hit area.
@@ -251,6 +252,9 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
   direction you physically make). Threshold: ≥10px before 300ms. Vertical
   ignored.
 - **Overlay open:** Either X-direction swipe closes overlay → return to life.
+- **Life delta feedback:** burst net change above life. Absolute top center col — no
+  layout shift. Same textColor. Sign `+`/`−`. Update per change. Hide 1s after
+  last change. Net 0 → hidden. Reset (⟳/⚙️/👥) → none.
 
 ### 4.3 Zone Rotation
 
@@ -546,6 +550,7 @@ Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
 | -------------- | ------------ |
 | Tap [+] / [-]  | +1 / -1 life |
 | Hold [+] / [-] | ±10 after 1s |
+| Delta feedback | Net change above life, `--text-delta` (§4.2). Update per change. Hide 1s after last change. Net 0 → hidden. Reset → none. |
 
 ### 7.2 Swipe
 
