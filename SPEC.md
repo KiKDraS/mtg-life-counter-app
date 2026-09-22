@@ -295,14 +295,18 @@ gradient.
 | Property     | Value                                     |
 | ------------ | ----------------------------------------- |
 | Trigger      | Spellbook belt, left-far — DESIGN.md §5.2 |
-| Opens modal? | No — native browser install prompt        |
+| Opens modal? | Chromium: no — native prompt. iOS: yes — instructions dialog |
 | Resets game? | No                                        |
 
 - **Purpose:** Trigger native PWA install from browser mode. No server
   involvement, no forced prompts, no analytics.
 - **Installability gate (binding):** button renders ONLY after
   `beforeinstallprompt` captured (handler `preventDefault()`s, stores prompt).
-  No event (iOS Safari, unsupported browser, already installed) → button absent.
+  No event (unsupported browser, already installed) → button absent.
+- **iOS (binding):** Safari fires no `beforeinstallprompt`. iOS + not
+  standalone → button visible. Tap → instructions dialog: Share → Add to Home
+  Screen. No native prompt exists. Standalone → hidden (`navigator.standalone`
+  + `pwa:` variant).
 - **Standalone:** hidden via CSS `pwa:` variant (`display-mode: standalone`) —
   installed users never see it.
 - **Tap:** `deferredPrompt.prompt()` → `await userChoice` → clear stored prompt
