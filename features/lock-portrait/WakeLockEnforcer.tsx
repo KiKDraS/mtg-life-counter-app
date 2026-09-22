@@ -14,6 +14,9 @@ import { useEffect, useRef } from "react";
 export function WakeLockEnforcer() {
   const sentinelRef = useRef<WakeLockSentinel | null>(null);
   const mountedRef = useRef(true);
+  /* Failed request → stop retrying on pointerdown (rejected every tap, spam);
+     re-allowed on visibilitychange → visible. */
+  const failedRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") {
@@ -25,6 +28,7 @@ export function WakeLockEnforcer() {
     }
 
     const requestLock = async () => {
+      if (failedRef.current) return;
       if (sentinelRef.current && !sentinelRef.current.released) return;
       try {
         const sentinel = await navigator.wakeLock.request("screen");
@@ -36,22 +40,24 @@ export function WakeLockEnforcer() {
             void requestLock();
           }
         });
-      } catch (error) {
-        console.warn("Wake lock request failed.", error);
+      } catch {
+        // Fails silently per design intent — rejected requests never block gameplay.
+        failedRef.current = true;
       }
     };
 
     const releaseLock = () => {
       try {
         void sentinelRef.current?.release().catch(() => {});
-      } catch (error) {
-        console.warn("Wake lock release failed.", error);
+      } catch {
+        // Silent per design intent.
       }
       sentinelRef.current = null;
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
+        failedRef.current = false;
         void requestLock();
       } else {
         releaseLock();
