@@ -1,8 +1,8 @@
-# PWA Test Plan — MTG Life Counter (feature/pwa-offline)
+# PWA Test Plan — MTG Life Counter (feature/pwa-offline → feature/ios-standalone-splash)
 
 ## Application Overview
 
-MTG Life Counter PWA (Next.js 16 App Router, React 19, Tailwind 4, @playwright/test). Life tracking for 2–6 players, per-player mana colors, commander damage, counters, swipe gestures. Branch `feature/pwa-offline` under review adds: `public/sw.js` rewrite (cache `mtg-life-v2`, precache `/`, `/manifest.json`, both manifest icons; runtime cache-first for same-origin GET; `/api/*` network-only; navigation network-first → offline fallback to cached `/`), `app/SWRegister.tsx` (registers `/sw.js`, fails silently), `app/manifest.json` (`id` `/`, icons `any maskable`). Contracts: DESIGN.md §4–9, SPEC.md §3–8, SPEC 9.11 (`/api/*` never cached — AI Judge is the only offline-degrading feature). App at http://localhost:3000.
+MTG Life Counter PWA (Next.js 16 App Router, React 19, Tailwind 4, @playwright/test). Life tracking for 2–6 players, per-player mana colors, commander damage, counters, swipe gestures. Branch `feature/pwa-offline` under review adds: `public/sw.js` rewrite (cache `mtg-life-v3`, precache `/`, `/manifest.json`, both manifest icons; runtime cache-first for same-origin GET; `/api/*` network-only; navigation network-first → offline fallback to cached `/`), `app/SWRegister.tsx` (registers `/sw.js`, fails silently), `app/manifest.json` (`id` `/`, icons `any maskable`). Follow-up `feature/ios-standalone-splash` (this plan reflects it): manifest icons split from 2 × combined `any maskable` into 4 entries — 192/512 `purpose: "any"` + 192/512 `purpose: "maskable"` (fixes iOS white native launch screen); SW `CACHE` bumped `mtg-life-v2` → `mtg-life-v3` (purges stale precached shells on activate). Contracts: DESIGN.md §4–9, SPEC.md §3–8, SPEC 9.11 (`/api/*` never cached — AI Judge is the only offline-degrading feature). App at http://localhost:3000.
 
 **Selectors verified live against the app (prod build):**
 
@@ -16,7 +16,7 @@ MTG Life Counter PWA (Next.js 16 App Router, React 19, Tailwind 4, @playwright/t
 | Apple touch icon | `head link[rel="apple-touch-icon"]` → href matches `/apple-icon\.png/` (href is hashed: `/apple-icon.png?apple-icon.<hash>.png`) |
 | Meta | `meta[name="theme-color"]` → `#292A2A`; `meta[name="apple-mobile-web-app-title"]` → `Life Counter`; `html[lang]` → `en`; `document.title` → `MTG Life Counter` |
 
-**Verified live facts (prod build, fresh context):** manifest JSON fields exactly as SPEC; `/web-app-manifest-192x192.png` (200, image/png, 42 186 B), `/web-app-manifest-512x512.png` (200, image/png, 245 339 B), `/apple-icon.png` (200, image/png); SW registers at `/sw.js`, scope `/`, controller active, only cache `mtg-life-v2`; no `/api/` request ever present in any cache; offline reload serves the app shell (2 zones, `40` life) and offline `+1 life` click changes 40 → 41; offline navigation to a nonexistent route serves the app shell from the cached `/`.
+**Verified live facts (prod build, fresh context):** manifest JSON fields exactly as SPEC; icons array = 4 entries — `/web-app-manifest-192x192.png` + `/web-app-manifest-512x512.png` each declared twice, once `purpose: "any"` (iOS launch screen) and once `purpose: "maskable"` (verified live 2026-09-22 on `feature/ios-standalone-splash`); `/web-app-manifest-192x192.png` (200, image/png, 42 186 B), `/web-app-manifest-512x512.png` (200, image/png, 245 339 B), `/apple-icon.png` (200, image/png); SW registers at `/sw.js`, scope `/`, controller active, only cache `mtg-life-v3`; no `/api/` request ever present in any cache; offline reload serves the app shell (2 zones, `40` life) and offline `+1 life` click changes 40 → 41; offline navigation to a nonexistent route serves the app shell from the cached `/`.
 
 **Environment requirements (mandatory):**
 
@@ -37,8 +37,8 @@ async function setupOnline(page: Page) {
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.waitForFunction(async () => {
     const keys = await caches.keys();
-    if (!keys.includes("mtg-life-v2")) return false;
-    const c = await caches.open("mtg-life-v2");
+    if (!keys.includes("mtg-life-v3")) return false;
+    const c = await caches.open("mtg-life-v3");
     return !!(await c.match("/")); // precache finished
   }, { timeout: 15_000 });
   await page.getByRole("region", { name: /^Player \d:/ }).first().waitFor({ timeout: 15_000 });
@@ -65,9 +65,12 @@ All TCs in one spec file: `tests/e2e/pwa.spec.ts` (single describe `"PWA — man
     - expect: `id` == `"/"`, `start_url` == `"/"`, `scope` == `"/"`
     - expect: `display` == `"standalone"`, `orientation` == `"portrait"`
     - expect: `theme_color` == `"#292A2A"`, `background_color` == `"#292A2A"`
-  3. assert icons array
-    - expect: exactly 2 icons
-    - expect: one icon with `sizes` `"192x192"`, one with `"512x512"`; both `type` `"image/png"`; `purpose` is `"any maskable"` (both tokens present, e.g. split on whitespace contains `any` and `maskable`); `src` `/web-app-manifest-192x192.png` and `/web-app-manifest-512x512.png`
+  3. assert icons array — exactly 4, purposes split `any`/`maskable` (follow-up fix: iOS launch screen needs single-purpose `any` icons; combined `any maskable` entries caused the white native splash)
+    - expect: exactly 4 icons, all `type` `"image/png"`
+    - expect: every icon `purpose` is exactly ONE token (`"any"` or `"maskable"` — split on whitespace yields length 1; no combined `"any maskable"` entries)
+    - expect: exactly 2 icons with `purpose` `"any"` — `sizes` `"192x192"` (`src` `/web-app-manifest-192x192.png`) and `"512x512"` (`src` `/web-app-manifest-512x512.png`)
+    - expect: exactly 2 icons with `purpose` `"maskable"` — same two sizes and srcs (`/web-app-manifest-192x192.png`, `/web-app-manifest-512x512.png`)
+    - expect: sizes across all 4 icons are `["192x192", "512x512"]` (each declared once per purpose)
 
 ### 2. SM-PWA-02: Manifest linked from the page
 
@@ -144,15 +147,15 @@ All TCs in one spec file: `tests/e2e/pwa.spec.ts` (single describe `"PWA — man
     - expect: `hits` is empty (no cache entry whose pathname starts with `/api/`; AI Judge route is network-only)
   3. optional hardening: `page.request.get("/api/judge")` while offline → expect the request to fail (network error), NOT a cached response. (Run only if the server can serve `/api/judge` without key material; otherwise skip — cache-empty assertion is the contract.)
 
-### 8. SM-PWA-08: Cache is versioned — `mtg-life-v2`, no stale `v1`
+### 8. SM-PWA-08: Cache is versioned — `mtg-life-v3`, no stale `v1`/`v2`
 
 **File:** `tests/e2e/pwa.spec.ts`
 
 **Steps:**
   1. fresh context; `setupOnline(page)`
   2. `const keys = await page.evaluate(() => caches.keys())`
-    - expect: `keys` contains `"mtg-life-v2"` (matches `CACHE` const in `public/sw.js`)
-    - expect: `keys` does NOT contain `"mtg-life-v1"` (activate purges all caches except the current version — old names deleted)
+    - expect: `keys` contains `"mtg-life-v3"` (matches `CACHE` const in `public/sw.js`; bumped v2 → v3 by the standalone-splash fix to purge stale precached shells)
+    - expect: `keys` does NOT contain `"mtg-life-v1"` NOR `"mtg-life-v2"` (activate purges all caches except the current version — old names deleted, incl. the v2 shells stale from `feature/pwa-offline`)
   3. read `/sw.js` source text (`page.request.get`), regex `CACHE\s*=\s*"([^"]+)"`
     - expect: extracted name == the cache key found in step 2 (test stays valid across future cache bumps)
 
@@ -181,15 +184,33 @@ All TCs in one spec file: `tests/e2e/pwa.spec.ts` (single describe `"PWA — man
     - expect: `document.title` == `"MTG Life Counter"`
     - expect: `link[rel="apple-touch-icon"]` present (iOS home-screen icon, see SM-PWA-03)
 
+### 11. SM-PWA-11: Manifest serves `any` icons — iOS launch screen (CORE for the splash fix)
+
+**File:** `tests/e2e/pwa.spec.ts`
+
+Regression guard for `feature/ios-standalone-splash`. iOS reads the manifest's `purpose: "any"` icons for the home-screen launch screen; a manifest with only combined `any maskable` icons (or maskable-only) makes iOS render its white native splash instead of the app cover (the bug this branch fixes). Overlaps SM-PWA-01 step 3 by design — this TC is the narrow, intent-scoped assertion (any-purpose icons must exist at both sizes), SM-PWA-01 the full structure check.
+
+**Steps:**
+  1. `page.goto("/")`, then `const resp = await page.request.get("/manifest.json")`
+    - expect: `resp.status()` 200, JSON parses
+  2. read the icons array, filter `purpose === "any"`
+    - expect: exactly 2 entries with `purpose` `"any"` (NOT `"any maskable"` — single token, split on whitespace length 1)
+    - expect: their `sizes` are exactly `["192x192", "512x512"]` (iOS picks the largest `any` icon for the launch screen)
+    - expect: both `type` `"image/png"`, `src` `/web-app-manifest-192x192.png` and `/web-app-manifest-512x512.png`
+  3. cross-check the two `any` srcs are fetchable
+    - expect: `page.request.get()` on both srcs → 200, `image/png` (launch screen icon must be servable, not just declared)
+
 ## Success Criteria
 
-- All 10 TCs pass on a fresh context against `pnpm build && pnpm start` at http://localhost:3000.
+- All 11 TCs pass on a fresh context against `pnpm build && pnpm start` at http://localhost:3000.
 - SM-PWA-05/06/09 prove: shell + chunks + state fully functional offline; navigation fallback serves the app on unknown routes.
-- SM-PWA-07/08 prove the cache discipline: `/api/*` never cached, cache versioned and stale versions purged.
+- SM-PWA-07/08 prove the cache discipline: `/api/*` never cached, cache versioned (`mtg-life-v3`) and stale versions (`v1`, `v2`) purged on activate.
+- SM-PWA-01/11 prove the manifest icon contract: 4 entries, purposes split `any`/`maskable`, `any` icons present at 192+512 — the iOS launch screen fix holds (no white native splash regression).
 - Zero test-order coupling: each TC runs standalone (fresh context, own SW install).
 
 ## Failure Conditions
 
 - SM-PWA-05/06/09 fail with empty body / missing zones → suspect dev server (`pnpm dev`) instead of prod build, or polluted context (SW installed from dev). Restart clean: `pnpm build && pnpm start`, fresh context.
-- SM-PWA-08 finds `mtg-life-v1` alongside `v2` → activate purge broken (SW updated without skipWaiting claim, or old SW not unregistered).
+- SM-PWA-08 finds `mtg-life-v1` or `mtg-life-v2` alongside `v3` → activate purge broken (SW updated without skipWaiting claim, or old SW not unregistered).
 - SM-PWA-07 finds an `/api/` entry → runtime cache-first path caching API responses — contract violation (SPEC 9.11).
+- SM-PWA-01/11 fail on icon structure (length ≠ 4, combined `any maskable`, missing `any` size) → manifest reverted to the pre-fix shape; iOS white native launch screen returns. Verdict TEST-STALE only if the manifest change was intentional and the plan lags — otherwise APP-BUG.
