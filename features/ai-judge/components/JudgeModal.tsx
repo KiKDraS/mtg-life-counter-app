@@ -4,11 +4,13 @@ import { ChatMessageList } from "@/features/ai-judge/components/ChatMessageList"
 import { OfflineAlert } from "@/features/ai-judge/components/OfflineAlert";
 import { useJudgeChat } from "@/features/ai-judge/hooks/use-judge-chat";
 import { DialogShell } from "@/shared/components/DialogShell";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 const AI_JUDGE_TITLE_ID = "ai-judge-title";
 
 const KEYBOARD_TOOLBAR_MARGIN = 48; // ponytail: physical calibration — Gboard toolbar row ~40dp not reflected in visualViewport; tune per device/keyboard.
+// ponytail: physical calibration knob — vv shrink beyond this = keyboard; URL-bar jitter ~13px must stay below.
+const KEYBOARD_DETECT_THRESHOLD = 60;
 
 interface JudgeModalProps {
   readonly id: string;
@@ -30,6 +32,7 @@ interface JudgeModalProps {
  */
 export function JudgeModal({ id }: JudgeModalProps) {
   const chat = useJudgeChat(id);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const closeDialog = useCallback(() => {
     (document.getElementById(id) as HTMLDialogElement | null)?.close();
@@ -88,9 +91,23 @@ export function JudgeModal({ id }: JudgeModalProps) {
     if (!vk && !vv) return;
     const dialog = document.getElementById(id) as HTMLDialogElement | null;
     if (!dialog) return;
+    /* iOS Safari: vv bottom = keyboard top — no toolbar row to subtract; the
+       48px margin is a Gboard/Android thing. Evaluated once. */
+    const isIos =
+      "standalone" in navigator ||
+      /iPhone|iPad|iPod/.test(navigator.userAgent);
     // const paintCanvasBlack = (on: boolean) => {
     //   document.documentElement.style.background = on ? "#000" : "";
     // };
+
+    /* DESIGN §6.4 — one place catches ✕ / Escape / backdrop close: clear the
+       lift, drop focus, reset any focus-scroll offset. */
+    const handleClose = () => {
+      dialog.style.paddingBottom = "";
+      (document.activeElement as HTMLElement | null)?.blur();
+      window.scrollTo(0, 0);
+    };
+    dialog.addEventListener("close", handleClose);
 
     const applyLift = (visibleBottom: number): number => {
       if (!dialog.open) return 0;
@@ -112,9 +129,15 @@ export function JudgeModal({ id }: JudgeModalProps) {
 
     const syncViaViewport = () => {
       if (!dialog.open || !vv) return;
-      const keyboardUp = vv.height + vv.offsetTop < window.innerHeight;
+      /* iOS Safari shrinks innerHeight with the keyboard; the layout viewport
+         (clientHeight) stays stable — detect against it. */
+      const keyboardUp =
+        vv.height + vv.offsetTop <
+        document.documentElement.clientHeight - KEYBOARD_DETECT_THRESHOLD;
       const visibleBottom =
-        vv.height + vv.offsetTop - (keyboardUp ? KEYBOARD_TOOLBAR_MARGIN : 0);
+        vv.height +
+        vv.offsetTop -
+        (keyboardUp && !isIos ? KEYBOARD_TOOLBAR_MARGIN : 0);
       applyLift(visibleBottom);
     };
 
@@ -145,6 +168,10 @@ export function JudgeModal({ id }: JudgeModalProps) {
     /* re-sync on open — modal mounts closed, open attr flip is the trigger */
     const observer = new MutationObserver(() => {
       // paintCanvasBlack(dialog.open); — kept as user left it
+      /* DESIGN §6.4 — focus input on open. preventScroll: iOS Safari otherwise
+         scrolls the page to reveal the focused textarea (offset never resets —
+         board sits shifted). */
+      if (dialog.open) inputRef.current?.focus({ preventScroll: true });
       sync();
     });
     observer.observe(dialog, { attributes: true, attributeFilter: ["open"] });
@@ -153,6 +180,7 @@ export function JudgeModal({ id }: JudgeModalProps) {
     return () => {
       clearInterval(poll);
       observer.disconnect();
+      dialog.removeEventListener("close", handleClose);
       if (vk) vk.removeEventListener("geometrychange", sync);
       vv?.removeEventListener("resize", sync);
       vv?.removeEventListener("scroll", sync);
@@ -204,12 +232,12 @@ export function JudgeModal({ id }: JudgeModalProps) {
           className="flex items-end gap-2 px-4 pb-4"
         >
           <textarea
+            ref={inputRef}
             rows={1}
             value={chat.draft}
             onChange={(event) => chat.setDraft(event.target.value)}
             placeholder="Ask about a card or rule…"
             aria-label="Ask about a card or rule"
-            autoFocus
             disabled={chat.inputDisabled}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
