@@ -245,7 +245,7 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
   zone color. Text auto-selects per luminance.
 - **Press feedback:** `pointerdown` → col BG overlays `rgba(0,0,0,0.08)`. 150ms
   fade in/out on col BG itself — no extra DOM.
-- **Tap:** ±1. **Hold:** ±10 after 1s.
+- **Tap:** ±1. **Hold:** ±10 staged per §7.1.
 - **Lethal:** Life ≤ 0 → `#D50000`. ± cols unaffected.
 - **Swipe (player-relative):** From each player's own perspective, swipe left =
   Commander damage overlay; swipe right = Counters overlay. Physical screen
@@ -256,6 +256,10 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 - **Life delta feedback:** burst net change directly above life number. Absolute
   — no layout shift. Same textColor. Sign `+`/`−`. Update per change. Hide 1s
   after last change. Net 0 → hidden. Reset (⟳/⚙️/👥) → none.
+- **Staged ±10 preview:** hold stages ±10 (§7.1) → delta preview above life at
+  50% opacity, same position/sign rules. Commit → full opacity + life change.
+  Cancel/release → preview cleared, no change, no ±1. Preview ignores hide
+  timer — only committed changes re-arm it.
 
 ### 4.3 Zone Rotation
 
@@ -549,7 +553,7 @@ Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
 | Gesture        | Result                                                                                                                    |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Tap [+] / [-]  | +1 / -1 life                                                                                                              |
-| Hold [+] / [-] | ±10 after 1s                                                                                                              |
+| Hold [+] / [-] | ±10 staged at 1s hold; commits after 400ms more. Release before commit → cancel (no ±10, no ±1). After commit: next ±10 stages 100ms later, same 400ms commit window. Cadence +10 @ 1.4s, +20 @ 1.9s, +30 @ 2.4s… |
 | Delta feedback | Net change above life, `--text-delta` (§4.2). Update per change. Hide 1s after last change. Net 0 → hidden. Reset → none. |
 
 ### 7.2 Swipe
@@ -581,8 +585,8 @@ Data model: see SPEC.md §5 `CommanderDamage`. Behavior per SPEC.md §6. Player 
 - **Pill:** Rounded. Commander owner's mana color. `PlaneswalkerSymbol` inside
   (white fill).
 - **Total:** Archivo Bold. Text per luminance.
-- **[−]/[+] buttons:** Tap ±1, hold ±10 after 1s. Borderless. Decrement floors
-  at 0.
+- **[−]/[+] buttons:** Tap ±1, hold ±10 staged per §7.1 (no preview — cancel
+  window only). Borderless. Decrement floors at 0.
 - **Wrap:** flex-wrap. 4p+ player 0 + player 5: 30% width (3/row). Else: 45%
   (2/row).
 - **Lethal:** Any commander ≥21 → current player loses. Value + life total →
@@ -607,7 +611,8 @@ Time
 
 - **Icon:** `iconLight` silhouette. No pill, no BG container.
 - **Value:** Archivo Bold, warm white per luminance.
-- **[-]/[+] buttons:** Tap ±1, hold ±10 after 1s. Borderless.
+- **[-]/[+] buttons:** Tap ±1, hold ±10 staged per §7.1 (no preview — cancel
+  window only). Borderless.
 - **New counter (+):** Bottom-right → opens Custom Counter Name modal (§6.6).
   Starts at 0. Custom counters: rounded pill `#CAC5C0`, `iconDark`, first letter
   displayed.
