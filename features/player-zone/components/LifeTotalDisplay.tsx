@@ -30,12 +30,8 @@ export function LifeTotalDisplay({
       {delta !== 0 && (
         <span
           aria-hidden="true"
-          className="absolute top-0 tabular-nums font-bold leading-none"
-          style={{
-            color: textColor,
-            /* §3.2 token; var fallback until --text-delta lands in @theme */
-            fontSize: "var(--text-delta, clamp(1.25rem, 4cqmin, 2rem))",
-          }}
+          className="absolute top-0 tabular-nums font-bold leading-none text-delta"
+          style={{ color: textColor }}
         >
           {delta > 0 ? "+" : "−"}
           {Math.abs(delta)}
