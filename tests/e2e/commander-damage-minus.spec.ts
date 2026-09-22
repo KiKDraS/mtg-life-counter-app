@@ -205,7 +205,7 @@ test.describe("Commander Damage Decrement", () => {
     await expect(lifeTotal(zone(page, 1))).toHaveText("20");
   });
 
-  test("CDM-04: Hold - applies -10 after 1s", async ({ page }) => {
+  test("CDM-04: Hold - stages at 1s, commits exactly one -10 at 1.4s; pre-commit release cancels", async ({ page }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -222,23 +222,24 @@ test.describe("Commander Damage Decrement", () => {
     await expect(damageCounter(dlg)).toHaveText("15");
 
     // 4. Hold (pointerdown) the first column `-1 commander damage` button for
-    //    1200ms, then release (same holdButton helper as counters-overlay
-    //    spec 2.3/2.4)
+    //    1200ms (staged at 1000ms), then release (before the 1400ms commit)
     await holdButton(page, minusButton(dlg), 1200);
+    // expect: Damage counter still reads `15` (cancelled — no -10 applied)
+    await expect(damageCounter(dlg)).toHaveText("15");
+    // expect: No -1 applied on release either (cancel suppresses the tap)
 
-    // expect: Damage applied >= 10 (hold fires -10 per tick after 1000ms delay)
-    const dmg = Number(await damageCounter(dlg).textContent());
-    expect(15 - dmg).toBeGreaterThanOrEqual(10);
-    // expect: Damage counter reads <= 5 (15 − >=10; up to ~3 ticks at 100ms
-    //         interval)
-    expect(dmg).toBeLessThanOrEqual(5);
+    // 5. Hold (pointerdown) the first column `-1 commander damage` button for
+    //    1450ms, then release (commit fires at 1400ms; next stage at 1500ms
+    //    never reached)
+    await holdButton(page, minusButton(dlg), 1450);
+    // expect: Damage counter reads `5` (exactly one -10 committed)
+    await expect(damageCounter(dlg)).toHaveText("5");
     // expect: Damage counter reads >= 0 (floor)
-    expect(dmg).toBeGreaterThanOrEqual(0);
+    expect(Number(await damageCounter(dlg).textContent())).toBeGreaterThanOrEqual(0);
 
-    // 5. Read P1 life total
-    // expect: P1 life reads `40 - finalDamage` (life restored exactly by
-    //         applied delta)
-    expect(await lifeValue(zone(page, 1))).toBe(40 - dmg);
+    // 6. Read P1 life total
+    // expect: P1 life reads `35` (40 − 5; life restored exactly by applied delta)
+    expect(await lifeValue(zone(page, 1))).toBe(35);
   });
 
   test("CDM-05: [-] layout & accessibility - visible, order, focusable, aria-labels", async ({
@@ -300,7 +301,7 @@ test.describe("Commander Damage Decrement", () => {
     await expect(dlg).not.toBeVisible();
   });
 
-  test("CDM-06: Regression - [+] tap +1 and hold +10 unchanged", async ({
+  test("CDM-06: Regression - [+] tap +1 and staged hold +10 unchanged", async ({
     page,
   }) => {
     // 1. Navigate to `/` and open Commander Damage dialog on P1
@@ -324,19 +325,21 @@ test.describe("Commander Damage Decrement", () => {
     await expect(damageCounter(dlg)).toHaveText("4");
 
     // 4. Hold (pointerdown) `+1 commander damage` for 1200ms, then release
+    //    (pre-commit — staged at 1000ms, released before the 1400ms commit)
     await holdButton(page, btn, 1200);
+    // expect: Damage counter still reads `4` (cancelled — no +10, no +1)
+    await expect(damageCounter(dlg)).toHaveText("4");
 
-    // expect: Damage counter >= 10 (hold fires +10 per tick after 1000ms delay)
-    const dmg = Number(await damageCounter(dlg).textContent());
-    expect(dmg).toBeGreaterThanOrEqual(10);
-    // expect: Damage counter <= 35 (3-tick upper bound, mirrors
-    //         commander-damage.spec 3.3)
-    expect(dmg).toBeLessThanOrEqual(35);
+    // 5. Hold (pointerdown) `+1 commander damage` for 1450ms, then release
+    //    (commit fires at 1400ms; next stage at 1500ms not reached)
+    await holdButton(page, btn, 1450);
+    // expect: Damage counter reads `14` (exactly one +10 committed)
+    await expect(damageCounter(dlg)).toHaveText("14");
 
-    // 5. Close with Escape and read P1 life
+    // 6. Close with Escape and read P1 life
     await page.keyboard.press("Escape");
     await expect(dlg).not.toBeVisible();
-    // expect: P1 life = 40 − final damage
-    expect(await lifeValue(zone(page, 1))).toBe(40 - dmg);
+    // expect: P1 life = 26 (40 − 14)
+    expect(await lifeValue(zone(page, 1))).toBe(26);
   });
 });

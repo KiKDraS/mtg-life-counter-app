@@ -225,10 +225,12 @@ test.describe("life-delta", () => {
     await expect(delta(p1)).toHaveCount(0);
   });
 
-  test("6.1. Hold 1.3s accumulates +10 repeats: delta +20..+40, life matches", async ({
+  test("6.1. Hold 1.4s commits exactly one +10: staged preview (50% opacity) then commit — delta +10, life 50", async ({
     page,
   }) => {
-    // 1. Navigate to /; holdButton P1 '+1 life' for 1300ms
+    // 1. Navigate to /; holdButton P1 '+1 life' for 1400ms (release ≥1400ms
+    //    commits; 1450ms used so release lands after the 1400ms commit and
+    //    before the 1500ms next stage — exactly one +10)
     await page.goto("/");
     const p1 = zone(page, 1);
     const button = p1.getByRole("button", { name: "+1 life" });
@@ -241,25 +243,29 @@ test.describe("life-delta", () => {
     await page.mouse.move(cx, cy);
     await page.mouse.down();
 
-    // expect: At ~1050ms into hold: delta matches /^\+[12]0$/ (+10 or +20, accumulation across repeats)
+    // expect: At ~1050ms into hold (staged at 1000ms, pre-commit): delta(zone(1))
+    // visible with text +10 and opacity 0.5 (preview per §4.2 — life NOT yet changed)
     await page.waitForTimeout(1050);
-    await expect(delta(p1)).toHaveText(/^\+[12]0$/);
+    await expect(delta(p1)).toHaveText("+10");
+    await expect(delta(p1)).toHaveCSS("opacity", "0.5");
+    // expect: P1 life still reads 40 at stage
+    await expect(lifeTotal(p1)).toHaveText("40");
 
-    // 2. Release; read delta
-    await page.waitForTimeout(250);
+    // 2. Release after the 1400ms commit (total hold 1450ms)
+    await page.waitForTimeout(400);
     await page.mouse.up();
-    // expect: delta(zone(1)) matches /^\+[234]0$/ (+20..+40)
-    await expect(delta(p1)).toHaveText(/^\+[234]0$/);
-    const burst = Number(((await delta(p1).textContent()) ?? "").slice(1));
-    // expect: No +1 on release (hold suppresses click) — life = 40 + exact delta, within [60, 80]
-    await expect(lifeTotal(p1)).toHaveText(String(40 + burst));
-    expect(40 + burst).toBeGreaterThanOrEqual(60);
-    expect(40 + burst).toBeLessThanOrEqual(80);
+    // expect: delta(zone(1)) text +10 (full opacity), P1 life reads 50
+    await expect(delta(p1)).toHaveText("+10");
+    await expect(delta(p1)).toHaveCSS("opacity", "1");
+    await expect(lifeTotal(p1)).toHaveText("50");
+    // expect: No +1 on release (hold suppresses click)
 
     // 3. Wait 1200ms
     await page.waitForTimeout(1200);
-    // expect: delta(zone(1)) count = 0
+    // expect: delta(zone(1)) count = 0 (hide timer re-armed by the commit)
     await expect(delta(p1)).toHaveCount(0);
+    // expect: P1 life still reads 50
+    await expect(lifeTotal(p1)).toHaveText("50");
   });
 
   test("7.1. Restart while delta visible clears it, no spurious delta", async ({

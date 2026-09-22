@@ -2,7 +2,7 @@
 
 ## Application Overview
 
-MTG Life Counter — Commander Damage overlay (branch `feature/player-zone`). Each player zone supports a player-left swipe to open a full-screen Commander Damage dialog (§7.3). Swipes are player-relative (§4.3): P1 sits on a 180°-rotated slot, so its physical direction is inverted — physical swipe-right on P1 = Commander, physical swipe-left on P2 = Commander. The overlay shows the opponent's mana-color pill with a Planeswalker symbol, the current commander damage total (starting at 0), and a [+] button. Tap [+] adds 1 commander damage while simultaneously reducing that player's life total by 1. Hold [+] accelerates to +10 after 1000ms. At 21+ damage, the damage count turns danger red (`#D50000`) and a "Lethal — Player loses" badge appears; the player's life total also turns red. The overlay closes via swipe-left/right on the overlay content, backdrop click, or Escape.
+MTG Life Counter — Commander Damage overlay (branch `feature/player-zone`). Each player zone supports a player-left swipe to open a full-screen Commander Damage dialog (§7.3). Swipes are player-relative (§4.3): P1 sits on a 180°-rotated slot, so its physical direction is inverted — physical swipe-right on P1 = Commander, physical swipe-left on P2 = Commander. The overlay shows the opponent's mana-color pill with a Planeswalker symbol, the current commander damage total (starting at 0), and a [+] button. Tap [+] adds 1 commander damage while simultaneously reducing that player's life total by 1. Hold [+] stages ±10 at 1s and commits 400ms later (§7.1); release before commit → cancel — no ±10, no ±1. At 21+ damage, the damage count turns danger red (`#D50000`) and a "Lethal — Player loses" badge appears; the player's life total also turns red. The overlay closes via swipe-left/right on the overlay content, backdrop click, or Escape.
 
 Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Commander Damage overlay displays the opponent's color pill (P1 sees red `r` opponent pill, P2 sees blue `u` opponent pill).
 
@@ -13,7 +13,8 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
 | `UI.danger` | `rgb(213, 0, 0)` | Danger red for lethal state |
 | `MANA.r` | `#E49977` → `rgb(228, 153, 119)` | Red mana background |
 | `MANA.u` | `#C1D7E9` → `rgb(193, 215, 233)` | Blue mana background |
-| `HOLD_DELAY_MS` | 1000 | Time before hold acceleration fires |
+| `HOLD_STAGE_MS` | 1000 | Hold duration before ±10 stages (§7.1) |
+| `HOLD_COMMIT_MS` | 1400 | Stage + 400ms — ±10 commits at this hold duration |
 | `HOLD_STEP` | 10 | Accelerated step on hold |
 | `SWIPE_THRESHOLD_PX` | 10 | Minimum px for swipe gesture |
 | `SWIPE_TIMEOUT_MS` | 300 | Max ms for swipe gesture |
@@ -177,7 +178,7 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
 5. Close P2 dialog, swipe right on P1 zone
     - expect: P1 damage still reads `5`
 
-### 3.3. Hold [+] accelerates to +10 after 1000ms
+### 3.3. Hold [+] stages at 1s, commits exactly one +10 at 1.4s; pre-commit release cancels
 
 **File:** `tests/e2e/commander-damage.spec.ts`
 
@@ -185,10 +186,10 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
   1. Navigate to `/`
   2. Swipe left on P1 zone → Commander Damage dialog opens
     - expect: Damage reads `0`
-  3. Hold (pointerdown) the `+1 commander damage` button for 1200ms, then release
-    - expect: Damage reads at least `10` (hold timer fires `+10` after ~1000ms)
-    - expect: The pending tap `+1` on click is suppressed (total not `+11`)
-    - expect: Upper sanity bound: damage ≤ 15 (hold fires at most once)
+  3. Hold (pointerdown) the `+1 commander damage` button for 1200ms (staged at 1000ms), then release (before 1400ms commit)
+    - expect: Damage still reads `0` (cancelled — no +10, and no +1 tap on release)
+  4. Hold (pointerdown) the `+1 commander damage` button for 1400ms, then release
+    - expect: Damage reads exactly `10` (one +10 committed at 1400ms; tap suppressed — not `+11`)
 
 ### 3.4. Repeated taps accumulate correctly
 
@@ -243,16 +244,18 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
     - expect: P1 life = 30 (40 − 10)
     - expect: P2 life = 40 (unchanged)
 
-### 4.4. Hold [+] also reduces life by the accelerated amount
+### 4.4. Hold [+] also reduces life by the committed amount (cancel window too)
 
 **File:** `tests/e2e/commander-damage.spec.ts`
 
 **Steps:**
   1. Navigate to `/`
-  2. Swipe left on P1 → hold [+] for 1200ms
-    - expect: Damage reads at least `10`
-  3. Close dialog, read P1 life
-    - expect: P1 life ≤ 30 (reduced by 10+)
+  2. Swipe left on P1 → hold [+] for 1200ms (staged at 1000ms), release (before 1400ms commit)
+    - expect: Damage still reads `0` (cancelled)
+  3. Hold [+] for 1400ms, release
+    - expect: Damage reads `10`
+  4. Close dialog, read P1 life
+    - expect: P1 life = 30 (40 − 10)
 
 ### 4.5. Life can go negative from commander damage
 
