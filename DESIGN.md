@@ -302,18 +302,18 @@ Tap M → black belt expands full width. M stays centered. 5 icons spread:
 - **Close:** Tap M or outside → icons collapse, belt retracts. Tapping any
   action icon also collapses the belt.
 
-| Icon | Action       | Side        | Modal?        |
-| ---- | ------------ | ----------- | ------------- |
-| ⟳    | Restart Life | Left, near  | No — instant  |
-| ⚙️   | Initial Life | Left, mid   | Yes — modal   |
-| ⬇️   | Install App  | Left, far   | No — native   |
-| ⚖️   | AI Judge     | Right, near | Yes — modal   |
-| 👥   | Players      | Right, far  | Yes — modal   |
+| Icon | Action       | Side        | Modal?                                   |
+| ---- | ------------ | ----------- | ---------------------------------------- |
+| ⟳    | Restart Life | Left, near  | No — instant                             |
+| ⚙️   | Initial Life | Left, mid   | Yes — modal                              |
+| ⬇️   | Install App  | Left, far   | Chromium: no — native. iOS: yes — instructions dialog |
+| ⚖️   | AI Judge     | Right, near | Yes — modal                              |
+| 👥   | Players      | Right, far  | Yes — modal                              |
 
 Gameplay (⟳, ⚖️) near center. Setup (⚙️, 👥, ⬇️) outer edges.
 
 **Install App (⬇️):** PWA install helper. Installability gate + behavior per
-SPEC.md §8.6.
+SPEC.md §8.6 (incl. iOS clause).
 
 ---
 
@@ -404,9 +404,9 @@ Streaming response.
 │                    └──────────────────┘  │
 │  ┌─────────────┐  (typing indicator)     │  Streaming state
 │                                          │
-│  ┌────────────────────────────────────┐  │
-│  │  Ask about a card or rule…     ⏎   │  │  Input, docked bottom
-│  └────────────────────────────────────┘  │
+│  ┌────────────────────────────────────┐ [⏎] │
+│  │  Ask about a card or rule…          │     │
+│  └────────────────────────────────────┘     │
 └──────────────────────────────────────────┘
 ```
 
@@ -417,9 +417,22 @@ Streaming response.
 - **Header:** "AI Judge" `--text-heading sr-only`. ✕ close button — Escape too.
 - **Streaming:** Response renders incrementally in system bubble. Typing
   indicator (3 dots) while waiting. Input disabled while streaming.
-- **Input:** Docked bottom. Placeholder "Ask about a card or rule…" (50% white
-  opacity). Enter/⏎ sends. Auto-scroll to newest message.
-- **Keyboard:** Escape closes. Focus on input on open.
+- **Input:** Docked bottom, textarea. Wraps — no x-overflow. Grows UP with
+  newlines (`field-sizing: content`), cap `max-h-40` (~7 lines) then scroll.
+  Placeholder "Ask about a card or rule…" (50% white opacity). Send button `⏎`
+  bottom-right, pinned to input bottom edge, disabled when empty/streaming/
+  offline. Enter sends, Shift+Enter newline. Auto-scroll to newest message.
+- **Keyboard:** Escape closes. Focus on input on open. Mobile: virtual keyboard
+  must not obscure input/send — input row lifted by measured overflow vs the
+  keyboard's top edge: VirtualKeyboard API `boundingRect` (Chrome Android,
+  exact, toolbar included) or `visualViewport` fallback + 48px toolbar margin
+  while the keyboard is up; all event sources (geometrychange, viewport
+  resize/scroll, window resize, focusin) plus a 500ms poll re-apply the lift;
+  layout viewport never shrinks, dialog stays full-window black, board never
+  shows during transition. Canvas black via CSS (`--color-ui-belt`). iOS Safari:
+  keyboard detect vs layout viewport (`documentElement.clientHeight` —
+  `innerHeight` shrinks on iOS); lift margin 0 (vv bottom = keyboard top); focus
+  with `preventScroll`; scroll reset on close — page never shifts.
 - **History persistence:** per SPEC.md §9.9.
 
 #### 6.4.0 Offline Fallback (until local engine lands)
@@ -428,14 +441,15 @@ Offline → chat read-only. No typing, no send. Alert explains why.
 
 ```
 │  ⚠️  You're offline — AI Judge needs internet.  ← alert row
-│  ┌──────────────────────────────────────────┐
-│  │  Ask about a card or rule…          ⏎    │  ← input disabled
-│  └──────────────────────────────────────────┘
+│  ┌────────────────────────────────────┐ [⏎] │  input + send disabled
+│  │  Ask about a card or rule…          │     │
+│  └────────────────────────────────────┘     │
 ```
 
 - **Alert row:** full-width, above input. BG `MANA.b`, text `#FAF8F5`,
   `--text-body-sm`. Copy: "You're offline — AI Judge needs internet."
-- **Input:** disabled — no focus, no send, placeholder unchanged.
+- **Input:** disabled — no focus, no send, placeholder unchanged. Send button
+  disabled too.
 - **History:** still visible + scrollable. Read-only.
 - **Online return:** state clears, input re-enables. No reload.
 

@@ -26,6 +26,9 @@
 .DS_Store
 *.pem
 
+# ui screenshots (local only — never tracked)
+/public/ui-screens/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

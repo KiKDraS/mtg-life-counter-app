@@ -14,6 +14,7 @@ import { CallJudgeAction } from "./menu-actions/CallJudgeAction";
 import { SelectPlayersAction } from "./menu-actions/SelectPlayersAction";
 import { InitialLifeModal } from "./modals/initial-life/InitialLifeModal";
 import { PlayerSelectorModal } from "./modals/player-selector/PlayerSelectorModal";
+import { InstallHintModal } from "./modals/install-hint/InstallHintModal";
 import { InstallAppAction } from "./menu-actions/InstallAppAction";
 import { JudgeModal } from "@/features/ai-judge/components/JudgeModal";
 import { PropsWithChildren } from "react";
@@ -23,6 +24,7 @@ const BTN_SIZE = "size-7 md:size-10 transition-all cursor-pointer";
 const INITIAL_LIFE_MODAL_ID = "initial-life-modal";
 const PLAYER_SELECTOR_MODAL_ID = "player-selector-modal";
 const AI_JUDGE_MODAL_ID = "ai-judge-modal";
+const INSTALL_HINT_MODAL_ID = "install-hint-modal";
 
 /**
  * @description
@@ -145,6 +147,7 @@ export function SpellbookMenu() {
       <InitialLifeModal id={INITIAL_LIFE_MODAL_ID} />
       <PlayerSelectorModal id={PLAYER_SELECTOR_MODAL_ID} />
       <JudgeModal id={AI_JUDGE_MODAL_ID} />
+      <InstallHintModal id={INSTALL_HINT_MODAL_ID} />
     </div>
   );
 }

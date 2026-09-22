@@ -1,4 +1,4 @@
-// spec: specs/pwa.plan.md — PWA manifest, SW, offline (feature/pwa-offline)
+// spec: specs/pwa.plan.md — PWA manifest, SW, offline (feature/ios-standalone-splash)
 // seed: tests/seed.spec.ts
 // Requires prod build (pnpm build && pnpm start) at http://localhost:3000 —
 // offline TCs (SM-PWA-05/06/09) fail against pnpm dev (HMR client cannot
@@ -27,8 +27,8 @@ async function setupOnline(page: Page): Promise<void> {
   await page.waitForFunction(
     async () => {
       const keys = await caches.keys();
-      if (!keys.includes("mtg-life-v2")) return false;
-      const c = await caches.open("mtg-life-v2");
+      if (!keys.includes("mtg-life-v3")) return false;
+      const c = await caches.open("mtg-life-v3");
       return !!(await c.match("/")); // precache finished
     },
     { timeout: 15_000 },
@@ -50,7 +50,7 @@ const ERROR_PAGE_STRINGS = [
 ];
 
 /* ───────────────────────────────────────────────
- * PWA — manifest, SW, offline (SM-PWA-01..10)
+ * PWA — manifest, SW, offline (SM-PWA-01..11)
  * ─────────────────────────────────────────────── */
 
 test.describe("PWA — manifest, SW, offline", () => {
@@ -76,8 +76,10 @@ test.describe("PWA — manifest, SW, offline", () => {
     expect(manifest.theme_color).toBe("#292A2A");
     expect(manifest.background_color).toBe("#292A2A");
 
-    // 3. assert icons array — exactly 2, 192 + 512, png, any+maskable
-    expect(manifest.icons).toHaveLength(2);
+    // 3. assert icons array — exactly 4, purposes split any/maskable (plan:
+    //    iOS launch screen needs single-purpose "any" icons; combined "any
+    //    maskable" entries caused the white native splash)
+    expect(manifest.icons).toHaveLength(4);
     const icons = manifest.icons as {
       sizes: string;
       type: string;
@@ -86,14 +88,40 @@ test.describe("PWA — manifest, SW, offline", () => {
     }[];
     for (const icon of icons) {
       expect(icon.type).toBe("image/png");
+      // every purpose is exactly ONE token — no combined "any maskable"
       const purposes = icon.purpose.split(/\s+/);
-      expect(purposes).toContain("any");
-      expect(purposes).toContain("maskable");
+      expect(purposes).toHaveLength(1);
+      expect(purposes[0]).toMatch(/^(any|maskable)$/);
     }
-    expect(icons.map((i) => i.sizes).sort()).toEqual(["192x192", "512x512"]);
-    const bySize = Object.fromEntries(icons.map((i) => [i.sizes, i.src]));
-    expect(bySize["192x192"]).toBe("/web-app-manifest-192x192.png");
-    expect(bySize["512x512"]).toBe("/web-app-manifest-512x512.png");
+    const anyIcons = icons.filter((i) => i.purpose === "any");
+    const maskableIcons = icons.filter((i) => i.purpose === "maskable");
+    // exactly 2 any — 192 + 512 — with exact src mapping
+    expect(anyIcons).toHaveLength(2);
+    expect(anyIcons.map((i) => i.sizes).sort()).toEqual([
+      "192x192",
+      "512x512",
+    ]);
+    const anyBySize = Object.fromEntries(anyIcons.map((i) => [i.sizes, i.src]));
+    expect(anyBySize["192x192"]).toBe("/web-app-manifest-192x192.png");
+    expect(anyBySize["512x512"]).toBe("/web-app-manifest-512x512.png");
+    // exactly 2 maskable — same two sizes and srcs
+    expect(maskableIcons).toHaveLength(2);
+    expect(maskableIcons.map((i) => i.sizes).sort()).toEqual([
+      "192x192",
+      "512x512",
+    ]);
+    const maskableBySize = Object.fromEntries(
+      maskableIcons.map((i) => [i.sizes, i.src]),
+    );
+    expect(maskableBySize["192x192"]).toBe("/web-app-manifest-192x192.png");
+    expect(maskableBySize["512x512"]).toBe("/web-app-manifest-512x512.png");
+    // sizes across all 4: each declared once per purpose
+    expect(icons.map((i) => i.sizes).sort()).toEqual([
+      "192x192",
+      "192x192",
+      "512x512",
+      "512x512",
+    ]);
   });
 
   test("SM-PWA-02: Manifest linked from the page", async ({ page }) => {
@@ -265,7 +293,7 @@ test.describe("PWA — manifest, SW, offline", () => {
     expect(hits).toEqual([]);
   });
 
-  test("SM-PWA-08: Cache is versioned — mtg-life-v2, no stale v1", async ({
+  test("SM-PWA-08: Cache is versioned — mtg-life-v3, no stale v1/v2", async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -275,9 +303,11 @@ test.describe("PWA — manifest, SW, offline", () => {
     // 2. read cache keys
     const keys = await page.evaluate(() => caches.keys());
     // expect: current version cache present
-    expect(keys).toContain("mtg-life-v2");
-    // expect: stale v1 purged
+    expect(keys).toContain("mtg-life-v3");
+    // expect: stale v1 AND v2 purged (activate deletes every cache except the
+    // current version — incl. the v2 shells stale from feature/pwa-offline)
     expect(keys).not.toContain("mtg-life-v1");
+    expect(keys).not.toContain("mtg-life-v2");
 
     // 3. cross-check /sw.js CACHE const matches the found key
     const sw = await page.request.get("/sw.js");
@@ -335,5 +365,48 @@ test.describe("PWA — manifest, SW, offline", () => {
     await expect(page.locator('head link[rel="apple-touch-icon"]')).toHaveCount(
       1,
     );
+  });
+
+  test("SM-PWA-11: Manifest serves any icons — iOS launch screen (CORE for the splash fix)", async ({
+    page,
+  }) => {
+    // Regression guard for feature/ios-standalone-splash: iOS reads the
+    // manifest's purpose:"any" icons for the home-screen launch screen; a
+    // manifest with only combined "any maskable" icons (or maskable-only)
+    // makes iOS render its white native splash instead of the app cover.
+    // 1. goto /; request /manifest.json
+    await page.goto("/");
+    const resp = await page.request.get("/manifest.json");
+    expect(resp.status()).toBe(200);
+    const manifest = await resp.json();
+
+    // 2. filter icons with purpose "any"
+    const anyIcons = (manifest.icons as {
+      sizes: string;
+      type: string;
+      purpose: string;
+      src: string;
+    }[]).filter((i) => i.purpose === "any");
+    // exactly 2 entries, single-token purpose (NOT "any maskable")
+    expect(anyIcons).toHaveLength(2);
+    for (const icon of anyIcons) {
+      expect(icon.purpose.split(/\s+/)).toHaveLength(1);
+      expect(icon.type).toBe("image/png");
+    }
+    // sizes exactly ["192x192", "512x512"] (iOS picks the largest any icon)
+    expect(anyIcons.map((i) => i.sizes).sort()).toEqual([
+      "192x192",
+      "512x512",
+    ]);
+    const bySize = Object.fromEntries(anyIcons.map((i) => [i.sizes, i.src]));
+    expect(bySize["192x192"]).toBe("/web-app-manifest-192x192.png");
+    expect(bySize["512x512"]).toBe("/web-app-manifest-512x512.png");
+
+    // 3. cross-check: both any srcs fetchable (launch icon servable, not just declared)
+    for (const src of Object.values(bySize)) {
+      const iconResp = await page.request.get(src as string);
+      expect(iconResp.status()).toBe(200);
+      expect(iconResp.headers()["content-type"]).toBe("image/png");
+    }
   });
 });

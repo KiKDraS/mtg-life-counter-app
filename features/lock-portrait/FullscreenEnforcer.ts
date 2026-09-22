@@ -20,6 +20,12 @@ export function FullscreenEnforcer() {
       return;
     }
 
+    /* iPhone Safari has no Fullscreen API at all — skip without TypeError,
+       console spam, or pointless retries. iPad keeps full behavior. */
+    if (typeof document.documentElement.requestFullscreen !== "function") {
+      return;
+    }
+
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as Navigator & { standalone?: boolean }).standalone;
