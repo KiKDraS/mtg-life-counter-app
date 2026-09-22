@@ -61,10 +61,10 @@ async function swipeOn(
 }
 
 /**
- * No-layout-shift check: the burst delta is absolutely positioned (top-0 of the
- * center column), so the life-total box must not move when it appears. 1px
- * tolerance covers sub-pixel rounding — a real in-flow shift would move life
- * by at least the delta height (~14px).
+ * No-layout-shift check: the burst delta is absolutely positioned directly
+ * above the life total (bottom-full of the life wrapper), so the life-total
+ * box must not move when it appears. 1px tolerance covers sub-pixel rounding —
+ * a real in-flow shift would move life by at least the delta height (~14px).
  */
 function expectBoxEqual(actual: Box, baseline: Box): void {
   for (const key of ["x", "y", "width", "height"] as const) {
@@ -97,9 +97,9 @@ test.describe("life-delta", () => {
     await expect(delta(p1)).toHaveCSS("font-weight", "700");
     // expect: delta box above life box — in the zone's OWN layout frame. P1 is
     // rotated 180° on screen, which flips the screen-space relationship (the
-    // boundingBox of an absolute top-0 element lands BELOW the centered life
-    // total). offsetTop/offsetHeight are transform-independent layout coords:
-    // the delta is top-0 of the center column, the life total sits below it.
+    // boundingBox of an element above the life lands BELOW the centered life
+    // total on screen). offsetTop/offsetHeight are transform-independent layout
+    // coords: the delta is above the life total (bottom-full of its wrapper).
     const above = await delta(p1).evaluate((el) => {
       const span = el as HTMLElement;
       const parent = span.offsetParent;

@@ -27,25 +27,27 @@ export function LifeTotalDisplay({
 
   return (
     <div className="relative flex h-full flex-col items-center justify-center">
-      {delta !== 0 && (
-        <span
-          aria-hidden="true"
-          className="absolute top-0 tabular-nums font-bold leading-none text-delta"
-          style={{ color: textColor }}
-        >
-          {delta > 0 ? "+" : "−"}
-          {Math.abs(delta)}
-        </span>
-      )}
+      <div className="relative">
+        {delta !== 0 && (
+          <span
+            aria-hidden="true"
+            className="absolute bottom-full left-0 right-0 mb-1 text-center tabular-nums font-bold leading-none text-delta"
+            style={{ color: textColor }}
+          >
+            {delta > 0 ? "+" : "−"}
+            {Math.abs(delta)}
+          </span>
+        )}
 
-      <p
-        aria-live="polite"
-        aria-atomic="true"
-        className="tabular-nums font-black leading-none text-life"
-        style={{ color: isLethal ? UI.danger : textColor }}
-      >
-        {life}
-      </p>
+        <p
+          aria-live="polite"
+          aria-atomic="true"
+          className="tabular-nums font-black leading-none text-life"
+          style={{ color: isLethal ? UI.danger : textColor }}
+        >
+          {life}
+        </p>
+      </div>
 
       {isAlive && isCommanderLethal && (
         <span className={badgeClass} style={{ color: UI.danger }}>
