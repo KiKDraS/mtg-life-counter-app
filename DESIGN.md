@@ -302,18 +302,18 @@ Tap M → black belt expands full width. M stays centered. 5 icons spread:
 - **Close:** Tap M or outside → icons collapse, belt retracts. Tapping any
   action icon also collapses the belt.
 
-| Icon | Action       | Side        | Modal?        |
-| ---- | ------------ | ----------- | ------------- |
-| ⟳    | Restart Life | Left, near  | No — instant  |
-| ⚙️   | Initial Life | Left, mid   | Yes — modal   |
-| ⬇️   | Install App  | Left, far   | No — native   |
-| ⚖️   | AI Judge     | Right, near | Yes — modal   |
-| 👥   | Players      | Right, far  | Yes — modal   |
+| Icon | Action       | Side        | Modal?                                   |
+| ---- | ------------ | ----------- | ---------------------------------------- |
+| ⟳    | Restart Life | Left, near  | No — instant                             |
+| ⚙️   | Initial Life | Left, mid   | Yes — modal                              |
+| ⬇️   | Install App  | Left, far   | Chromium: no — native. iOS: yes — instructions dialog |
+| ⚖️   | AI Judge     | Right, near | Yes — modal                              |
+| 👥   | Players      | Right, far  | Yes — modal                              |
 
 Gameplay (⟳, ⚖️) near center. Setup (⚙️, 👥, ⬇️) outer edges.
 
 **Install App (⬇️):** PWA install helper. Installability gate + behavior per
-SPEC.md §8.6.
+SPEC.md §8.6 (incl. iOS clause).
 
 ---
 
@@ -429,7 +429,10 @@ Streaming response.
   while the keyboard is up; all event sources (geometrychange, viewport
   resize/scroll, window resize, focusin) plus a 500ms poll re-apply the lift;
   layout viewport never shrinks, dialog stays full-window black, board never
-  shows during transition. Canvas black via CSS (`--color-ui-belt`).
+  shows during transition. Canvas black via CSS (`--color-ui-belt`). iOS Safari:
+  keyboard detect vs layout viewport (`documentElement.clientHeight` —
+  `innerHeight` shrinks on iOS); lift margin 0 (vv bottom = keyboard top); focus
+  with `preventScroll`; scroll reset on close — page never shifts.
 - **History persistence:** per SPEC.md §9.9.
 
 #### 6.4.0 Offline Fallback (until local engine lands)
