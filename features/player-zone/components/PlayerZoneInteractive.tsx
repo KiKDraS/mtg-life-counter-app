@@ -87,6 +87,10 @@ export function PlayerZoneInteractive({
   /* §4.2 — transient burst-net delta. Local UI state, not in PlayerState. */
   const [lifeDelta, setLifeDelta] = useState(0);
 
+  /* §4.2 — staged ±10 preview. Only staged holds touch it; commits clear it
+   * via onStage(0). Never re-arms the lifeDelta hide timer below. */
+  const [pendingDelta, setPendingDelta] = useState(0);
+
   useEffect(() => {
     if (lifeDelta === 0) return;
     const timer = setTimeout(() => setLifeDelta(0), DELTA_HIDE_MS);
@@ -162,6 +166,7 @@ export function PlayerZoneInteractive({
           ariaLabel="-1 life"
           style={{ textShadow }}
           onAdjust={(d) => setLifeDelta((prev) => prev + d)}
+          onStage={(d) => setPendingDelta(d)}
         />
 
         {/* Center Column */}
@@ -172,6 +177,7 @@ export function PlayerZoneInteractive({
           isCommanderLethal={isCommanderLethal}
           isPoisonLethal={isPoisonLethal}
           delta={lifeDelta}
+          pending={pendingDelta}
         />
 
         {/* Right Column */}
@@ -197,6 +203,7 @@ export function PlayerZoneInteractive({
             ariaLabel="+1 life"
             style={{ textShadow }}
             onAdjust={(d) => setLifeDelta((prev) => prev + d)}
+            onStage={(d) => setPendingDelta(d)}
           />
         </div>
       </section>
