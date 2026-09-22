@@ -1,6 +1,6 @@
 // ponytail: plain SW, no Workbox. Bump CACHE version to purge stale caches.
 // SPEC 9.11: /api/* network-only, never cached. AI Judge = only offline-degrading feature.
-const CACHE = "mtg-life-v2";
+const CACHE = "mtg-life-v3";
 
 const PRECACHE = [
   "/",
