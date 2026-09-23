@@ -31,7 +31,7 @@ import { getRulings, resolveCard } from "@/features/ai-judge/lib/scryfall";
 export const RULES_FETCH_TIMEOUT_MS = 10_000;
 
 /** Rulings cap per card — top-ranked by question-token overlap (§9.3.1). */
-const MAX_RULINGS_PER_CARD = 3;
+const MAX_RULINGS_PER_CARD = 10;
 
 /**
  * @description Rank rulings by question-token overlap with the comment

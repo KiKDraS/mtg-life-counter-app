@@ -371,7 +371,7 @@ artifacts (§9.11).
 - Card context = `name` + `type_line` + `oracle_text` (verbatim) + rulings via
   `rulings_uri` (canonical, from card JSON), fallback `GET /cards/{id}/rulings`.
   Card block injected whenever the card resolves — even with zero rulings.
-- Rulings ranked by token overlap with question, max 3 per card.
+- Rulings ranked by token overlap with question, max 10 per card.
 
 #### 9.3.2 mtg.wtf (Comprehensive Rules)
 
@@ -394,7 +394,7 @@ Pure TS only — no Node APIs, no `fs`, no `fetch`. Browser-portable unchanged
 (offline seam §9.11).
 
 - **Lexical (default):** ruleId regex match (e.g. `702.34` in question) + token
-  overlap scoring. top-k = 5.
+  overlap scoring. top-k = 25.
 - **Spanish expansion:** ES→EN MTG term dictionary (`rag/es-dict.ts`, 45 terms)
   — translated phrases boost (multi-word +3, single-word +2), accent-stripped
   normalization. Spanish questions retrieve English rules.
@@ -402,7 +402,7 @@ Pure TS only — no Node APIs, no `fs`, no `fetch`. Browser-portable unchanged
   or keyword-level prefixes (`702.34` flashback, `700.2` modes). Match via
   rule-id prefix, not just section head.
 - **Semantic (opt-in):** `OPENROUTER_EMBEDDING_MODEL` set → embed rules corpus,
-  cosine similarity. top-k = 5. Embedding artifact file-cached, keyed by rules
+  cosine similarity. top-k = 25. Embedding artifact file-cached, keyed by rules
   version. Rebuild only on version change.
 - Retrieved rules injected into prompt (§9.7). Both paths share context format.
 
@@ -492,7 +492,7 @@ Q: {question}
 
 - Card block present whenever the card resolves — even with zero rulings.
   `RULINGS:` block follows when rulings exist (`[name] (date) comment` per line,
-  max 3/card). No card → card block omitted. Source data verbatim — framing
+  max 10/card). No card → card block omitted. Source data verbatim — framing
   labels only compressed.
 
 - Output contract: plain-text answer (markdown subset), then a line with the
@@ -506,7 +506,7 @@ Q: {question}
   stopwords detected in question. Deterministic server-side.
 - **Partial context:** system prompt — excerpts may be truncated; answer from
   excerpts + CR knowledge; never refuse over incomplete excerpt.
-- **Injected rule excerpts clipped** to 180 chars (word boundary) at prompt
+- **Injected rule excerpts clipped** to 1500 chars (word boundary) at prompt
   build — answer-side citations still assembled from the full verbatim rule
   text. Few-shot answers one sentence each; `<<<CITATIONS>>>` + citation JSON
   lines verbatim (format enforcers).
@@ -543,8 +543,8 @@ Q: {question}
 - `sessionId = aijudge-<version>` — deterministic, same server history across
   reloads.
 - IndexedDB blocked/private mode → memory-only fallback, app stays usable.
-- In-memory token budget: 10k tokens → FIFO prune oldest, keep system prompt +
-  last N turns. Mirrored client-side char cap (10k × 4 chars).
+- In-memory token budget: 60k tokens → FIFO prune oldest, keep system prompt +
+  last N turns. Mirrored client-side char cap (60k × 4 chars).
 
 ### 9.10 UI Contract
 
