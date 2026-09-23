@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "probe:judge": "node scripts/probe-judge.mjs",
-    "rules:refresh": "node scripts/fetch-rules.mjs"
+    "rules:refresh": "node scripts/fetch-rules.mjs",
+    "embed:refresh": "node scripts/embed-rules.mjs"
   },
   "dependencies": {
     "@openrouter/sdk": "^1.2.24",

@@ -4,6 +4,8 @@
  * Validated once at module load: missing/malformed `OPEN_ROUTER_API_KEY` or
  * `OPEN_ROUTER_MODEL` → `ENV_OK` false → route answers 503 `misconfigured`.
  * Model format `vendor/model`. Server-only env, never logged.
+ * Optional `OPEN_ROUTER_EMBEDDING_MODEL` gates semantic retrieval (§9.4) —
+ * separate from the chat-completion model list; unset → lexical only.
  */
 
 import { OpenRouter } from "@openrouter/sdk";
@@ -41,10 +43,15 @@ export const env = {
   apiKey: process.env.OPEN_ROUTER_API_KEY ?? "",
   model: (process.env.OPEN_ROUTER_MODEL ?? "").trim(),
   fallbackModel: (process.env.OPEN_ROUTER_FALLBACK_MODEL ?? "").trim(),
+  embeddingModel: (process.env.OPEN_ROUTER_EMBEDDING_MODEL ?? "").trim(),
 };
 
 /** True when the required key + model are present and well-formed. */
 export const ENV_OK = env.apiKey.length > 0 && MODEL_FORMAT_RE.test(env.model);
+
+/** Semantic retrieval enabled: embedding model set + well-formed (SPEC §9.4). */
+export const EMBEDDING_OK =
+  env.embeddingModel.length > 0 && MODEL_FORMAT_RE.test(env.embeddingModel);
 
 /** Telemetry env (optional — judge works without it, SPEC §9.5). */
 export const axiomToken = process.env.AXIOM_INGEST_TOKEN ?? "";
