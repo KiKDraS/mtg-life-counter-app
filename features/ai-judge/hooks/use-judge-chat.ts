@@ -10,8 +10,8 @@ import {
 } from "@/features/ai-judge/lib/chat-store";
 import { useOptionalGameStateContext } from "@/features/game-shell/state/hooks";
 
-/* SPEC §9.9 — 10k token cap, rough 4 chars/token, FIFO prune. */
-const HISTORY_CHAR_CAP = 10_000 * 4;
+/* SPEC §9.9 — 60k token cap, rough 4 chars/token, FIFO prune. */
+const HISTORY_CHAR_CAP = 60_000 * 4;
 /* SPEC §9.10 — 503 misconfigured renders this exact copy, not the server message. */
 const MISCONFIGURED_COPY = "AI Judge unavailable";
 

@@ -14,7 +14,7 @@ export interface RetrievedRule {
   readonly score: number;
 }
 
-export const TOP_K = 5;
+export const TOP_K = 25;
 
 /** Exact-phrase containment boost — multi-word EN terms ("combat phase"). */
 export const PHRASE_BOOST = 3;
