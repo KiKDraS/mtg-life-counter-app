@@ -7,6 +7,7 @@
  * dependency is null-safe; the answer always proceeds.
  */
 
+import { retrieveSemanticRules } from "./embed";
 import {
   getRulesArtifact,
   getStaleRulesArtifact,
@@ -144,19 +145,23 @@ export async function loadRules(
 ): Promise<{ rules: RetrievedRule[]; version: string; allRules: ReadonlyMap<string, string> } | null> {
   try {
     const artifact = getRulesArtifact() ?? (await fetchRules());
+    // Semantic first when enabled (SPEC §9.4); null → lexical fallback.
+    const semantic = await retrieveSemanticRules(question, artifact);
     return {
-      rules: retrieveRules(question, artifact),
+      rules: semantic ?? retrieveRules(question, artifact),
       version: artifact.version,
       allRules: artifact.rules,
     };
   } catch (err) {
     const stale = getStaleRulesArtifact();
-    if (stale)
+    if (stale) {
+      const semantic = await retrieveSemanticRules(question, stale);
       return {
-        rules: retrieveRules(question, stale),
+        rules: semantic ?? retrieveRules(question, stale),
         version: stale.version,
         allRules: stale.rules,
       };
+    }
     console.error(
       "Rules fetch failed, degraded mode:",
       err instanceof Error ? err.message : err,

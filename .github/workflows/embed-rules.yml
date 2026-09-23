@@ -1,0 +1,117 @@
+name: embed-rules
+on:
+  workflow_run:
+    workflows: ["refresh-rules"]
+    types: [completed]
+  workflow_dispatch:
+concurrency:
+  group: embed-rules
+  cancel-in-progress: true
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+jobs:
+  embed-and-release:
+    # Manual dispatch always runs; workflow_run only after refresh-rules succeeds.
+    # "With new rules" = embed script's own version+hash+model unchanged-check:
+    # exits 0 "unchanged" with zero API calls when nothing changed — a daily
+    # no-op refresh-rules run costs nothing here.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        # Rules land on develop (refresh-rules PRs there, never releases).
+        # Embed must run against the NEW rules → develop, not main.
+        with: { ref: develop, fetch-depth: 0 }
+      - name: Check API key
+        id: check-key
+        env:
+          OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+        run: |
+          if [ -z "$OPEN_ROUTER_API_KEY" ]; then
+            echo "::error::OPEN_ROUTER_API_KEY missing — embed skipped, rules release STALLS on develop until key set"
+            exit 1
+          fi
+      - name: Embed rules (semantic retrieval bundle)
+        env:
+          OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          OPEN_ROUTER_EMBEDDING_MODEL: ${{ vars.OPEN_ROUTER_EMBEDDING_MODEL || 'openai/text-embedding-3-small' }}
+        run: node scripts/embed-rules.mjs
+      - name: Notify — API key missing
+        if: steps.check-key.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTIFY_DETAILS: |-
+            embed-rules failed: OPEN_ROUTER_API_KEY secret not set.
+
+            Rules refresh merged to develop but the release is stalled — no embeddings, no release.
+
+            Fix: add the secret (repo Settings → Secrets and variables → Actions), then run embed-rules manually (Actions → Run workflow, branch develop).
+
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash scripts/notify-failure.sh "[embed-rules] OPEN_ROUTER_API_KEY missing — release stalled"
+      - name: Notify — pipeline failure
+        # Any failure except the missing-key case (that one has its own issue).
+        if: failure() && steps.check-key.outcome != 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTIFY_DETAILS: "embed-rules failed. See run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        run: bash scripts/notify-failure.sh "[embed-rules] update pipeline failed"
+      - name: PR embeddings bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- features/ai-judge/lib/rag/embeddings-bundle.json; then
+            echo "embeddings unchanged — nothing to do"; exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BRANCH="chore/embed-refresh-$(date +%Y%m%d)"
+          git checkout -b "$BRANCH"
+          git add features/ai-judge/lib/rag/embeddings-bundle.json
+          git commit -m "chore: refresh embeddings bundle"
+          git push origin "$BRANCH"
+          PR_URL="$(gh pr create --base develop --head "$BRANCH" --title "chore: refresh embeddings bundle" --body "Auto-generated after a rules refresh — re-embeds the CR corpus on version change (SPEC §9.4).")"
+          gh pr merge "$PR_URL" --merge --delete-branch
+
+      - name: Release when develop differs from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch origin develop main
+          if git diff --quiet origin/develop origin/main; then
+            echo "develop == main — nothing to release"; exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          CR_VERSION="$(node -p "require('./features/ai-judge/lib/rag/rules-bundle.json').version")"
+
+          # --- release: develop → release/vX → main + tag + gh release ---
+          NEW_VERSION="$(node -e "const p=require('./package.json');const [a,b,c]=p.version.split('.').map(Number);console.log(a+'.'+b+'.'+(c+1))")"
+          RELEASE_BRANCH="release/v$NEW_VERSION"
+          git checkout -b "$RELEASE_BRANCH" origin/develop
+          node -e "const fs=require('fs');const p=require('./package.json');const [a,b,c]=p.version.split('.').map(Number);p.version=a+'.'+b+'.'+(c+1);fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
+          git add package.json
+          git commit -m "chore(release): v$NEW_VERSION"
+          git push origin "$RELEASE_BRANCH"
+          RELEASE_URL="$(gh pr create --base main --head "$RELEASE_BRANCH" --title "release: v$NEW_VERSION" --body "Comprehensive rules + embeddings refresh — CR $CR_VERSION.")"
+          gh pr merge "$RELEASE_URL" --merge --delete-branch
+
+          git checkout main && git pull origin main
+          VERSION="$(node -p "require('./package.json').version")"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+          gh release create "v$VERSION" --title "Release v$VERSION" --notes "Comprehensive rules + embeddings refresh — CR $CR_VERSION."
+
+          # --- back-merge release → develop ---
+          BACKMERGE_BRANCH="${RELEASE_BRANCH}-backmerge"
+          git checkout -b "$BACKMERGE_BRANCH" origin/develop
+          git merge origin/main --no-edit
+          git push origin "$BACKMERGE_BRANCH"
+          BACKMERGE_URL="$(gh pr create --base develop --head "$BACKMERGE_BRANCH" --title "chore: back-merge $RELEASE_BRANCH to develop" --body "Sync release back to develop.")"
+          gh pr merge "$BACKMERGE_URL" --merge --delete-branch

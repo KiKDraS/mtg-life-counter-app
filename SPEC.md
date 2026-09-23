@@ -602,12 +602,15 @@ app/api/judge/sessions.ts         # session history store, cap 100, idle sweep (
 app/api/judge/sse.ts              # SSE encode + error helpers (§9.5)
 app/api/judge/context.ts          # card + rules context assembly, degradable (§9.3)
 app/api/judge/stream.ts           # model stream, fallback, timeouts (§9.6)
+app/api/judge/embed.ts            # question embedding + semantic retrieval, degradable (§9.4)
 features/ai-judge/lib/types.ts    # shared types (§9.11)
 features/ai-judge/lib/client.ts   # single client call site
 features/ai-judge/lib/prompts.ts  # persona, few-shot, RAG format
 features/ai-judge/lib/citations.ts# citation parse + validate + sanitize
 features/ai-judge/lib/history.ts  # in-memory session history
-features/ai-judge/lib/rag/        # pure TS: parse, retrieve, score
+features/ai-judge/lib/rag/        # pure TS: parse, retrieve, score, embed (§9.4)
+features/ai-judge/lib/rag/embeddings.ts           # pure TS: cosine, retrieveSemantic (§9.4)
+features/ai-judge/lib/rag/embeddings-bundle.json  # committed embedding artifact, built by pnpm embed:refresh (§9.4)
 ```
 
 Route split per AGENTS.md **Route Module Structure** — one concern per file,
