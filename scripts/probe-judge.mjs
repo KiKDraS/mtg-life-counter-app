@@ -28,8 +28,8 @@ if (!base) {
 const endpoint = base.replace(/\/+$/, "").replace(/\/api\/judge$/, "") + "/api/judge";
 const runs = Number(process.argv[3] ?? 5);
 const HIST_RUNS = Math.min(2, runs);
-// Server total budget 120s (SPEC §9.5) + 10s margin — full answer must complete.
-const ITER_TIMEOUT_MS = 130_000;
+// Server total budget 150s (SPEC §9.5) + 10s margin — full answer must complete.
+const ITER_TIMEOUT_MS = 160_000;
 
 const pct = (sorted, p) =>
   sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * p) - 1))] ?? 0;

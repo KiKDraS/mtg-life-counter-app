@@ -24,8 +24,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
     "Invalid question. Please ask a question between 1 and 500 characters.",
   rate_limited: "The AI Judge is busy. Please wait a moment.",
   misconfigured: "The AI Judge is not configured. Please try again later.",
-  model_unavailable: "The AI Judge is temporarily offline. Try again shortly.",
-  timeout: "The AI Judge took too long to respond. Please try again.",
+  model_unavailable: "The AI Judge is temporarily offline. We're working on it — try again shortly.",
+  timeout: "The AI Judge took too long. We're working on it — try again in a minute.",
 };
 
 /**

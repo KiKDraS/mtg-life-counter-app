@@ -3,8 +3,9 @@
  *
  * One `chat.send` per answer with the full model list — the SDK/API performs
  * multi-model auto-fallback internally (5xx/timeout/provider overload, never
- * 4xx). First-token 30s + total 120s timeouts; abort tied to the client
- * signal. Usage + cost extracted from the stream and logged per request.
+ * 4xx). First-token 60s + total 150s timeouts; watchdog race guarantees the
+ * send cannot hang past budget; abort tied to the client signal. Usage + cost
+ * extracted from the stream and logged per request.
  */
 
 import { AnswerExtractor } from "./answer-extract";
@@ -23,8 +24,8 @@ import {
 import type { ChatStreamChunk } from "@openrouter/sdk/models";
 import type { Usage } from "@/features/ai-judge/lib/types";
 
-const FIRST_TOKEN_TIMEOUT_MS = 30_000;
-const TOTAL_TIMEOUT_MS = 120_000;
+const FIRST_TOKEN_TIMEOUT_MS = 60_000;
+const TOTAL_TIMEOUT_MS = 150_000;
 
 /**
  * `reasoning` request field — effort always set (default medium, SPEC §9.2).
@@ -71,6 +72,17 @@ export type StreamWithFallbackResult =
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Race the SDK send against the total budget — cannot hang past it. */
+const raceWithBudget = async <T>(send: Promise<T>): Promise<T> => {
+  send.catch(() => {}); // no unhandled rejection if the race wins
+  const result = await Promise.race([
+    send,
+    sleep(TOTAL_TIMEOUT_MS).then(() => null),
+  ]);
+  if (result === null) throw new StreamTimeoutError("no response in budget");
+  return result;
+};
 
 /** Runtime guard for the SDK's stream-vs-result union (SPEC §9.5). */
 export const isAsyncIterable = <T>(value: unknown): value is AsyncIterable<T> =>
@@ -195,11 +207,12 @@ const logFailure = (failure: FailureKind, err: unknown): void => {
 /**
  * @description Stream one answer (SPEC §9.5, §9.6): a single `chat.send` with
  * the full model list — the SDK/API auto-falls back across models on
- * 5xx/timeout/provider overload, never 4xx. First token 30s, total 120s
- * (`timeoutMs`), abort tied to `clientSignal`. Tokens already sent before a
- * failure → "mid_stream_failure" (a fallback cannot be spliced in cleanly);
- * client disconnect → "client_disconnected"; otherwise "failed" with the
- * classified failure kind.
+ * 5xx/timeout/provider overload, never 4xx. First token 60s, total 150s
+ * (`timeoutMs`); a watchdog race on the send guarantees it cannot hang past
+ * budget. Abort tied to `clientSignal`. Tokens already sent before a failure →
+ * "mid_stream_failure" (a fallback cannot be spliced in cleanly); client
+ * disconnect → "client_disconnected"; otherwise "failed" with the classified
+ * failure kind.
  * Reasoning depth (SPEC §9.5): `OPEN_ROUTER_REASONING_EFFORT` when configured —
  * latency/quality tradeoff on reasoning models, omitted = model default.
  * @param models Model ids in preference order (primary first).
@@ -232,20 +245,22 @@ export async function streamWithFallback(
   };
 
   try {
-    const result = await openRouter.chat.send(
-      {
-        chatRequest: {
-          models: [...models],
-          messages,
-          stream: true,
-          streamOptions: { includeUsage: true },
-          provider: { zdr: zdrEnabled },
-          // Reasoning depth when configured (SPEC §9.2) — latency/quality
-          // tradeoff on reasoning models; omitted = model default (§9.5).
-          ...reasoningField,
+    const result = await raceWithBudget(
+      openRouter.chat.send(
+        {
+          chatRequest: {
+            models: [...models],
+            messages,
+            stream: true,
+            streamOptions: { includeUsage: true },
+            provider: { zdr: zdrEnabled },
+            // Reasoning depth when configured (SPEC §9.2) — latency/quality
+            // tradeoff on reasoning models; omitted = model default (§9.5).
+            ...reasoningField,
+          },
         },
-      },
-      { timeoutMs: TOTAL_TIMEOUT_MS, signal: clientSignal },
+        { timeoutMs: TOTAL_TIMEOUT_MS, signal: clientSignal },
+      ),
     );
     if (!isAsyncIterable<ChatStreamChunk>(result)) throw new Error("unexpected non-stream response");
 
