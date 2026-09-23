@@ -28,6 +28,7 @@
   --font-sans: var(--font-archivo);
   --font-mono: var(--font-archivo);
   --text-life: clamp(3.5rem, 15cqmin, 6rem);
+  --text-delta: clamp(1.25rem, 4cqmin, 2rem);
   --text-display: clamp(2.5rem, 6cqmin, 5rem);
   --text-heading: clamp(1.8rem, 3cqmin, 2.8rem);
   --text-body: 1rem;

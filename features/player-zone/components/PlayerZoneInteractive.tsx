@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, type PropsWithChildren } from "react";
+import { useRef, useCallback, useEffect, useState, type PropsWithChildren } from "react";
 import { cn } from "@/shared/lib/cn";
 import {
   INCREMENT_LIFE,
@@ -37,6 +37,9 @@ interface PlayerZoneInteractiveProps extends PropsWithChildren {
 
 const getDialog = (id: string) =>
   document.getElementById(id) as HTMLDialogElement | null;
+
+/* §4.2 — delta hides 1s after last change (inactivity timer). */
+const DELTA_HIDE_MS = 1000;
 
 const getDimensionClasses = (rotation: number) => {
   const isSideways = rotation === 90 || rotation === -90;
@@ -80,6 +83,19 @@ export function PlayerZoneInteractive({
     isOnBottomSlot,
   } = usePlayerStateContext();
   const zoneRef = useRef<HTMLDivElement>(null);
+
+  /* §4.2 — transient burst-net delta. Local UI state, not in PlayerState. */
+  const [lifeDelta, setLifeDelta] = useState(0);
+
+  /* §4.2 — staged ±10 preview. Only staged holds touch it; commits clear it
+   * via onStage(0). Never re-arms the lifeDelta hide timer below. */
+  const [pendingDelta, setPendingDelta] = useState(0);
+
+  useEffect(() => {
+    if (lifeDelta === 0) return;
+    const timer = setTimeout(() => setLifeDelta(0), DELTA_HIDE_MS);
+    return () => clearTimeout(timer);
+  }, [lifeDelta]);
 
   /* 
     ======================
@@ -149,6 +165,8 @@ export function PlayerZoneInteractive({
           label="−"
           ariaLabel="-1 life"
           style={{ textShadow }}
+          onAdjust={(d) => setLifeDelta((prev) => prev + d)}
+          onStage={(d) => setPendingDelta(d)}
         />
 
         {/* Center Column */}
@@ -158,6 +176,8 @@ export function PlayerZoneInteractive({
           isLethal={isLethal}
           isCommanderLethal={isCommanderLethal}
           isPoisonLethal={isPoisonLethal}
+          delta={lifeDelta}
+          pending={pendingDelta}
         />
 
         {/* Right Column */}
@@ -182,6 +202,8 @@ export function PlayerZoneInteractive({
             label="+"
             ariaLabel="+1 life"
             style={{ textShadow }}
+            onAdjust={(d) => setLifeDelta((prev) => prev + d)}
+            onStage={(d) => setPendingDelta(d)}
           />
         </div>
       </section>

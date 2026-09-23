@@ -61,19 +61,19 @@ luminance. WCAG 4.5:1.
 
 ### 2.2 UI & Shell Colors
 
-| Token                 | Hex                | Usage                                        |
-| --------------------- | ------------------ | -------------------------------------------- |
-| BG overlay            | `#1a1a1a`          | Commander damage & counters overlay BG       |
+| Token                 | Hex                | Usage                                          |
+| --------------------- | ------------------ | ---------------------------------------------- |
+| BG overlay            | `#1a1a1a`          | Commander damage & counters overlay BG         |
 | Splash cover          | `#292A2A`          | Extended splash hydration cover (SPEC.md §4.6) |
-| Belt / AI Judge       | `#000000`          | Spellbook belt, AI Judge modal backdrop      |
-| Modal BG              | `rgba(0,0,0,0.80)` | Config modals                                |
-| Danger red            | `#D50000`          | Life ≤ 0, commander ≥ 21                     |
-| Text warm white       | `#FAF8F5`          | Life/UI text on overlay & belt BGs           |
-| Text warm near-black  | `#1A1A1A`          | Life/UI text on light mana BGs               |
-| Icon silhouette dark  | `#0D0F0F`          | Mana fills                                   |
-| Icon silhouette light | `#FAF8F5`          | Counters, player-actions, Planeswalker fills |
-| System bubble BG      | `#666565`          | AI Judge system bubble — text `#FAF8F5`      |
-| User bubble BG        | `#CAC5C0`          | AI Judge user bubble — text `#1A1A1A`        |
+| Belt / AI Judge       | `#000000`          | Spellbook belt, AI Judge modal backdrop        |
+| Modal BG              | `rgba(0,0,0,0.80)` | Config modals                                  |
+| Danger red            | `#D50000`          | Life ≤ 0, commander ≥ 21                       |
+| Text warm white       | `#FAF8F5`          | Life/UI text on overlay & belt BGs             |
+| Text warm near-black  | `#1A1A1A`          | Life/UI text on light mana BGs                 |
+| Icon silhouette dark  | `#0D0F0F`          | Mana fills                                     |
+| Icon silhouette light | `#FAF8F5`          | Counters, player-actions, Planeswalker fills   |
+| System bubble BG      | `#666565`          | AI Judge system bubble — text `#FAF8F5`        |
+| User bubble BG        | `#CAC5C0`          | AI Judge user bubble — text `#1A1A1A`          |
 
 ### 2.3 Icon System
 
@@ -114,16 +114,18 @@ const archivo = Archivo({
 
 Life total = hero. All else secondary.
 
-| Token            | Value                        | Weight      | Usage                       |
-| ---------------- | ---------------------------- | ----------- | --------------------------- |
+| Token            | Value                           | Weight      | Usage                       |
+| ---------------- | ------------------------------- | ----------- | --------------------------- |
 | `--text-life`    | `clamp(3.5rem, 15cqmin, 6rem)`  | Black 900   | Life total number           |
+| `--text-delta`   | `clamp(1.25rem, 4cqmin, 2rem)`  | Bold 700    | Life delta feedback (§4.2)  |
 | `--text-display` | `clamp(2.5rem, 6cqmin, 5rem)`   | Black 900   | Commander damage big number |
 | `--text-heading` | `clamp(1.8rem, 3cqmin, 2.8rem)` | Bold 700    | Modal titles                |
-| `--text-body`    | `1rem`                       | Medium 500  | UI labels, buttons          |
-| `--text-body-sm` | `0.875rem`                   | Regular 400 | Captions                    |
-| `--text-caption` | `0.75rem`                    | Regular 400 | Small badges                |
+| `--text-body`    | `1rem`                          | Medium 500  | UI labels, buttons          |
+| `--text-body-sm` | `0.875rem`                      | Regular 400 | Captions                    |
+| `--text-caption` | `0.75rem`                       | Regular 400 | Small badges                |
 
-`cqmin` = min(container width, height) — player zone `@container/zone`. Type scales to zone, not viewport.
+`cqmin` = min(container width, height) — player zone `@container/zone`. Type
+scales to zone, not viewport.
 
 ### 3.3 Line Heights
 
@@ -225,25 +227,25 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 
 ```
 ┌───────────┬───────────┬───────────┐
-│           │           │      ⚙️   │
+│           │     +1    │      ⚙️   │
 │    [-]    │    40     │    [+]    │
 │           │           │           │
 └───────────┴───────────┴───────────┘
   ◄─────── full-zone swipe ───────►
 ```
 
-| Col    | Width | Content                                                    |
-| ------ | ----- | ---------------------------------------------------------- |
-| Left   | 33.3% | **[-]** decrement. Borderless. Entire col = button.        |
-| Center | 33.3% | **Life total** `--text-life`, Archivo Black 900, centered. |
-| Right  | 33.3% | **[+]** increment. Borderless. Entire col = button.        |
+| Col    | Width | Content                                                                                    |
+| ------ | ----- | ------------------------------------------------------------------------------------------ |
+| Left   | 33.3% | **[-]** decrement. Borderless. Entire col = button.                                        |
+| Center | 33.3% | **Life total** `--text-life`, Archivo Black 900, centered. **Delta** `--text-delta` above. |
+| Right  | 33.3% | **[+]** increment. Borderless. Entire col = button.                                        |
 
 - **Gear icon (⚙️):** Top-right of right column. Outside button hit area.
 - **[-]/[+] buttons:** No border, no `border-radius`, no BG distinction from
   zone color. Text auto-selects per luminance.
 - **Press feedback:** `pointerdown` → col BG overlays `rgba(0,0,0,0.08)`. 150ms
   fade in/out on col BG itself — no extra DOM.
-- **Tap:** ±1. **Hold:** ±10 after 1s.
+- **Tap:** ±1. **Hold:** ±10 staged per §7.1.
 - **Lethal:** Life ≤ 0 → `#D50000`. ± cols unaffected.
 - **Swipe (player-relative):** From each player's own perspective, swipe left =
   Commander damage overlay; swipe right = Counters overlay. Physical screen
@@ -251,6 +253,15 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
   direction you physically make). Threshold: ≥10px before 300ms. Vertical
   ignored.
 - **Overlay open:** Either X-direction swipe closes overlay → return to life.
+- **Life delta feedback:** burst net change directly above life number. Absolute
+  — no layout shift. Same textColor. Sign `+`/`−`. Update per change. Hide 1s
+  after last change. Net 0 → hidden. Reset (⟳/⚙️/👥) → none.
+- **Staged ±10 preview:** hold stages ±10 (§7.1) → delta preview above life at
+  50% opacity, same position/sign rules. Preview = TOTAL accumulated during
+  hold (committed + staged step): holding to +20 previews "+20", never "+10"
+  flashes. Commit → full opacity + life change. Cancel/release → preview
+  cleared, no change, no ±1. Preview ignores hide timer — only committed
+  changes re-arm it.
 
 ### 4.3 Zone Rotation
 
@@ -302,13 +313,13 @@ Tap M → black belt expands full width. M stays centered. 5 icons spread:
 - **Close:** Tap M or outside → icons collapse, belt retracts. Tapping any
   action icon also collapses the belt.
 
-| Icon | Action       | Side        | Modal?                                   |
-| ---- | ------------ | ----------- | ---------------------------------------- |
-| ⟳    | Restart Life | Left, near  | No — instant                             |
-| ⚙️   | Initial Life | Left, mid   | Yes — modal                              |
+| Icon | Action       | Side        | Modal?                                                |
+| ---- | ------------ | ----------- | ----------------------------------------------------- |
+| ⟳    | Restart Life | Left, near  | No — instant                                          |
+| ⚙️   | Initial Life | Left, mid   | Yes — modal                                           |
 | ⬇️   | Install App  | Left, far   | Chromium: no — native. iOS: yes — instructions dialog |
-| ⚖️   | AI Judge     | Right, near | Yes — modal                              |
-| 👥   | Players      | Right, far  | Yes — modal                              |
+| ⚖️   | AI Judge     | Right, near | Yes — modal                                           |
+| 👥   | Players      | Right, far  | Yes — modal                                           |
 
 Gameplay (⟳, ⚖️) near center. Setup (⚙️, 👥, ⬇️) outer edges.
 
@@ -462,16 +473,15 @@ Markdown subset, rendered client-side (no dependency):
 - Bullets: consecutive `- ` lines → one `<ul>`. Numbered `1. ` → `<ol>`.
 - List tolerance: lists recognized WITHOUT preceding blank line — any run of
   consecutive `- ` / `• ` / `1. ` lines inside a block → one list; surrounding
-  text lines → their own `<p>` (e.g. `Intro\n- a\n- b\nOutro` → `<p>` +
-  `<ul>` + `<p>`).
+  text lines → their own `<p>` (e.g. `Intro\n- a\n- b\nOutro` → `<p>` + `<ul>` +
+  `<p>`).
 - Paragraphize fallback: one long text block (>300 chars, no lists, no
   blank-line separation) → sentence-boundary split into `<p>` (~2 sentences,
-  ≤240 chars each). Sentence split refuses after `.<digit>`, so rule ids
-  like `CR 405.1a` stay unsplit.
-- Rule references: inline `CR|rule|regla <num>` refs extracted from
-  paragraph text → appended at end as ` - <i>CR 405.1</i>` (comma-joined
-  multiple), italic, `#FAF8F5` 75% opacity (high contrast on MANA.b, less
-  solid than body).
+  ≤240 chars each). Sentence split refuses after `.<digit>`, so rule ids like
+  `CR 405.1a` stay unsplit.
+- Rule references: inline `CR|rule|regla <num>` refs extracted from paragraph
+  text → appended at end as ` - <i>CR 405.1</i>` (comma-joined multiple),
+  italic, `#FAF8F5` 75% opacity (high contrast on MANA.b, less solid than body).
 - No headings/tables/code blocks/links. Escape via React text nodes — no
   `dangerouslySetInnerHTML`.
 - Streaming: partial markdown renders as-is (unclosed `**` passes through).
@@ -542,10 +552,11 @@ Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
 
 ### 7.1 Life Adjustment
 
-| Gesture        | Result       |
-| -------------- | ------------ |
-| Tap [+] / [-]  | +1 / -1 life |
-| Hold [+] / [-] | ±10 after 1s |
+| Gesture        | Result                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Tap [+] / [-]  | +1 / -1 life                                                                                                              |
+| Hold [+] / [-] | ±10 staged at 1s hold; commits after 400ms more. Release before commit → cancel (no ±10, no ±1). After commit: next ±10 stages 100ms later, same 400ms commit window. Preview = cumulative total (committed + staged): holding to +20 shows "+20". Cadence +10 @ 1.4s, +20 @ 1.9s, +30 @ 2.4s… |
+| Delta feedback | Net change above life, `--text-delta` (§4.2). Update per change. Hide 1s after last change. Net 0 → hidden. Reset → none. |
 
 ### 7.2 Swipe
 
@@ -576,9 +587,10 @@ Data model: see SPEC.md §5 `CommanderDamage`. Behavior per SPEC.md §6. Player 
 - **Pill:** Rounded. Commander owner's mana color. `PlaneswalkerSymbol` inside
   (white fill).
 - **Total:** Archivo Bold. Text per luminance.
-- **[−]/[+] buttons:** Tap ±1, hold ±10 after 1s. Borderless. Decrement
-  floors at 0.
-- **Wrap:** flex-wrap. 4p+ player 0 + player 5: 30% width (3/row). Else: 45% (2/row).
+- **[−]/[+] buttons:** Tap ±1, hold ±10 staged per §7.1 (no preview — cancel
+  window only). Borderless. Decrement floors at 0.
+- **Wrap:** flex-wrap. 4p+ player 0 + player 5: 30% width (3/row). Else: 45%
+  (2/row).
 - **Lethal:** Any commander ≥21 → current player loses. Value + life total →
   `#D50000`.
 - **Zone label:** When commander ≥21 & life >0 → small "Commander Damage Lethal"
@@ -601,7 +613,8 @@ Time
 
 - **Icon:** `iconLight` silhouette. No pill, no BG container.
 - **Value:** Archivo Bold, warm white per luminance.
-- **[-]/[+] buttons:** Tap ±1, hold ±10 after 1s. Borderless.
+- **[-]/[+] buttons:** Tap ±1, hold ±10 staged per §7.1 (no preview — cancel
+  window only). Borderless.
 - **New counter (+):** Bottom-right → opens Custom Counter Name modal (§6.6).
   Starts at 0. Custom counters: rounded pill `#CAC5C0`, `iconDark`, first letter
   displayed.
@@ -623,7 +636,8 @@ Time
 | `lg:`   | ≥ 1024px | Full 2×3 grid for 6p      |
 | `xl:`   | ≥ 1440px | Larger life, more spacing |
 
-Life/display/heading tokens = cqmin (§3.2): scale to zone container, not viewport. Breakpoints gate layout, not type size.
+Life/display/heading tokens = cqmin (§3.2): scale to zone container, not
+viewport. Breakpoints gate layout, not type size.
 
 ### 8.2 Orientation
 
@@ -634,9 +648,9 @@ Life/display/heading tokens = cqmin (§3.2): scale to zone container, not viewpo
 
 ### 8.3 Touch Targets
 
-All interactive: ≥44×44px (48×48px preferred). Overlay compact glyph
-controls (commander damage [−]/[+], counter ±, add-counter [+]) exempt: ≥28px
-(1.8rem `--text-heading` floor), scale via cqmin.
+All interactive: ≥44×44px (48×48px preferred). Overlay compact glyph controls
+(commander damage [−]/[+], counter ±, add-counter [+]) exempt: ≥28px (1.8rem
+`--text-heading` floor), scale via cqmin.
 
 ---
 

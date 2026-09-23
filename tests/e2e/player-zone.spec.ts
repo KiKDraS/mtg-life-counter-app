@@ -11,6 +11,11 @@ function lifeTotal(zoneLocator: Locator): Locator {
   return zoneLocator.locator('[aria-live="polite"]');
 }
 
+/** §4.2 transient burst-net delta — the only `.text-delta` span in a zone. */
+function delta(zoneLocator: Locator): Locator {
+  return zoneLocator.locator(".text-delta");
+}
+
 async function lifeValue(zoneLocator: Locator): Promise<number> {
   return Number(await lifeTotal(zoneLocator).textContent());
 }
@@ -189,30 +194,65 @@ test.describe("Player Zone — Life Display & Tap Adjustment", () => {
 });
 
 test.describe("Player Zone — Hold Acceleration & Press Feedback", () => {
-  test("3.1. Short hold (<1s) fires only the ±1 tap; no repeats before 1s delay", async ({ page }) => {
-    // 1. Navigate to `/`; hold P1 `+1 life` for 750ms (under 1s hold delay)
+  test("3.1. Short hold (<1s, ~750ms) fires only the ±1 tap on release", async ({ page }) => {
+    // 1. Navigate to `/`; hold P1 `+1 life` for 750ms (no stage — stage fires at 1000ms per §7.1)
     await page.goto("/");
 
     const p1 = zone(page, 1);
     await holdButton(page, p1.getByRole("button", { name: "+1 life" }), 750);
 
-    // Only the ±1 tap fires before the 1000ms hold delay
+    // Only the ±1 tap fires on release (no ±10 staged before 1000ms)
     const value = await lifeValue(p1);
     expect(value).toBe(41);
   });
 
-  test("3.2. Long hold (~1.6–1.8s) repeats at ±10 after the 1s delay", async ({ page }) => {
-    // 1. Navigate to `/`; hold P1 `+1 life` for 1700ms
+  test("3.2. Long hold (~1.7s) commits exactly one ±10 with cumulative preview (cadence: +10 @ 1.4s, +20 @ 1.9s)", async ({ page }) => {
+    // 1. Navigate to `/`; press down P1 `+1 life` and hold ~1700ms, asserting
+    //    the staged preview mid-hold; release before commit 2 (@1900ms)
     await page.goto("/");
 
     const p1 = zone(page, 1);
-    await holdButton(page, p1.getByRole("button", { name: "+1 life" }), 1700);
+    const button = p1.getByRole("button", { name: "+1 life" });
+    const box = await visibleBox(button);
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    // §4.6 splash cover is pointer-events:auto until hydration removes it — a
+    // raw mouse.down on the overlay swallows the press. Wait it out first.
+    await expect(page.locator("#extended-splash-screen")).toHaveCount(0);
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
 
-    // ±1 tap + ~7 ticks of ±10 = ~+71. Life ≈ 111.
-    // Range [100, 130] proves the ±10 step engaged and caps runaway repeats.
-    const value = await lifeValue(p1);
-    expect(value).toBeGreaterThanOrEqual(100);
-    expect(value).toBeLessThanOrEqual(130);
+    // expect: At ~1050ms into hold (stage @1000ms, pre-commit): delta visible,
+    // text +10 at 50% opacity (dimmed preview per §4.2; life unchanged)
+    await page.waitForTimeout(1050);
+    await expect(delta(p1)).toHaveText("+10");
+    await expect(delta(p1)).toHaveCSS("opacity", "0.5");
+    // expect: P1 life still reads 40 at stage
+    await expect(lifeTotal(p1)).toHaveText("40");
+
+    // expect: At ~1400ms commit 1 fires — P1 life reads 50, delta +10 full opacity
+    await page.waitForTimeout(350);
+    await expect(lifeTotal(p1)).toHaveText("50");
+    await expect(delta(p1)).toHaveText("+10");
+    await expect(delta(p1)).toHaveCSS("opacity", "1");
+
+    // expect: At ~1550ms (stage 2 @1500ms, pre-commit 2): delta text +20 at 50%
+    // opacity — cumulative (committed +10 + staged +10), never "+10" flash;
+    // life still reads 50
+    await page.waitForTimeout(150);
+    await expect(delta(p1)).toHaveText("+20");
+    await expect(delta(p1)).toHaveCSS("opacity", "0.5");
+    await expect(lifeTotal(p1)).toHaveText("50");
+
+    // 2. Release at 1700ms (before commit 2 @1900ms → cancelled)
+    await page.waitForTimeout(150);
+    await page.mouse.up();
+    // expect: P1 life still reads 50 exactly (commit +10 @ 1400ms only; stage @
+    // 1500ms released before its 1900ms commit → cancelled, preview cleared —
+    // the committed +10 delta remains at full opacity)
+    await expect(lifeTotal(p1)).toHaveText("50");
+    await expect(delta(p1)).toHaveText("+10");
+    await expect(delta(p1)).toHaveCSS("opacity", "1");
   });
 
   test("3.3. Releasing the button stops adjustment immediately", async ({ page }) => {
@@ -226,9 +266,39 @@ test.describe("Player Zone — Hold Acceleration & Press Feedback", () => {
     await page.waitForTimeout(400);
     expect(await lifeValue(p1)).toBe(v);
 
-    // With 1s delay, a 600ms hold fires only the ±1 tap
-    expect(v).toBeGreaterThanOrEqual(41);
-    expect(v).toBeLessThanOrEqual(44);
+    // 600ms < 1000ms stage → ±1 tap only, no ±10
+    expect(v).toBe(41);
+  });
+
+  test("3.4. [NEW] Break mechanic: hold past the 1000ms stage, release before the 1400ms commit → life UNCHANGED, no ±1 (stays 40/20)", async ({ page }) => {
+    // 1. Navigate to `/`; tap p2 -1 life 20 times
+    await page.goto("/");
+    const p1 = zone(page, 1);
+    const p2 = zone(page, 2);
+    const p2Minus = p2.getByRole("button", { name: "-1 life" });
+    for (let i = 0; i < 20; i++) {
+      await p2Minus.click();
+    }
+    // expect: P1 life reads 40, P2 life reads 20
+    await expect(lifeTotal(p1)).toHaveText("40");
+    await expect(lifeTotal(p2)).toHaveText("20");
+
+    // 2. Hold p1 +1 for 1200ms (stage fires at 1000ms), release at 1200ms (before 1400ms commit)
+    await holdButton(page, p1.getByRole("button", { name: "+1 life" }), 1200);
+    // expect: P1 life still reads 40 (no +10 committed)
+    await expect(lifeTotal(p1)).toHaveText("40");
+    // expect: No +1 applied on release (cancel suppresses the tap)
+    await expect(lifeTotal(p1)).toHaveText("40");
+
+    // 3. Hold p2 -1 for 1200ms, release at 1200ms (before 1400ms commit)
+    await holdButton(page, p2Minus, 1200);
+    // expect: P2 life still reads 20 (no -10 committed, no -1 on release)
+    await expect(lifeTotal(p2)).toHaveText("20");
+
+    // 4. Read both life totals again
+    // expect: P1 reads 40, P2 reads 20 — unchanged start values
+    await expect(lifeTotal(p1)).toHaveText("40");
+    await expect(lifeTotal(p2)).toHaveText("20");
   });
 
   test("3.4. Press feedback overlays the column with 8% black on pointer down", async ({ page }) => {

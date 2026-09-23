@@ -14,14 +14,24 @@ export function LifeAdjustmentButton({
   label,
   ariaLabel,
   style,
+  onAdjust,
+  onStage,
 }: {
   readonly delta: LifeSign;
   readonly label: string;
   readonly ariaLabel: string;
   readonly style?: React.CSSProperties;
+  readonly onAdjust?: (delta: number) => void;
+  readonly onStage?: (delta: number) => void;
 }) {
   const { dispatch } = usePlayerStateContext();
-  const adjustment = useLifeAdjustment((d) => dispatch(adjustLife(d)));
+  const adjustment = useLifeAdjustment(
+    (d) => {
+      onAdjust?.(d);
+      dispatch(adjustLife(d));
+    },
+    onStage,
+  );
 
   return (
     <button
@@ -40,3 +50,4 @@ export function LifeAdjustmentButton({
     </button>
   );
 }
+

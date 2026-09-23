@@ -268,7 +268,7 @@ export function useJudgeChat(modalId: string): JudgeChatResult {
           setErrorBubble({
             type: "error",
             code: "bad_request",
-            message: "Something went wrong. Try again.",
+            message: "Something went wrong. We're working on it — try again.",
           });
         }
       }

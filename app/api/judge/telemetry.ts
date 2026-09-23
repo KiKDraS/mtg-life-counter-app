@@ -2,14 +2,13 @@
  * Fire-and-forget Axiom ingest for judge timings + usage (SPEC §9.5).
  * Never throws, never blocks (5s bounded), never logs the token. No retry.
  * Failures log status/name only — dataset name, never body/token.
+ * Failure events mirror to the alert dataset (SPEC §9.5) for the Axiom
+ * monitor (`| where error != ""`).
  */
 
-import { AXIOM_OK, axiomDataset, axiomToken } from "./config";
+import { AXIOM_OK, axiomAlertDataset, axiomDataset, axiomToken } from "./config";
 import type { JudgeTimings, Usage } from "@/features/ai-judge/lib/types";
 import { after } from "next/server";
-
-/** Cloud ingest endpoint (Axiom REST API "Ingest data (legacy)", docs §restapi). */
-const AXIOM_INGEST_URL = `https://api.axiom.co/v1/datasets/${axiomDataset}/ingest`;
 
 /** Bound the after() fetch so it can never hold the function past 5s. */
 const TELEMETRY_TIMEOUT_MS = 5_000;
@@ -43,11 +42,10 @@ export const scheduleTelemetry = (
   });
 };
 
-/** Send one telemetry event to Axiom when configured; no-op otherwise. */
-export const sendTiming = (timing: JudgeTelemetry): void => {
-  if (!AXIOM_OK) return;
+/** POST one telemetry event to a dataset (Axiom REST "Ingest data (legacy)"). */
+const ingest = (dataset: string, timing: JudgeTelemetry): void => {
   try {
-    void fetch(AXIOM_INGEST_URL, {
+    void fetch(`https://api.axiom.co/v1/datasets/${dataset}/ingest`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${axiomToken}`,
@@ -69,16 +67,24 @@ export const sendTiming = (timing: JudgeTelemetry): void => {
       .then((res) => {
         if (!res.ok) {
           // Status + dataset only — never token/body (SPEC §9.5).
-          console.error(`[ai-judge] telemetry ingest ${res.status} (${axiomDataset})`);
+          console.error(`[ai-judge] telemetry ingest ${res.status} (${dataset})`);
         }
       })
       .catch((err: unknown) => {
         const name = err instanceof Error ? err.name : "unknown";
-        console.error(`[ai-judge] telemetry ingest failed (${axiomDataset}): ${name}`);
+        console.error(`[ai-judge] telemetry ingest failed (${dataset}): ${name}`);
       });
   } catch {
     // Sync throw (malformed dataset URL, fetch unavailable) — telemetry never
     // propagates to the route. ponytail: async rejections already handled above;
     // this guards the sync-throw path only.
   }
+};
+
+/** Send one telemetry event to Axiom when configured; no-op otherwise.
+ * Failures also mirror to the alert dataset. */
+export const sendTiming = (timing: JudgeTelemetry): void => {
+  if (!AXIOM_OK) return;
+  ingest(axiomDataset, timing);
+  if (timing.error) ingest(axiomAlertDataset, timing);
 };

@@ -415,7 +415,7 @@ Pure TS only — no Node APIs, no `fs`, no `fetch`. Browser-portable unchanged
 | Validation | `question` string, trimmed, 1–500 chars. Else 400 `bad_request`                                      |
 | Response   | SSE — `text/event-stream`, `Cache-Control: no-cache`                                                 |
 | Rate limit | 10 req/min/IP, in-memory sliding window. Exceed → 429 `rate_limited`                                 |
-| Timeouts   | first token 30s; total 120s → `timeout`                                                              |
+| Timeouts   | first token 60s; total 150s → `timeout`; watchdog race guarantees the route never hangs past total — silent provider stalls throw `timeout` too |
 | Abort      | `AbortController` tied to `request.signal`. Client disconnect → cancel OpenRouter stream immediately |
 
 SSE events:
@@ -456,8 +456,9 @@ SSE events:
   non-2xx → `[ai-judge] telemetry ingest ...` failure line (status/name only).
 - Telemetry payload: timings + `model` + `inputTokens`/`outputTokens`/`cost`.
   Failure paths (timeout, model_unavailable, mid-stream) also send an error
-  event to Axiom with partial timings + error code. Client disconnect → no
-  telemetry. Question/key never sent.
+  event to Axiom with partial timings + error code — mirrored to the alert
+  dataset (`AXIOM_ALERT_DATASET`, default `judge-alerts`, `error != ""` rows)
+  for monitoring. Client disconnect → no telemetry. Question/key never sent.
 
 Error codes: `rate_limited`, `model_unavailable`, `misconfigured`, `timeout`,
 `bad_request`.
