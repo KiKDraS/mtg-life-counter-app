@@ -1,0 +1,51 @@
+name: embed-rules
+on:
+  workflow_run:
+    workflows: ["refresh-rules"]
+    types: [completed]
+  workflow_dispatch:
+concurrency:
+  group: embed-rules
+  cancel-in-progress: true
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  embed:
+    # Manual dispatch always runs; workflow_run only after refresh-rules succeeds.
+    # "With new rules" = the embed script's own version+hash+model unchanged-check:
+    # exits 0 "unchanged" with zero API calls when nothing changed — so a daily
+    # no-op refresh-rules run costs nothing here.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+      - name: Embed rules (semantic retrieval bundle)
+        env:
+          OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          OPEN_ROUTER_EMBEDDING_MODEL: ${{ vars.OPEN_ROUTER_EMBEDDING_MODEL || 'openai/text-embedding-3-small' }}
+        run: |
+          if [ -z "$OPEN_ROUTER_API_KEY" ]; then
+            echo "OPEN_ROUTER_API_KEY missing — skipping embed (lexical fallback stays)"
+            exit 0
+          fi
+          node scripts/embed-rules.mjs || echo "embed failed — see logs; lexical fallback stays"
+      - name: PR bundle when changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- features/ai-judge/lib/rag/embeddings-bundle.json; then
+            echo "embeddings unchanged — nothing to do"; exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BRANCH="chore/embed-refresh-$(date +%Y%m%d)"
+          git checkout -b "$BRANCH"
+          git add features/ai-judge/lib/rag/embeddings-bundle.json
+          git commit -m "chore: refresh embeddings bundle"
+          git push origin "$BRANCH"
+          PR_URL="$(gh pr create --base develop --head "$BRANCH" --title "chore: refresh embeddings bundle" --body "Auto-generated after a rules refresh — re-embeds the CR corpus on version change (SPEC §9.4).")"
+          gh pr merge "$PR_URL" --merge --delete-branch
