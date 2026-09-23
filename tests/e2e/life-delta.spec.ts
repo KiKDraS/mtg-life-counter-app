@@ -225,10 +225,11 @@ test.describe("life-delta", () => {
     await expect(delta(p1)).toHaveCount(0);
   });
 
-  test("6.1. Hold 1.3s accumulates +10 repeats: delta +20..+40, life matches", async ({
+  test("6.1. Hold 1.9s commits two +10s with CUMULATIVE preview: +10 dimmed → commit → \"+20\" dimmed (never \"+10\" flash) → commit — delta +20, life 60", async ({
     page,
   }) => {
-    // 1. Navigate to /; holdButton P1 '+1 life' for 1300ms
+    // 1. Navigate to /; holdButton P1 '+1 life' for 1900ms (stages @1000/1500ms,
+    //    commits @1400/1900ms — release just after commit 2 fires)
     await page.goto("/");
     const p1 = zone(page, 1);
     const button = p1.getByRole("button", { name: "+1 life" });
@@ -241,24 +242,43 @@ test.describe("life-delta", () => {
     await page.mouse.move(cx, cy);
     await page.mouse.down();
 
-    // expect: At ~1050ms into hold: delta matches /^\+[12]0$/ (+10 or +20, accumulation across repeats)
+    // expect: At ~1050ms into hold (stage 1 @1000ms, pre-commit): delta(zone(1))
+    // visible with text +10 and opacity 0.5 (preview per §4.2 = cumulative
+    // committed+staged = 0+10; life NOT yet changed)
     await page.waitForTimeout(1050);
-    await expect(delta(p1)).toHaveText(/^\+[12]0$/);
+    await expect(delta(p1)).toHaveText("+10");
+    await expect(delta(p1)).toHaveCSS("opacity", "0.5");
+    // expect: P1 life still reads 40 at first stage
+    await expect(lifeTotal(p1)).toHaveText("40");
 
-    // 2. Release; read delta
-    await page.waitForTimeout(250);
+    // 2. Continue holding past 1400ms (commit 1 fires @1400ms)
+    await page.waitForTimeout(350);
+    // expect: P1 life reads 50, delta(zone(1)) text +10 full opacity
+    await expect(lifeTotal(p1)).toHaveText("50");
+    await expect(delta(p1)).toHaveText("+10");
+    await expect(delta(p1)).toHaveCSS("opacity", "1");
+
+    // 3. Continue holding to ~1550ms (stage 2 @1500ms, pre-commit 2)
+    await page.waitForTimeout(150);
+    // expect: delta(zone(1)) text +20 with opacity 0.5 — CUMULATIVE (committed
+    // +10 + staged +10), never "+10" flash; P1 life still reads 50
+    await expect(delta(p1)).toHaveText("+20");
+    await expect(delta(p1)).toHaveCSS("opacity", "0.5");
+    await expect(lifeTotal(p1)).toHaveText("50");
+
+    // 4. Release at 1900ms (commit 2 fires @1900ms) — wait for commit 2 while
+    //    holding, then release
+    await expect(lifeTotal(p1)).toHaveText("60");
     await page.mouse.up();
-    // expect: delta(zone(1)) matches /^\+[234]0$/ (+20..+40)
-    await expect(delta(p1)).toHaveText(/^\+[234]0$/);
-    const burst = Number(((await delta(p1).textContent()) ?? "").slice(1));
-    // expect: No +1 on release (hold suppresses click) — life = 40 + exact delta, within [60, 80]
-    await expect(lifeTotal(p1)).toHaveText(String(40 + burst));
-    expect(40 + burst).toBeGreaterThanOrEqual(60);
-    expect(40 + burst).toBeLessThanOrEqual(80);
+    // expect: delta(zone(1)) text +20 (full opacity), P1 life reads 60
+    await expect(delta(p1)).toHaveText("+20");
+    await expect(delta(p1)).toHaveCSS("opacity", "1");
+    await expect(lifeTotal(p1)).toHaveText("60");
+    // expect: No +1 on release (hold suppresses click)
 
-    // 3. Wait 1200ms
+    // 5. Wait 1200ms
     await page.waitForTimeout(1200);
-    // expect: delta(zone(1)) count = 0
+    // expect: delta(zone(1)) count = 0 (hide timer re-armed by commit 2)
     await expect(delta(p1)).toHaveCount(0);
   });
 

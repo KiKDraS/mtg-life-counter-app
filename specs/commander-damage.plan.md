@@ -2,7 +2,7 @@
 
 ## Application Overview
 
-MTG Life Counter — Commander Damage overlay (§7.3). Each player zone supports swipe-left to open a full-screen dialog showing opponent's color pill with Planeswalker symbol, damage total (starting at 0), and [+] button. Tap [+] adds 1 commander damage while reducing life by 1. Hold [+] accelerates to +10 after 1000ms. At 21+ damage: damage turns danger red, "Lethal — Player loses" badge appears, player life total turns red. Close via swipe on overlay, backdrop click, or Escape.
+MTG Life Counter — Commander Damage overlay (§7.3). Each player zone supports swipe-left to open a full-screen dialog showing opponent's color pill with Planeswalker symbol, damage total (starting at 0), and [+] button. Tap [+] adds 1 commander damage while reducing life by 1. Hold [+] stages ±10 at 1s, commits 400ms later (§7.1); release before commit → cancel — no ±10, no ±1. At 21+ damage: damage turns danger red, "Lethal — Player loses" badge appears, player life total turns red. Close via swipe on overlay, backdrop click, or Escape.
 
 ## Test Scenarios
 
@@ -144,15 +144,15 @@ MTG Life Counter — Commander Damage overlay (§7.3). Each player zone supports
   4. Reopen P1
     - expect: P1 damage still = 5
 
-#### 3.3. Hold accelerates to +10 after 1000ms
+#### 3.3. Hold stages at 1s, commits exactly one +10 at 1.4s; pre-commit release cancels
 
 **File:** `tests/e2e/commander-damage.spec.ts`
 
 **Steps:**
-  1. Open P1, hold + for 1200ms then release
-    - expect: Damage >= 10
-    - expect: Not +11 (tap suppressed)
-    - expect: Upper bound <= 15
+  1. Open P1, hold + for 1200ms (staged at 1000ms) then release (before 1400ms commit)
+    - expect: Damage = 0 (cancelled — no +10, no +1)
+  2. Hold + for 1400ms then release
+    - expect: Damage = 10 (exactly one +10 committed; tap suppressed — not +11)
 
 #### 3.4. Repeated taps accumulate
 
@@ -192,13 +192,15 @@ MTG Life Counter — Commander Damage overlay (§7.3). Each player zone supports
   1. P1 tap + ten times, close
     - expect: P1 life = 30, P2 life = 40 unchanged
 
-#### 4.4. Hold also reduces life
+#### 4.4. Hold also reduces life (commit at 1.4s; pre-commit release cancels)
 
 **File:** `tests/e2e/commander-damage.spec.ts`
 
 **Steps:**
-  1. Open P1, hold + for 1200ms, close
-    - expect: Damage >= 10, life <= 30
+  1. Open P1, hold + for 1200ms (staged at 1000ms), release (before 1400ms commit)
+    - expect: Damage = 0, life = 40 (unchanged)
+  2. Hold + for 1400ms, close
+    - expect: Damage = 10, life = 30
 
 #### 4.5. Life can go negative
 

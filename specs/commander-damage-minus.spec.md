@@ -2,7 +2,7 @@
 
 ## Application Overview
 
-MTG Life Counter — Commander Damage overlay now has a [-] button per column (aria-label "-1 commander damage"), placed before [+]. Tap = -1 damage, hold = -10 after 1s (HOLD_DELAY_MS 1000, HOLD_STEP 10, 100ms repeat). Damage floors at 0; life = 40 - damage, decrement restores life only by applied delta. Lethal at >=21: damage + life turn danger red rgb(213,0,0), zone shows "Commander Damage Lethal" label. P1 is 180° rotated: physical swipe RIGHT opens its commander dialog; P2 physical LEFT. Life total visible on zone behind dialog. Spec targets 2-player grid, first column of P1's dialog (dialog id commander-dmg-0). All scenarios start from fresh game (seed tests/seed.spec.ts, goto /).
+MTG Life Counter — Commander Damage overlay now has a [-] button per column (aria-label "-1 commander damage"), placed before [+]. Tap = -1 damage, hold = -10 staged per DESIGN §7.1 (stage at 1s hold, commit 400ms later; release before commit → cancel — no ±10, no ±1; cadence −10 @ 1.4s, −20 @ 1.9s…). Damage floors at 0; life = 40 - damage, decrement restores life only by applied delta. Lethal at >=21: damage + life turn danger red rgb(213,0,0), zone shows "Commander Damage Lethal" label. P1 is 180° rotated: physical swipe RIGHT opens its commander dialog; P2 physical LEFT. Life total visible on zone behind dialog. Spec targets 2-player grid, first column of P1's dialog (dialog id commander-dmg-0). All scenarios start from fresh game (seed tests/seed.spec.ts, goto /).
 
 ## Test Scenarios
 
@@ -63,7 +63,7 @@ MTG Life Counter — Commander Damage overlay now has a [-] button per column (a
     - expect: Commander Damage Lethal label NOT visible
     - expect: P1 life reads 20 (19 + 1 restored)
 
-#### 1.4. CDM-04: Hold - applies -10 after 1s
+#### 1.4. CDM-04: Hold - stages at 1s, commits exactly one -10 at 1.4s; pre-commit release cancels
 
 **File:** `tests/e2e/commander-damage-minus.spec.ts`
 
@@ -72,12 +72,14 @@ MTG Life Counter — Commander Damage overlay now has a [-] button per column (a
   2. Swipe right on P1 zone to open Commander Damage dialog
   3. Tap the first column +1 commander damage button 15 times
     - expect: Damage counter reads 15
-  4. Hold (pointerdown) the first column -1 commander damage button for 1200ms, then release (same holdButton helper as counters-overlay.spec.ts 2.3/2.4)
-    - expect: Damage applied >= 10 (hold fires -10 per tick after 1000ms delay)
-    - expect: Damage counter reads <= 5 (15 - >=10; up to ~3 ticks at 100ms interval)
+  4. Hold (pointerdown) the first column -1 commander damage button for 1200ms (staged at 1000ms), then release (before the 1400ms commit)
+    - expect: Damage counter still reads 15 (cancelled — no -10 applied)
+    - expect: No -1 applied on release either (cancel suppresses the tap)
+  5. Hold (pointerdown) the first column -1 commander damage button for 1400ms, then release (commit fires at 1400ms)
+    - expect: Damage counter reads 5 (exactly one -10 committed; next stage at 1500ms never reached)
     - expect: Damage counter reads >= 0 (floor)
-  5. Read P1 life total
-    - expect: P1 life reads 40 - finalDamage (life restored exactly by applied delta)
+  6. Read P1 life total
+    - expect: P1 life reads 35 (40 - 5; life restored exactly by applied delta)
 
 #### 1.5. CDM-05: [-] layout & accessibility - visible, order, focusable, aria-labels
 
@@ -99,7 +101,7 @@ MTG Life Counter — Commander Damage overlay now has a [-] button per column (a
   5. Close with Escape
     - expect: Dialog closes
 
-#### 1.6. CDM-06: Regression - [+] tap +1 and hold +10 unchanged
+#### 1.6. CDM-06: Regression - [+] tap +1 and staged hold +10 unchanged
 
 **File:** `tests/e2e/commander-damage-minus.spec.ts`
 
@@ -110,8 +112,9 @@ MTG Life Counter — Commander Damage overlay now has a [-] button per column (a
     - expect: Damage counter reads 1
   3. Tap three more times
     - expect: Damage counter reads 4
-  4. Hold (pointerdown) +1 commander damage for 1200ms, then release
-    - expect: Damage counter >= 10
-    - expect: Damage counter <= 35 (3-tick upper bound, mirrors commander-damage.spec 3.3)
-  5. Close with Escape and read P1 life
-    - expect: P1 life = 40 - final damage
+  4. Hold (pointerdown) +1 commander damage for 1200ms, then release (pre-commit)
+    - expect: Damage counter still reads 4 (cancelled — no +10, no +1)
+  5. Hold (pointerdown) +1 commander damage for 1400ms, then release
+    - expect: Damage counter reads 14 (exactly one +10 committed)
+  6. Close with Escape and read P1 life
+    - expect: P1 life = 26 (40 - 14)

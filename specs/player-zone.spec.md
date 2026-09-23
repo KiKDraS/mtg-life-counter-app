@@ -69,23 +69,30 @@ MTG Life Counter — Player Zone milestone (branch `feature/player-zone`). Two p
 
 **Seed:** `tests/seed.spec.ts`
 
-#### 3.1. Short hold (~700-800ms) engages the ±5 repeat step
+#### 3.1. Short hold (<1s, ~750ms) fires only the ±1 tap on release
 
 **File:** `tests/e2e/player-zone.spec.ts`
 
 **Steps:**
-  1. Hold p1 +1 for 750ms
-    - expect: P1 life is within [46, 60]
-    - expect: Strictly greater than 41, strictly less than ±10 regime
+  1. Hold p1 +1 for 750ms (no stage — stage fires at 1000ms per §7.1)
+    - expect: P1 life reads 41 (release fires the ±1 tap; no ±10)
 
-#### 3.2. Long hold (~1.6-1.8s) accelerates to the ±10 step
+#### 3.2. Long hold (~1.7s) commits exactly one ±10 with cumulative preview (cadence: +10 @ 1.4s, +20 @ 1.9s)
 
 **File:** `tests/e2e/player-zone.spec.ts`
 
 **Steps:**
   1. Hold p1 +1 for 1700ms
-    - expect: P1 life ≥ 80
-    - expect: Upper sanity bound ≤ 130
+    - expect: At ~1050ms into hold (stage @1000ms, pre-commit): delta visible,
+      text +10 at 50% opacity (dimmed preview per §4.2; life unchanged)
+    - expect: P1 life still reads 40 at stage
+    - expect: At ~1400ms commit 1 fires — P1 life reads 50, delta +10 full opacity
+    - expect: At ~1550ms (stage 2 @1500ms, pre-commit 2): delta text +20 at 50%
+      opacity — cumulative (committed +10 + staged +10), never "+10" flash;
+      life still reads 50
+  2. Release at 1700ms (before commit 2 @1900ms → cancelled)
+    - expect: P1 life still reads 50 exactly (commit +10 @ 1400ms only; stage @
+      1500ms released before its 1900ms commit → cancelled, preview cleared)
 
 #### 3.3. Releasing the button stops adjustment immediately
 
@@ -94,7 +101,26 @@ MTG Life Counter — Player Zone milestone (branch `feature/player-zone`). Two p
 **Steps:**
   1. Hold p1 +1 for 600ms, release, wait 400ms, read again
     - expect: Life unchanged after release
-    - expect: Value within [41, 56]
+    - expect: P1 life reads 41 (600ms < 1000ms stage → ±1 tap only, no ±10)
+
+#### 3.4. [NEW] Break mechanic: hold past the 1000ms stage, release before the 1400ms commit → life UNCHANGED, no ±1 (stays 40/20)
+
+**File:** `tests/e2e/player-zone.spec.ts`
+
+> Explicitly tests the DESIGN §7.1 cancel window: a staged ±10 must NOT commit, and
+> the release must NOT apply the ±1 tap either. Life stays exactly at start values
+> (P1 40 / P2 20).
+
+**Steps:**
+  1. Navigate to /; tap p2 -1 life 20 times
+    - expect: P1 life reads 40, P2 life reads 20
+  2. Hold p1 +1 for 1200ms (stage fires at 1000ms), release at 1200ms (before 1400ms commit)
+    - expect: P1 life still reads 40 (no +10 committed)
+    - expect: No +1 applied on release (cancel suppresses the tap)
+  3. Hold p2 -1 for 1200ms, release at 1200ms (before 1400ms commit)
+    - expect: P2 life still reads 20 (no -10 committed, no -1 on release)
+  4. Read both life totals again
+    - expect: P1 reads 40, P2 reads 20 — unchanged start values
 
 ### 4. Lethal State
 

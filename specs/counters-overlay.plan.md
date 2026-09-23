@@ -2,7 +2,7 @@
 
 ## Application Overview
 
-MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6.6). The Counters overlay is a full-screen dialog triggered by swiping right on a player zone. It displays a 2-column grid of trackable game counters (poison, energy, experience, time) each with value display, +/- buttons, tap ±1, hold ±10 after 1s. A [+] button at bottom-right opens the Custom Counter Name modal — a native `<dialog>` with lighter backdrop (rgba(0,0,0,0.35)), auto-focused input (maxLength=35, placeholder "Counter"), and [+ Add] button. Empty input does nothing; non-empty adds the counter to the grid with a first-letter pill. Poison at 10+ triggers lethal state (danger red).
+MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6.6). The Counters overlay is a full-screen dialog triggered by swiping right on a player zone. It displays a 2-column grid of trackable game counters (poison, energy, experience, time) each with value display, +/- buttons, tap ±1, hold ±10 staged per §7.1 (stage at 1s hold, commit 400ms later; release before commit → cancel — no ±10, no ±1). A [+] button at bottom-right opens the Custom Counter Name modal — a native `<dialog>` with lighter backdrop (rgba(0,0,0,0.35)), auto-focused input (maxLength=35, placeholder "Counter"), and [+ Add] button. Empty input does nothing; non-empty adds the counter to the grid with a first-letter pill. Poison at 10+ triggers lethal state (danger red).
 
 ## Test Scenarios
 
@@ -104,16 +104,17 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
     - expect: P1 poison still reads 5
     - expect: P1 energy still reads 0
 
-#### 2.3. Hold [+] accelerates to +10 after 1s
+#### 2.3. Hold [+] stages at 1s, commits exactly one +10 at 1.4s; pre-commit release cancels
 
 **File:** `tests/e2e/counters-overlay.spec.ts`
 
 **Steps:**
   1. Navigate to /, swipe left on P1 zone to open Counters overlay
     - expect: Poison counter reads 0
-  2. Hold (pointerdown) the +1 poison counter button for 1200ms, then release
-    - expect: Poison counter >= 10
-    - expect: Upper bound: poison <= 15 (hold fires at most once)
+  2. Hold (pointerdown) the +1 poison counter button for 1200ms (staged at 1000ms), then release (before 1400ms commit)
+    - expect: Poison counter still reads 0 (cancelled — no +10, no +1)
+  3. Hold (pointerdown) the +1 poison counter button for 1400ms, then release
+    - expect: Poison counter reads 10 (exactly one +10 committed)
 
 #### 2.4. Hold [-] also accelerates
 
@@ -122,8 +123,10 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
 **Steps:**
   1. Navigate to /, swipe left on P1 zone, tap +1 poison 15 times (total=15)
     - expect: Poison counter reads 15
-  2. Hold -1 poison counter for 1200ms, then release
-    - expect: Poison counter <= 5
+  2. Hold -1 poison counter for 1200ms, then release (pre-commit release)
+    - expect: Poison counter still reads 15 (cancelled — no -10, no -1)
+  3. Hold -1 poison counter for 1400ms, then release
+    - expect: Poison counter reads 5 (exactly one -10 committed)
 
 ### 3. Poison Lethal State
 
@@ -348,8 +351,8 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
     - expect: Counter value reads 3
   3. Tap -1 Ticks counter once
     - expect: Counter value reads 2
-  4. Hold +1 Ticks counter for 1200ms
-    - expect: Counter value >= 12 (tap + hold acceleration)
+  4. Hold +1 Ticks counter for 1400ms (commit window)
+    - expect: Counter value reads 12 (2 + exactly one +10; no ±1 on release)
 
 #### 5.10. Multiple custom counters can be added
 

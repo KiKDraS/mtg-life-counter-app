@@ -56,12 +56,12 @@ present in local Chromium) or absent — either path must not throw or log an er
 | Belt toggle / open | `getByLabel("Open Spellbook Menu")` (+ `#spellbook-toggle` checked) |
 | Life adjust | zone `-1 life` / `+1 life` buttons |
 | Portrait overlay | `page.getByRole("heading", { name: "Portrait Mode Required" })` (present but hidden on desktop) |
-| Hold gesture | `mouse.move(cx, cy)` → `mouse.down()` → `waitForTimeout(1100)` → `mouse.up()` |
+| Hold gesture | `mouse.move(cx, cy)` → `mouse.down()` → `waitForTimeout(ms)` → `mouse.up()` — ms in [1000, 1400) = staged-only → cancelled (no ±10, no ±1); ms ≥ 1400 commits exactly one ±10 per DESIGN §7.1 |
 
 Reuse `zone` / `lifeTotal` / `openBelt` / `closeBelt` / `consoleErrors` helpers verbatim
 from `tests/e2e/app-smoke.spec.ts` (per-spec local redefinition convention).
 `consoleErrors` must keep the `_vercel/speed-insights` 404 filter. New local helper:
-`holdButton(page, locator, ms = 1100)` implementing the hold gesture above.
+`holdButton(page, locator, ms = 1100)` implementing the hold gesture above. Note: default 1100ms lands in the staged-cancel window (stage @1000ms, commit @1400ms) — pass `ms ≥ 1400` to commit.
 
 ## Test Scenarios
 
@@ -96,15 +96,12 @@ from `tests/e2e/app-smoke.spec.ts` (per-spec local redefinition convention).
    - expect: P1 life `"41"`
 3. Tap P2 `-1 life` 3×
    - expect: P2 life `"37"`
-4. Hold P1 `+1 life` (`holdButton`, 1100ms) — hold fires ±10 per second after 1s
-   - expect: P1 life increased by exactly `10` from pre-hold value (tolerance: a
-     multiple of 10 if the repeat fired twice — assert `toHaveText` via `expect.poll`
-     on the aria-live text, never a fixed sleep)
-5. Hold P2 `-1 life` (1100ms)
-   - expect: P2 life decreased by `10` (or multiple of 10, same tolerance)
+4. Hold P1 `+1 life` (`holdButton`, 1100ms) — staged ±10 at 1s, released at 1100ms before the 1400ms commit → cancelled
+   - expect: P1 life still `"41"` (no ±10, no ±1 — cancel window)
+5. Hold P2 `-1 life` (`holdButton`, 1400ms) — commits exactly one −10
+   - expect: P2 life `"27"` (37 − 10; exact — cadence is deterministic)
 6. Final state
-   - expect: P1 `"51"`, P2 `"27"` (if single increments landed) — or poll for
-     `>= 51` / `<= 27` and divisible-by-10 deltas
+   - expect: P1 `"41"`, P2 `"27"`
    - expect: `errors` `toEqual([])` (wake-lock/fullscreen failures surface as
      `console.warn` only — still zero **errors**)
 
@@ -184,9 +181,10 @@ from `tests/e2e/app-smoke.spec.ts` (per-spec local redefinition convention).
   `app-smoke.spec.ts`. **Never** assert zero warnings — orientation-lock warnings
   repeat per pointerdown in headless Chromium (observed) and are explicitly acceptable
   per SM-01 convention. Assert zero **errors** only.
-- Hold assertions (WL-02): hold fires ±10 once per second after 1s — a 1100ms hold can
-  land one or two increments. Assert via `expect.poll` on the aria-live text: delta
-  from pre-hold value ∈ {10, 20} and divisible by 10. Never fixed sleeps.
+- Hold assertions (WL-02): hold stages ±10 at 1s and commits 400ms later (§7.1). A 1100ms
+  hold = staged-only → cancelled (no ±10, no ±1) → assert life unchanged. A 1400ms hold
+  commits exactly one ±10 → assert the exact delta. Poll the aria-live text via
+  `expect.poll` for the post-commit value; never fixed sleeps.
 - WL-03 structural check uses `toBeHidden()` on the heading (overlay present-but-hidden
   on desktop); do not assert `toHaveCount(0)` — the overlay div must stay mounted.
 - WL-05 keeps a `test.skip` body with the rationale comment; the gate scenarios are

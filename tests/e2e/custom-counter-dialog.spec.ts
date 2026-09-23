@@ -320,11 +320,11 @@ test.describe("Custom Counter Dialog — Modal", () => {
     // expect: Counter value reads 2
     await expect(counterValue(countersDlg, "Ticks")).toHaveText("2");
 
-    // 4. Hold +1 Ticks counter for 1200ms
-    await holdButton(page, plusTicks, 1200);
-    // expect: Counter value >= 12 (tap + hold acceleration)
-    const v = Number(await counterValue(countersDlg, "Ticks").textContent());
-    expect(v).toBeGreaterThanOrEqual(12);
+    // 4. Hold +1 Ticks counter for 1450ms (commit fires at 1400ms; next stage
+    //    at 1500ms not reached — exactly one +10, no ±1 on release)
+    await holdButton(page, plusTicks, 1450);
+    // expect: Counter value reads 12 (2 + exactly one +10; no ±1 on release)
+    await expect(counterValue(countersDlg, "Ticks")).toHaveText("12");
   });
 
   test("5.10. Multiple custom counters can be added", async ({ page }) => {

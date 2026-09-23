@@ -123,9 +123,10 @@ async function swipeY(
 }
 
 /**
- * Hold gesture: press + hold + release. The hold fires ±10 once per second
- * after 1s, so a 1100ms hold can land one or two increments — callers must
- * assert via auto-retrying polls, never fixed sleeps.
+ * Hold gesture: press + hold + release. Per DESIGN §7.1, ±10 stages at 1s hold
+ * and commits after 400ms more (1400ms). A 1100ms hold lands in the staged
+ * cancel window (release before the 1400ms commit → no ±10, no ±1); pass
+ * `ms ≥ 1400` to commit exactly one ±10.
  */
 async function holdButton(page: Page, button: Locator, ms = 1100): Promise<void> {
   const box = await visibleBox(button);
@@ -218,29 +219,22 @@ test.describe("Screen Wake Lock Regression", () => {
     }
     await expect(lifeTotal(zone(page, 2))).toHaveText("37");
 
-    // 4. Hold P1 +1 life (1100ms) — hold fires +10 once per second after 1s;
-    //    a 1100ms hold can land one or two increments → poll the aria-live
-    //    text (never a fixed sleep), then pin the settled delta ∈ {10, 20}
-    const p1Before = Number(await lifeTotal(zone(page, 1)).textContent());
+    // 4. Hold P1 +1 life (1100ms) — staged ±10 at 1s, released at 1100ms
+    //    before the 1400ms commit → cancelled (no ±10, no ±1)
     await holdButton(page, zone(page, 1).getByRole("button", { name: "+1 life" }));
-    await expect
-      .poll(async () => Number(await lifeTotal(zone(page, 1)).textContent()))
-      .toBeGreaterThanOrEqual(p1Before + 10);
-    const p1After = Number(await lifeTotal(zone(page, 1)).textContent());
-    expect([p1Before + 10, p1Before + 20]).toContain(p1After);
+    // expect: P1 life still reads 41 (cancel window — no ±10, no ±1)
+    await expect(lifeTotal(zone(page, 1))).toHaveText("41");
 
-    // 5. Hold P2 -1 life (1100ms) — same tolerance: delta ∈ {10, 20}
-    const p2Before = Number(await lifeTotal(zone(page, 2)).textContent());
-    await holdButton(page, zone(page, 2).getByRole("button", { name: "-1 life" }));
-    await expect
-      .poll(async () => Number(await lifeTotal(zone(page, 2)).textContent()))
-      .toBeLessThanOrEqual(p2Before - 10);
-    const p2After = Number(await lifeTotal(zone(page, 2)).textContent());
-    expect([p2Before - 10, p2Before - 20]).toContain(p2After);
+    // 5. Hold P2 -1 life (1450ms) — commits exactly one −10 (commit at
+    //    1400ms; next stage at 1500ms not reached)
+    await holdButton(page, zone(page, 2).getByRole("button", { name: "-1 life" }), 1450);
+    // expect: P2 life reads 27 (37 − 10; exact — cadence is deterministic)
+    await expect(lifeTotal(zone(page, 2))).toHaveText("27");
 
-    // 6. Final state — the deltas above pin P1 ∈ {51, 61} and P2 ∈ {17, 27}
-    //    (plan's ">= 51 / <= 27 and divisible-by-10 deltas" branch); wake-lock/
-    //    fullscreen failures surface as console.warn only — still zero errors
+    // 6. Final state — P1 41, P2 27; wake-lock/fullscreen failures surface as
+    //    console.warn only — still zero errors
+    await expect(lifeTotal(zone(page, 1))).toHaveText("41");
+    await expect(lifeTotal(zone(page, 2))).toHaveText("27");
     expect(errors).toEqual([]);
   });
 

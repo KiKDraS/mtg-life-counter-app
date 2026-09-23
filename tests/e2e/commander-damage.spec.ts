@@ -402,7 +402,7 @@ test.describe("Commander Damage — Damage Adjustment", () => {
     await expect(damageCounter(commanderDlg(page))).toHaveText("5");
   });
 
-  test("3.3. Hold [+] accelerates to +10 after 1000ms", async ({ page }) => {
+  test("3.3. Hold [+] stages at 1s, commits exactly one +10 at 1.4s; pre-commit release cancels", async ({ page }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -412,15 +412,18 @@ test.describe("Commander Damage — Damage Adjustment", () => {
     // expect: Damage reads `0`
     await expect(damageCounter(dlg)).toHaveText("0");
 
-    // 3. Hold the `+1 commander damage` button for 1200ms, then release
+    // 3. Hold the `+1 commander damage` button for 1200ms (staged at 1000ms),
+    //    then release (before 1400ms commit)
     await holdButton(page, plusButton(dlg), 1200);
+    // expect: Damage still reads `0` (cancelled — no +10, and no +1 tap on release)
+    await expect(damageCounter(dlg)).toHaveText("0");
 
-    // expect: Damage reads at least `10` (hold timer fires +10 after ~1000ms)
-    const dmg = Number(await damageCounter(dlg).textContent());
-    expect(dmg).toBeGreaterThanOrEqual(10);
-    // ponyTail: hold fires +10 per tick; with 100ms interval and ~200ms after
-    // 1s delay, at most 3 ticks fire → +30 from 0
-    expect(dmg).toBeLessThanOrEqual(35);
+    // 4. Hold the `+1 commander damage` button for 1450ms, then release
+    //    (commit fires at 1400ms; next stage at 1500ms not reached)
+    await holdButton(page, plusButton(dlg), 1450);
+    // expect: Damage reads exactly `10` (one +10 committed at 1400ms; tap
+    //         suppressed — not `+11`)
+    await expect(damageCounter(dlg)).toHaveText("10");
   });
 
   test("3.4. Repeated taps accumulate correctly", async ({ page }) => {
@@ -534,26 +537,30 @@ test.describe("Commander Damage — Life Reduction", () => {
     await expect(lifeTotal(zone(page, 2))).toHaveText("40");
   });
 
-  test("4.4. Hold [+] also reduces life by the accelerated amount", async ({
+  test("4.4. Hold [+] also reduces life by the committed amount (cancel window too)", async ({
     page,
   }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
-    // 2. Swipe left on P1 → hold [+] for 1200ms
+    // 2. Swipe left on P1 → hold [+] for 1200ms (staged at 1000ms), release
+    //    (before 1400ms commit)
     await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     await holdButton(page, plusButton(dlg), 1200);
+    // expect: Damage still reads `0` (cancelled)
+    await expect(damageCounter(dlg)).toHaveText("0");
 
-    // expect: Damage reads at least `10`
-    const dmg = Number(await damageCounter(dlg).textContent());
-    expect(dmg).toBeGreaterThanOrEqual(10);
+    // 3. Hold [+] for 1450ms, release (commit fires at 1400ms)
+    await holdButton(page, plusButton(dlg), 1450);
+    // expect: Damage reads `10`
+    await expect(damageCounter(dlg)).toHaveText("10");
 
-    // 3. Close dialog, read P1 life
+    // 4. Close dialog, read P1 life
     await page.keyboard.press("Escape");
     const life = await lifeValue(zone(page, 1));
-    // expect: P1 life ≤ 30 (reduced by 10+)
-    expect(life).toBeLessThanOrEqual(30);
+    // expect: P1 life = 30 (40 − 10)
+    expect(life).toBe(30);
   });
 
   test("4.5. Life can go negative from commander damage", async ({ page }) => {

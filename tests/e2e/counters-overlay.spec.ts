@@ -288,7 +288,7 @@ test.describe("Counters Overlay — Counter Adjustment", () => {
     await expect(counterValue(dlg1Reopen, "energy")).toHaveText("0");
   });
 
-  test("2.3. Hold [+] accelerates to +10 after 1s", async ({ page }) => {
+  test("2.3. Hold [+] stages at 1s, commits exactly one +10 at 1.4s; pre-commit release cancels", async ({ page }) => {
     // 1. Navigate to /, swipe right on P1 zone to open Counters overlay
     await page.goto("/");
     await swipeOn(zone(page, 1), "left");
@@ -296,15 +296,17 @@ test.describe("Counters Overlay — Counter Adjustment", () => {
     // expect: Poison counter reads 0
     await expect(counterValue(dlg, "poison")).toHaveText("0");
 
-    // 2. Hold (pointerdown) the +1 poison counter button for 1200ms, then release
+    // 2. Hold (pointerdown) the +1 poison counter button for 1200ms (staged at
+    //    1000ms), then release (before 1400ms commit)
     await holdButton(page, dlg.getByRole("button", { name: "+1 poison counter" }), 1200);
+    // expect: Poison counter still reads 0 (cancelled — no +10, no +1)
+    await expect(counterValue(dlg, "poison")).toHaveText("0");
 
-    // expect: Poison counter >= 10
-    const v = Number(await counterValue(dlg, "poison").textContent());
-    expect(v).toBeGreaterThanOrEqual(10);
-    // Upper bound: hold fires every 100ms after 1s delay → 3 fires × 10 = 30
-    //   in 1200ms. Set to 35 for timing tolerance.
-    expect(v).toBeLessThanOrEqual(35);
+    // 3. Hold (pointerdown) the +1 poison counter button for 1450ms, then
+    //    release (commit fires at 1400ms; next stage at 1500ms not reached)
+    await holdButton(page, dlg.getByRole("button", { name: "+1 poison counter" }), 1450);
+    // expect: Poison counter reads 10 (exactly one +10 committed)
+    await expect(counterValue(dlg, "poison")).toHaveText("10");
   });
 
   test("2.4. Hold [-] also accelerates", async ({ page }) => {
@@ -319,12 +321,15 @@ test.describe("Counters Overlay — Counter Adjustment", () => {
     // expect: Poison counter reads 15
     await expect(counterValue(dlg, "poison")).toHaveText("15");
 
-    // 2. Hold -1 poison counter for 1200ms, then release
+    // 2. Hold -1 poison counter for 1200ms, then release (pre-commit release)
     await holdButton(page, dlg.getByRole("button", { name: "-1 poison counter" }), 1200);
+    // expect: Poison counter still reads 15 (cancelled — no -10, no -1)
+    await expect(counterValue(dlg, "poison")).toHaveText("15");
 
-    // expect: Poison counter <= 5
-    const v = Number(await counterValue(dlg, "poison").textContent());
-    expect(v).toBeLessThanOrEqual(5);
+    // 3. Hold -1 poison counter for 1450ms, then release (commit at 1400ms)
+    await holdButton(page, dlg.getByRole("button", { name: "-1 poison counter" }), 1450);
+    // expect: Poison counter reads 5 (exactly one -10 committed)
+    await expect(counterValue(dlg, "poison")).toHaveText("5");
   });
 });
 

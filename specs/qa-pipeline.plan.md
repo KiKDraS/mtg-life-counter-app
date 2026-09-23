@@ -322,17 +322,17 @@ MTG Life Counter PWA (Next.js 16 App Router, React 19, Tailwind 4, @playwright/t
 
 **Seed:** `tests/seed.spec.ts`
 
-#### 5.1. LC-01: Tap ±1 and hold ±10 after 1s on every zone type (regression)
+#### 5.1. LC-01: Tap ±1 and staged hold ±10 (commit @1.4s) on every zone type (regression)
 
 **File:** `tests/e2e/player-zone.spec.ts`
 
 **Steps:**
   1. goto /; tap P1 +1 twice, P2 −1 once
     - expect: P1 = 42, P2 = 39
-  2. hold P1 +1 for 750ms (under 1s delay)
-    - expect: life changes by exactly 1 (41-44 range, no ±10 tick)
+  2. hold P1 +1 for 750ms (no stage — stage fires at 1000ms per §7.1)
+    - expect: life reads 43 (42 + 1 tap on release; no ±10)
   3. hold P1 +1 for 1700ms
-    - expect: life jumps by ≥10 after 1s (value ≥100 in long hold test)
+    - expect: life reads 53 (commit +10 @ 1400ms; stage @ 1500ms released before its 1900ms commit → cancelled)
 
 #### 5.2. LC-02: Lethal ≤0 → #D50000, recovery restores normal color (regression)
 
