@@ -42,16 +42,22 @@ jobs:
         if: steps.check-key.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          TITLE="[embed-rules] OPEN_ROUTER_API_KEY missing — release stalled"
-          EXISTS="$(gh issue list --state open --search "in:title \"$TITLE\"" --json number --jq 'length')"
-          if [ "$EXISTS" = "0" ]; then
-            gh issue create --title "$TITLE" --body "embed-rules failed: OPEN_ROUTER_API_KEY secret not set.
+          NOTIFY_DETAILS: |-
+            embed-rules failed: OPEN_ROUTER_API_KEY secret not set.
 
-Rules refresh merged to develop but the release is stalled — no embeddings, no release.
+            Rules refresh merged to develop but the release is stalled — no embeddings, no release.
 
-Fix: add the secret (repo Settings → Secrets and variables → Actions), then run embed-rules manually (Actions → Run workflow, branch develop)."
-          fi
+            Fix: add the secret (repo Settings → Secrets and variables → Actions), then run embed-rules manually (Actions → Run workflow, branch develop).
+
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash scripts/notify-failure.sh "[embed-rules] OPEN_ROUTER_API_KEY missing — release stalled"
+      - name: Notify — pipeline failure
+        # Any failure except the missing-key case (that one has its own issue).
+        if: failure() && steps.check-key.outcome != 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTIFY_DETAILS: "embed-rules failed. See run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        run: bash scripts/notify-failure.sh "[embed-rules] update pipeline failed"
       - name: PR embeddings bundle
         env:
           GH_TOKEN: ${{ github.token }}
