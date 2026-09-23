@@ -49,6 +49,8 @@ export const ENV_OK = env.apiKey.length > 0 && MODEL_FORMAT_RE.test(env.model);
 /** Telemetry env (optional — judge works without it, SPEC §9.5). */
 export const axiomToken = process.env.AXIOM_INGEST_TOKEN ?? "";
 export const axiomDataset = process.env.AXIOM_DATASET?.trim() || "judge-timings";
+/** Alert dataset for failure mirrors (SPEC §9.5). */
+export const axiomAlertDataset = process.env.AXIOM_ALERT_DATASET?.trim() || "judge-alerts";
 export const AXIOM_OK = axiomToken.length > 0;
 
 /** Model list in preference order: primary + optional fallback (SPEC §9.6). */
