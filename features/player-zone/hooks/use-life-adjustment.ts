@@ -37,9 +37,11 @@ const HOLD_STEP = 10;
  * no ±10, no ±1. After each commit the next ±10 stages 100ms later with the
  * same 400ms commit window (setTimeout chain, per-step staging).
  *
- * `onStage` is called with `step` when a ±10 stages and with `0` when it
- * commits or cancels (clears preview). Optional — consumers that omit it
- * (commander/counters) still get the cancel window, just no preview.
+ * `onStage` is called with the CUMULATIVE total (committed steps + staged
+ * step) when a ±10 stages — the preview shows the whole amount the hold will
+ * apply (holding to +20 previews "+20"), not the per-step ±10 — and with `0`
+ * when it commits or cancels (clears preview). Optional — consumers that omit
+ * it (commander/counters) still get the cancel window, just no preview.
  *
  * `holdFiredRef` is set at STAGE time (not commit), so release during the
  * staging window suppresses the pending ±1 on `click` too. Keyboard
@@ -49,7 +51,7 @@ const HOLD_STEP = 10;
  * Returns a factory: pass a direction, spread the result onto a `<button>`.
  *
  * @param onAdjust  committed delta callback (fires only on commit).
- * @param onStage   staged-delta preview callback; 0 clears preview.
+ * @param onStage   preview callback — cumulative hold total when staged, 0 clears.
  * @see DESIGN.md §7.1
  */
 export function useLifeAdjustment(
@@ -60,6 +62,8 @@ export function useLifeAdjustment(
   const onStageRef = useRef(onStage);
   const timerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const holdFiredRef = useRef(false);
+  /* §7.1 — committed steps during current hold, for cumulative preview. */
+  const holdTotalRef = useRef(0);
 
   useEffect(() => {
     onAdjustRef.current = onAdjust;
@@ -91,10 +95,12 @@ export function useLifeAdjustment(
   useEffect(() => {
     scheduleCommitRef.current = (step: number) => {
       const commitTimer = setTimeout(() => {
+        holdTotalRef.current += step;
         onStageRef.current?.(0);
         onAdjustRef.current(step);
         const nextStageTimer = setTimeout(() => {
-          onStageRef.current?.(step);
+          /* Preview = committed total + staged step (cumulative, not per-step). */
+          onStageRef.current?.(holdTotalRef.current + step);
           scheduleCommitRef.current(step);
         }, REPEAT_INTERVAL_MS);
         timerRef.current.push(nextStageTimer);
@@ -107,11 +113,12 @@ export function useLifeAdjustment(
     (direction: LifeSign) => {
       stopHold();
       holdFiredRef.current = false;
+      holdTotalRef.current = 0;
       const step = direction * HOLD_STEP;
       /* Stage timer (A): 1000ms → mark hold fired, show preview, arm commit. */
       const stageTimer = setTimeout(() => {
         holdFiredRef.current = true;
-        onStageRef.current?.(step);
+        onStageRef.current?.(holdTotalRef.current + step);
         scheduleCommitRef.current(step);
       }, HOLD_DELAY_MS);
       timerRef.current.push(stageTimer);

@@ -257,9 +257,11 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
   — no layout shift. Same textColor. Sign `+`/`−`. Update per change. Hide 1s
   after last change. Net 0 → hidden. Reset (⟳/⚙️/👥) → none.
 - **Staged ±10 preview:** hold stages ±10 (§7.1) → delta preview above life at
-  50% opacity, same position/sign rules. Commit → full opacity + life change.
-  Cancel/release → preview cleared, no change, no ±1. Preview ignores hide
-  timer — only committed changes re-arm it.
+  50% opacity, same position/sign rules. Preview = TOTAL accumulated during
+  hold (committed + staged step): holding to +20 previews "+20", never "+10"
+  flashes. Commit → full opacity + life change. Cancel/release → preview
+  cleared, no change, no ±1. Preview ignores hide timer — only committed
+  changes re-arm it.
 
 ### 4.3 Zone Rotation
 
@@ -553,7 +555,7 @@ Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
 | Gesture        | Result                                                                                                                    |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Tap [+] / [-]  | +1 / -1 life                                                                                                              |
-| Hold [+] / [-] | ±10 staged at 1s hold; commits after 400ms more. Release before commit → cancel (no ±10, no ±1). After commit: next ±10 stages 100ms later, same 400ms commit window. Cadence +10 @ 1.4s, +20 @ 1.9s, +30 @ 2.4s… |
+| Hold [+] / [-] | ±10 staged at 1s hold; commits after 400ms more. Release before commit → cancel (no ±10, no ±1). After commit: next ±10 stages 100ms later, same 400ms commit window. Preview = cumulative total (committed + staged): holding to +20 shows "+20". Cadence +10 @ 1.4s, +20 @ 1.9s, +30 @ 2.4s… |
 | Delta feedback | Net change above life, `--text-delta` (§4.2). Update per change. Hide 1s after last change. Net 0 → hidden. Reset → none. |
 
 ### 7.2 Swipe
