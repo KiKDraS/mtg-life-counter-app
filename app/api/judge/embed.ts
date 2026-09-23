@@ -54,6 +54,16 @@ function loadEmbeddings(): EmbeddingsArtifact | null {
   return decoded;
 }
 
+/** Wrong-dim vectors → every cosine 0 → arbitrary top-5. Degrade, never guess. */
+const wrongDimensions = (embeddings: EmbeddingsArtifact | null): boolean => {
+  if (embeddings === null) return true;
+  const firstVector = embeddings.vectors[0];
+  return (
+    embeddings.dimensions !== EMBED_DIMENSIONS ||
+    (firstVector !== undefined && firstVector.embedding.length !== EMBED_DIMENSIONS)
+  );
+};
+
 /**
  * @description Embed the question via the OpenRouter SDK. Non-2xx, timeout,
  * or parse failure → null (never throws — degradation path). Never logs key
@@ -76,6 +86,7 @@ export async function embedQuestion(question: string): Promise<Float32Array | nu
     if (typeof result === "string") return null; // unexpected body shape
     const first = result.data[0];
     if (!first || typeof first.embedding === "string") return null;
+    if (first.embedding.length !== EMBED_DIMENSIONS) return null; // model ignored `dimensions`
     return normalizeVector(first.embedding);
   } catch {
     return null; // degradation — caller falls back to lexical
@@ -101,6 +112,7 @@ export async function retrieveSemanticRules(
   try {
     const embeddings = loadEmbeddings();
     if (!embeddingsMatchRules(embeddings, rules)) return null;
+    if (wrongDimensions(embeddings)) return null; // model ignored `dimensions` (e.g. 4096)
     const questionVector = await embedQuestion(question);
     if (!questionVector) return null;
     return retrieveSemantic(questionVector, embeddings, rules.rules);

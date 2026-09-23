@@ -95,15 +95,22 @@ try {
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
     const batch = texts.slice(i, i + BATCH_SIZE);
     const data = await embedBatch(batch, apiKey, model);
+    // Model may ignore `dimensions` (e.g. qwen3-embedding-8b → 4096). Wrong-dim
+    // vectors make every cosine 0 at runtime — fail loudly, never record them.
+    for (const item of data.data) {
+      const len = Array.isArray(item.embedding) ? item.embedding.length : null;
+      if (len !== DIMENSIONS) {
+        throw new Error(
+          `batch ${i / BATCH_SIZE}: model returned ${len ?? "non-array"} dims, expected ${DIMENSIONS}`,
+        );
+      }
+    }
     // Match by index, preserve rule order.
     const byIndex = new Map(data.data.map((d) => [d.index, d.embedding]));
     for (let j = 0; j < batch.length; j++) {
       const embedding = byIndex.get(j);
       if (embedding === undefined) {
         throw new Error(`batch ${i / BATCH_SIZE}: missing embedding at index ${j}`);
-      }
-      if (typeof embedding === "string") {
-        throw new Error(`batch ${i / BATCH_SIZE}: base64 embedding — expected float array`);
       }
       const ruleId = bundle.rules[i + j][0];
       vectors.push([ruleId, Buffer.from(normalizeVector(embedding).buffer).toString("base64")]);
