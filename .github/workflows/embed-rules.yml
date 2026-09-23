@@ -10,6 +10,7 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 jobs:
   embed-and-release:
     # Manual dispatch always runs; workflow_run only after refresh-rules succeeds.
@@ -23,16 +24,34 @@ jobs:
         # Rules land on develop (refresh-rules PRs there, never releases).
         # Embed must run against the NEW rules → develop, not main.
         with: { ref: develop, fetch-depth: 0 }
+      - name: Check API key
+        id: check-key
+        env:
+          OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+        run: |
+          if [ -z "$OPEN_ROUTER_API_KEY" ]; then
+            echo "::error::OPEN_ROUTER_API_KEY missing — embed skipped, rules release STALLS on develop until key set"
+            exit 1
+          fi
       - name: Embed rules (semantic retrieval bundle)
         env:
           OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
           OPEN_ROUTER_EMBEDDING_MODEL: ${{ vars.OPEN_ROUTER_EMBEDDING_MODEL || 'openai/text-embedding-3-small' }}
+        run: node scripts/embed-rules.mjs
+      - name: Notify — API key missing
+        if: steps.check-key.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -z "$OPEN_ROUTER_API_KEY" ]; then
-            echo "OPEN_ROUTER_API_KEY missing — embed skipped, rules release STALLS on develop until key set"
-            exit 1
+          TITLE="[embed-rules] OPEN_ROUTER_API_KEY missing — release stalled"
+          EXISTS="$(gh issue list --state open --search "in:title \"$TITLE\"" --json number --jq 'length')"
+          if [ "$EXISTS" = "0" ]; then
+            gh issue create --title "$TITLE" --body "embed-rules failed: OPEN_ROUTER_API_KEY secret not set.
+
+Rules refresh merged to develop but the release is stalled — no embeddings, no release.
+
+Fix: add the secret (repo Settings → Secrets and variables → Actions), then run embed-rules manually (Actions → Run workflow, branch develop)."
           fi
-          node scripts/embed-rules.mjs
       - name: PR embeddings bundle
         env:
           GH_TOKEN: ${{ github.token }}
