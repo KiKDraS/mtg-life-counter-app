@@ -225,12 +225,11 @@ test.describe("life-delta", () => {
     await expect(delta(p1)).toHaveCount(0);
   });
 
-  test("6.1. Hold 1.4s commits exactly one +10: staged preview (50% opacity) then commit — delta +10, life 50", async ({
+  test("6.1. Hold 1.9s commits two +10s with CUMULATIVE preview: +10 dimmed → commit → \"+20\" dimmed (never \"+10\" flash) → commit — delta +20, life 60", async ({
     page,
   }) => {
-    // 1. Navigate to /; holdButton P1 '+1 life' for 1400ms (release ≥1400ms
-    //    commits; 1450ms used so release lands after the 1400ms commit and
-    //    before the 1500ms next stage — exactly one +10)
+    // 1. Navigate to /; holdButton P1 '+1 life' for 1900ms (stages @1000/1500ms,
+    //    commits @1400/1900ms — release just after commit 2 fires)
     await page.goto("/");
     const p1 = zone(page, 1);
     const button = p1.getByRole("button", { name: "+1 life" });
@@ -243,29 +242,44 @@ test.describe("life-delta", () => {
     await page.mouse.move(cx, cy);
     await page.mouse.down();
 
-    // expect: At ~1050ms into hold (staged at 1000ms, pre-commit): delta(zone(1))
-    // visible with text +10 and opacity 0.5 (preview per §4.2 — life NOT yet changed)
+    // expect: At ~1050ms into hold (stage 1 @1000ms, pre-commit): delta(zone(1))
+    // visible with text +10 and opacity 0.5 (preview per §4.2 = cumulative
+    // committed+staged = 0+10; life NOT yet changed)
     await page.waitForTimeout(1050);
     await expect(delta(p1)).toHaveText("+10");
     await expect(delta(p1)).toHaveCSS("opacity", "0.5");
-    // expect: P1 life still reads 40 at stage
+    // expect: P1 life still reads 40 at first stage
     await expect(lifeTotal(p1)).toHaveText("40");
 
-    // 2. Release after the 1400ms commit (total hold 1450ms)
-    await page.waitForTimeout(400);
-    await page.mouse.up();
-    // expect: delta(zone(1)) text +10 (full opacity), P1 life reads 50
+    // 2. Continue holding past 1400ms (commit 1 fires @1400ms)
+    await page.waitForTimeout(350);
+    // expect: P1 life reads 50, delta(zone(1)) text +10 full opacity
+    await expect(lifeTotal(p1)).toHaveText("50");
     await expect(delta(p1)).toHaveText("+10");
     await expect(delta(p1)).toHaveCSS("opacity", "1");
+
+    // 3. Continue holding to ~1550ms (stage 2 @1500ms, pre-commit 2)
+    await page.waitForTimeout(150);
+    // expect: delta(zone(1)) text +20 with opacity 0.5 — CUMULATIVE (committed
+    // +10 + staged +10), never "+10" flash; P1 life still reads 50
+    await expect(delta(p1)).toHaveText("+20");
+    await expect(delta(p1)).toHaveCSS("opacity", "0.5");
     await expect(lifeTotal(p1)).toHaveText("50");
+
+    // 4. Release at 1900ms (commit 2 fires @1900ms) — wait for commit 2 while
+    //    holding, then release
+    await expect(lifeTotal(p1)).toHaveText("60");
+    await page.mouse.up();
+    // expect: delta(zone(1)) text +20 (full opacity), P1 life reads 60
+    await expect(delta(p1)).toHaveText("+20");
+    await expect(delta(p1)).toHaveCSS("opacity", "1");
+    await expect(lifeTotal(p1)).toHaveText("60");
     // expect: No +1 on release (hold suppresses click)
 
-    // 3. Wait 1200ms
+    // 5. Wait 1200ms
     await page.waitForTimeout(1200);
-    // expect: delta(zone(1)) count = 0 (hide timer re-armed by the commit)
+    // expect: delta(zone(1)) count = 0 (hide timer re-armed by commit 2)
     await expect(delta(p1)).toHaveCount(0);
-    // expect: P1 life still reads 50
-    await expect(lifeTotal(p1)).toHaveText("50");
   });
 
   test("7.1. Restart while delta visible clears it, no spurious delta", async ({

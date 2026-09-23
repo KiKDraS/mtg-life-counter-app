@@ -81,20 +81,26 @@ MTG Life Counter — Life Delta Feedback (branch feature/life-delta-feedback, DE
   4. Wait 700ms more (t=1800)
     - expect: delta(zone(1)) count = 0
 
-#### 1.6. 6.1. Hold 1.4s commits exactly one +10: staged preview (50% opacity) then commit — delta +10, life 50
+#### 1.6. 6.1. Hold 1.9s commits two +10s with CUMULATIVE preview: +10 dimmed → commit → "+20" dimmed (never "+10" flash) → commit — delta +20, life 60
 
 **File:** `tests/e2e/life-delta.spec.ts`
 
 **Steps:**
-  1. Navigate to /; holdButton P1 '+1 life' for 1400ms
-    - expect: At ~1050ms into hold (staged at 1000ms, pre-commit): delta(zone(1)) visible
-      with text +10 and opacity 0.5 (preview per §4.2 — life NOT yet changed)
-    - expect: P1 life still reads 40 at stage
-  2. Release at 1400ms (commit fires)
-    - expect: delta(zone(1)) text +10 (full opacity), P1 life reads 50
+  1. Navigate to /; holdButton P1 '+1 life' for 1900ms
+    - expect: At ~1050ms into hold (stage 1 @1000ms, pre-commit): delta(zone(1)) visible
+      with text +10 and opacity 0.5 (preview per §4.2 = cumulative committed+staged
+      = 0+10; life NOT yet changed)
+    - expect: P1 life still reads 40 at first stage
+  2. Continue holding past 1400ms (commit 1 fires @1400ms)
+    - expect: P1 life reads 50, delta(zone(1)) text +10 full opacity
+  3. Continue holding to ~1550ms (stage 2 @1500ms, pre-commit 2)
+    - expect: delta(zone(1)) text +20 with opacity 0.5 — CUMULATIVE (committed +10
+      + staged +10), never "+10" flash; P1 life still reads 50
+  4. Release at 1900ms (commit 2 fires @1900ms)
+    - expect: delta(zone(1)) text +20 (full opacity), P1 life reads 60
     - expect: No +1 on release (hold suppresses click)
-  3. Wait 1200ms
-    - expect: delta(zone(1)) count = 0 (hide timer re-armed by the commit)
+  5. Wait 1200ms
+    - expect: delta(zone(1)) count = 0 (hide timer re-armed by commit 2)
 
 #### 1.7. 7.1. Restart while delta visible clears it, no spurious delta
 

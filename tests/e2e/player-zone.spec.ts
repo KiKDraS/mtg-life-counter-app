@@ -11,6 +11,11 @@ function lifeTotal(zoneLocator: Locator): Locator {
   return zoneLocator.locator('[aria-live="polite"]');
 }
 
+/** §4.2 transient burst-net delta — the only `.text-delta` span in a zone. */
+function delta(zoneLocator: Locator): Locator {
+  return zoneLocator.locator(".text-delta");
+}
+
 async function lifeValue(zoneLocator: Locator): Promise<number> {
   return Number(await lifeTotal(zoneLocator).textContent());
 }
@@ -201,17 +206,53 @@ test.describe("Player Zone — Hold Acceleration & Press Feedback", () => {
     expect(value).toBe(41);
   });
 
-  test("3.2. Long hold (~1.7s) commits exactly one ±10 (cadence: +10 @ 1.4s, +20 @ 1.9s)", async ({ page }) => {
-    // 1. Navigate to `/`; hold P1 `+1 life` for 1700ms
+  test("3.2. Long hold (~1.7s) commits exactly one ±10 with cumulative preview (cadence: +10 @ 1.4s, +20 @ 1.9s)", async ({ page }) => {
+    // 1. Navigate to `/`; press down P1 `+1 life` and hold ~1700ms, asserting
+    //    the staged preview mid-hold; release before commit 2 (@1900ms)
     await page.goto("/");
 
     const p1 = zone(page, 1);
-    await holdButton(page, p1.getByRole("button", { name: "+1 life" }), 1700);
+    const button = p1.getByRole("button", { name: "+1 life" });
+    const box = await visibleBox(button);
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    // §4.6 splash cover is pointer-events:auto until hydration removes it — a
+    // raw mouse.down on the overlay swallows the press. Wait it out first.
+    await expect(page.locator("#extended-splash-screen")).toHaveCount(0);
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
 
-    // Commit +10 @ 1400ms; next stage @ 1500ms is released before its 1900ms
-    // commit → cancelled. No ±1 on release (hold suppresses click). Life = 50.
-    const value = await lifeValue(p1);
-    expect(value).toBe(50);
+    // expect: At ~1050ms into hold (stage @1000ms, pre-commit): delta visible,
+    // text +10 at 50% opacity (dimmed preview per §4.2; life unchanged)
+    await page.waitForTimeout(1050);
+    await expect(delta(p1)).toHaveText("+10");
+    await expect(delta(p1)).toHaveCSS("opacity", "0.5");
+    // expect: P1 life still reads 40 at stage
+    await expect(lifeTotal(p1)).toHaveText("40");
+
+    // expect: At ~1400ms commit 1 fires — P1 life reads 50, delta +10 full opacity
+    await page.waitForTimeout(350);
+    await expect(lifeTotal(p1)).toHaveText("50");
+    await expect(delta(p1)).toHaveText("+10");
+    await expect(delta(p1)).toHaveCSS("opacity", "1");
+
+    // expect: At ~1550ms (stage 2 @1500ms, pre-commit 2): delta text +20 at 50%
+    // opacity — cumulative (committed +10 + staged +10), never "+10" flash;
+    // life still reads 50
+    await page.waitForTimeout(150);
+    await expect(delta(p1)).toHaveText("+20");
+    await expect(delta(p1)).toHaveCSS("opacity", "0.5");
+    await expect(lifeTotal(p1)).toHaveText("50");
+
+    // 2. Release at 1700ms (before commit 2 @1900ms → cancelled)
+    await page.waitForTimeout(150);
+    await page.mouse.up();
+    // expect: P1 life still reads 50 exactly (commit +10 @ 1400ms only; stage @
+    // 1500ms released before its 1900ms commit → cancelled, preview cleared —
+    // the committed +10 delta remains at full opacity)
+    await expect(lifeTotal(p1)).toHaveText("50");
+    await expect(delta(p1)).toHaveText("+10");
+    await expect(delta(p1)).toHaveCSS("opacity", "1");
   });
 
   test("3.3. Releasing the button stops adjustment immediately", async ({ page }) => {

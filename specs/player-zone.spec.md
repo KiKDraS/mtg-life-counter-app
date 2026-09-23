@@ -77,14 +77,22 @@ MTG Life Counter — Player Zone milestone (branch `feature/player-zone`). Two p
   1. Hold p1 +1 for 750ms (no stage — stage fires at 1000ms per §7.1)
     - expect: P1 life reads 41 (release fires the ±1 tap; no ±10)
 
-#### 3.2. Long hold (~1.7s) commits exactly one ±10 (cadence: +10 @ 1.4s, +20 @ 1.9s)
+#### 3.2. Long hold (~1.7s) commits exactly one ±10 with cumulative preview (cadence: +10 @ 1.4s, +20 @ 1.9s)
 
 **File:** `tests/e2e/player-zone.spec.ts`
 
 **Steps:**
   1. Hold p1 +1 for 1700ms
-    - expect: P1 life reads 50 (commit +10 @ 1400ms; next stage @ 1500ms is
-      released before its 1900ms commit → cancelled)
+    - expect: At ~1050ms into hold (stage @1000ms, pre-commit): delta visible,
+      text +10 at 50% opacity (dimmed preview per §4.2; life unchanged)
+    - expect: P1 life still reads 40 at stage
+    - expect: At ~1400ms commit 1 fires — P1 life reads 50, delta +10 full opacity
+    - expect: At ~1550ms (stage 2 @1500ms, pre-commit 2): delta text +20 at 50%
+      opacity — cumulative (committed +10 + staged +10), never "+10" flash;
+      life still reads 50
+  2. Release at 1700ms (before commit 2 @1900ms → cancelled)
+    - expect: P1 life still reads 50 exactly (commit +10 @ 1400ms only; stage @
+      1500ms released before its 1900ms commit → cancelled, preview cleared)
 
 #### 3.3. Releasing the button stops adjustment immediately
 
