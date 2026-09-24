@@ -3,7 +3,7 @@
  *
  * Persona + refusal rules + structured output instruction + few-shot pairs in
  * the system prompt. RAG context goes in the USER message — never system.
- * Injected rule excerpts clipped to 180 chars; answer-side citations
+ * Injected rule excerpts clipped to 1500 chars; answer-side citations
  * unaffected (verbatim lookup).
  */
 
@@ -11,8 +11,8 @@ import type { CardRuling } from "./rag/cards-source";
 import type { RetrievedRule } from "./rag/retrieval";
 
 /** Prompt-side rule excerpt cap (SPEC §9.7) — citations still verbatim. */
-const PROMPT_RULE_MAX = 180;
-/** Clip to ~180 chars at a word boundary, append "…" when clipped. */
+const PROMPT_RULE_MAX = 1500;
+/** Clip to ~1500 chars at a word boundary, append "…" when clipped. */
 const clipPromptRule = (text: string): string => {
   if (text.length <= PROMPT_RULE_MAX) return text;
   const clipped = text.slice(0, PROMPT_RULE_MAX).replace(/\s+\S*$/, "");

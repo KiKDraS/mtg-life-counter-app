@@ -2,7 +2,7 @@
  * In-memory session history (SPEC §9.9).
  *
  * Pure message building — the store itself lives in the route. Never written
- * to disk / IndexedDB / localStorage. FIFO prune to a 10k token budget
+ * to disk / IndexedDB / localStorage. FIFO prune to a 60k token budget
  * (SPEC §9.9): keep system prompt + last N turns that fit.
  */
 
@@ -16,7 +16,7 @@ export interface JudgeHistory {
   readonly turns: JudgeTurn[];
 }
 
-export const MAX_HISTORY_TOKENS = 10_000;
+export const MAX_HISTORY_TOKENS = 60_000;
 
 /** SPEC §9.9 — token estimate: ceil(chars / 4). O(1). */
 export const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
