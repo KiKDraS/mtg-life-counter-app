@@ -7,7 +7,7 @@ import { cn } from "@/shared/lib/cn";
 /**
  * @description
  * Reusable life adjustment button (+ / -).
- * Encapsulates the hold-to-accelerate hook and context dispatch.
+ * Encapsulates the §7.1 tap/hold hook and context dispatch.
  */
 export function LifeAdjustmentButton({
   delta,
@@ -15,23 +15,18 @@ export function LifeAdjustmentButton({
   ariaLabel,
   style,
   onAdjust,
-  onStage,
 }: {
   readonly delta: LifeSign;
   readonly label: string;
   readonly ariaLabel: string;
   readonly style?: React.CSSProperties;
   readonly onAdjust?: (delta: number) => void;
-  readonly onStage?: (delta: number) => void;
 }) {
   const { dispatch } = usePlayerStateContext();
-  const adjustment = useLifeAdjustment(
-    (d) => {
-      onAdjust?.(d);
-      dispatch(adjustLife(d));
-    },
-    onStage,
-  );
+  const adjustment = useLifeAdjustment((d) => {
+    onAdjust?.(d);
+    dispatch(adjustLife(d));
+  });
 
   return (
     <button
@@ -39,7 +34,7 @@ export function LifeAdjustmentButton({
       aria-label={ariaLabel}
       className={cn(
         "flex h-full w-full items-center justify-center text-4xl font-bold leading-none",
-        "select-none touch-manipulation",
+        "select-none touch-manipulation [-webkit-touch-callout:none]",
         "transition-shadow duration-150 active:shadow-[inset_0_0_0_9999px_rgba(0,0,0,0.08)]",
         "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current",
       )}

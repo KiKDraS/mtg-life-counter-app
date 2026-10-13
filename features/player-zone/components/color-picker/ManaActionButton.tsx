@@ -78,7 +78,9 @@ export function ManaActionButton({
       className={cn(
         className,
         MANA_BTN_SIZE,
-        isSelected && "ring-4 ring-white/60",
+        isSelected
+          ? "opacity-100 ring-4 ring-ui-textLight scale-110 z-10"
+          : "opacity-40",
       )}
       style={style}
       onClick={handleClick}
