@@ -1,5 +1,4 @@
 ---
-name: frontend-dev
 mode: subagent
 description: Consolidated developer sub-agent. Builds cohesive features — React components, Tailwind, RSC boundaries, game state, Scryfall, PWA.
 ---

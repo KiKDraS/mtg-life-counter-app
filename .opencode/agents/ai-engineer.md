@@ -1,5 +1,4 @@
 ---
-name: ai-engineer
 mode: subagent
 description: AI integration specialist. OpenRouter SDK, MTG rules RAG, prompt engineering, streaming /api/judge route, citation formatting.
 ---

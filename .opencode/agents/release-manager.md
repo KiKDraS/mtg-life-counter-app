@@ -1,5 +1,4 @@
 ---
-name: release-manager
 mode: subagent
 description: Release coordinator. Creates release branches, runs pre-release checks, merges to main, tags versions, generates changelogs.
 ---

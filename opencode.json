@@ -4,36 +4,36 @@
     ".opencode/docs/skills-settings-rules.md",
     ".opencode/docs/agent-knowledge-awareness.md"
   ],
-  "permission": {
-    "bash": {
-      "*": "ask",
-      "git *": "allow",
-      "npm *": "allow",
-      "pnpm *": "allow",
-      "rm *": "deny",
-      "grep *": "allow"
-    },
-    "playwright-test*": "deny"
-  },
-  "plugin": ["@dietrichgebert/ponytail"],
+  "permissions": [
+    { "action": "shell", "resource": "*", "effect": "ask" },
+    { "action": "shell", "resource": "git *", "effect": "allow" },
+    { "action": "shell", "resource": "npm *", "effect": "allow" },
+    { "action": "shell", "resource": "pnpm *", "effect": "allow" },
+    { "action": "shell", "resource": "rm *", "effect": "deny" },
+    { "action": "shell", "resource": "grep *", "effect": "allow" },
+    { "action": "playwright-test*", "resource": "*", "effect": "ask" }
+  ],
+  "plugins": ["@dietrichgebert/ponytail"],
   "mcp": {
-    "playwright-test": {
-      "type": "local",
-      "command": ["npx", "playwright", "run-test-mcp-server"],
-      "enabled": true
-    },
-    "codegraph": {
-      "type": "local",
-      "command": ["npx", "@colbymchenry/codegraph", "serve", "--mcp"],
-      "enabled": true
-    },
-    "context7": {
-      "type": "remote",
-      "url": "https://mcp.context7.com/mcp",
-      "headers": {
-        "CONTEXT7_API_KEY": "{file:.opencode/secrets/context7-api-key}"
+    "servers": {
+      "playwright-test": {
+        "type": "local",
+        "command": ["npx", "playwright", "run-test-mcp-server"],
+        "disabled": false
       },
-      "enabled": true
+      "codegraph": {
+        "type": "local",
+        "command": ["npx", "@colbymchenry/codegraph", "serve", "--mcp"],
+        "disabled": false
+      },
+      "context7": {
+        "type": "remote",
+        "url": "https://mcp.context7.com/mcp",
+        "headers": {
+          "CONTEXT7_API_KEY": "{file:.opencode/secrets/context7-api-key}"
+        },
+        "disabled": false
+      }
     }
   },
   "default_agent": "orchestrator"
