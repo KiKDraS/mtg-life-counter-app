@@ -2,7 +2,6 @@
 
 import { useRef, useCallback, useEffect, useState, type PropsWithChildren } from "react";
 import { cn } from "@/shared/lib/cn";
-import { UI } from "@/shared/lib/constants/colors";
 import {
   INCREMENT_LIFE,
   DECREMENT_LIFE,
@@ -41,14 +40,6 @@ const getDialog = (id: string) =>
 
 /* §4.2 — delta hides 1s after last change (inactivity timer). */
 const DELTA_HIDE_MS = 1000;
-
-/* §4.2 — committed ± life change: ~200ms full-zone flash. */
-const FLASH_DURATION_MS = 200;
-/* §4.2 — low-alpha (~35%) luminance-paired tint from the zone text token.
- * Token value, not var(--color-*): Tailwind prunes theme vars that no
- * emitted CSS references, so the var form can be absent at runtime. */
-const FLASH_TINT_LIGHT = `color-mix(in srgb, ${UI.textLight} 35%, transparent)`;
-const FLASH_TINT_DARK = `color-mix(in srgb, ${UI.textDark} 35%, transparent)`;
 
 const getDimensionClasses = (rotation: number) => {
   const isSideways = rotation === 90 || rotation === -90;
@@ -92,8 +83,6 @@ export function PlayerZoneInteractive({
     isOnBottomSlot,
   } = usePlayerStateContext();
   const zoneRef = useRef<HTMLDivElement>(null);
-  const flashRef = useRef<HTMLSpanElement>(null);
-  const flashAnimRef = useRef<Animation | null>(null);
 
   /* §4.2 — transient burst-net delta. Local UI state, not in PlayerState. */
   const [lifeDelta, setLifeDelta] = useState(0);
@@ -104,18 +93,11 @@ export function PlayerZoneInteractive({
     return () => clearTimeout(timer);
   }, [lifeDelta]);
 
-  /* §4.2 — committed ± change: accumulate the burst delta + pulse the
-   * full-zone flash. Only the ± life buttons route through here — reset,
-   * commander damage and counters never flash. */
+  /* §4.2 — committed ± change: accumulate the burst delta. Only the ± life
+   * buttons route through here — reset, commander damage and counters never
+   * touch it. */
   const handleAdjust = useCallback((d: number) => {
     setLifeDelta((prev) => prev + d);
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const overlay = flashRef.current;
-    if (!overlay) return;
-    flashAnimRef.current?.cancel();
-    flashAnimRef.current = overlay.animate([{ opacity: 1 }, { opacity: 0 }], {
-      duration: FLASH_DURATION_MS,
-    });
   }, []);
 
   /* 
@@ -163,8 +145,6 @@ export function PlayerZoneInteractive({
     ================= 
   */
   const { background, textColor, textShadow } = zoneStylesFor(state.color);
-  const flashTint =
-    textColor === UI.textLight ? FLASH_TINT_LIGHT : FLASH_TINT_DARK;
 
   const { isPoisonLethal, isCommanderLethal, isLethal } = checkLethality(state);
 
@@ -179,7 +159,7 @@ export function PlayerZoneInteractive({
     >
       <section
         aria-label={`Player ${state.playerId + 1}: ${state.life} life`}
-        className="relative grid h-full w-full grid-cols-3"
+        className="grid h-full w-full grid-cols-3"
         style={{ background, color: textColor, textShadow }}
       >
         {/* Left Column */}
@@ -226,14 +206,6 @@ export function PlayerZoneInteractive({
             onAdjust={handleAdjust}
           />
         </div>
-
-        {/* §4.2 — full-zone flash: above zone content, input-transparent. */}
-        <span
-          ref={flashRef}
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-0"
-          style={{ background: flashTint }}
-        />
       </section>
 
       {/* Heavy Modal shells */}

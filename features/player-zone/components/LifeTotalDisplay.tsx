@@ -12,8 +12,7 @@ interface LifeTotalDisplayProps {
 /**
  * @description
  * Renders the central life total, conditional lethal badges, and burst delta.
- * §4.2 life-change flash lives at the zone level (PlayerZoneInteractive) —
- * this component stays animation-free and the `aria-live="polite"` node is
+ * This component stays animation-free and the `aria-live="polite"` node is
  * never remounted, so nothing shifts layout.
  *
  * @see DESIGN.md §4.2
