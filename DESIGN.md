@@ -259,11 +259,6 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 - **Life delta feedback:** burst net change directly above life number. Absolute
   — no layout shift. Same textColor. Sign `+`/`−`. Update per change. Hide 1s
   after last change. Net 0 → hidden. Reset (⟳/⚙️/👥) → none.
-- **Life-change flash:** committed ± life change → full-zone highlight pulse:
-  ~200ms low-alpha tint overlay over the whole zone (luminance-paired), above
-  zone content, pointer-events none, aria-hidden. No layout shift. Same
-  trigger as delta burst (life ± buttons only). Reset → none. Reduced motion
-  (§9) → none.
 
 ### 4.3 Zone Rotation
 
@@ -673,7 +668,7 @@ All interactive: ≥44×44px (48×48px preferred). Overlay compact glyph control
 - **Screen reader:** Zone announces "Player 1: 40 life". Buttons: "+1 life", "-1
   life". Swipes have button alternatives.
 - **Reduced motion:** `prefers-reduced-motion: reduce` → no swipe animations,
-  instant show/hide, no life-change flash.
+  instant show/hide.
 
 ---
 
