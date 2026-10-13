@@ -1,5 +1,4 @@
 ---
-name: orchestrator
 mode: primary
 description: Main orchestrator. Brainstorms, maps architectural blueprints, executes the sequential development and testing pipeline.
 ---

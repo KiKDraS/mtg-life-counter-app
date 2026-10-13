@@ -1,7 +1,8 @@
 // Secret exfiltration guard. Blocks tool calls touching `.env*` files or
-// `.opencode/secrets/`. Covers read, grep, bash. Paths realpath'd when they
+// `.opencode/secrets/`. Covers read, grep, shell. Paths realpath'd when they
 // exist -> symlink-proof. Case lowered -> .ENV/.Env no bypass on mac/win.
 import { realpathSync } from "node:fs"
+import { Plugin } from "@opencode/plugin"
 
 const TARGETS = [".env", ".opencode/secrets"]
 const norm = (s) => String(s).toLowerCase().replaceAll("\\", "/")
@@ -14,18 +15,20 @@ const resolve = (p) => {
   }
 }
 
-export const EnvProtection = async () => {
-  return {
-    "tool.execute.before": async (input, output) => {
-      const args = output.args ?? {}
+export default Plugin.define({
+  id: "env-protection",
+  async setup(ctx) {
+    await ctx.tool.hook("execute.before", (event) => {
+      const args = event.input ?? {}
       const blocked =
-        (input.tool === "read" && hit(resolve(args.filePath ?? ""))) ||
-        (input.tool === "grep" &&
+        // v2 read input is `path`; `filePath` kept as fallback
+        (event.tool === "read" && hit(resolve(args.path ?? args.filePath ?? ""))) ||
+        (event.tool === "grep" &&
           (hit(resolve(args.path ?? "")) || hit(args.include ?? ""))) ||
-        (input.tool === "bash" && hit(args.command ?? ""))
+        (event.tool === "shell" && hit(args.command ?? ""))
       if (blocked) {
         throw new Error("Blocked: .env / .opencode/secrets access not allowed")
       }
-    },
-  }
-}
+    })
+  },
+})
