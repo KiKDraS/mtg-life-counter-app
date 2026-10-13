@@ -259,10 +259,11 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
 - **Life delta feedback:** burst net change directly above life number. Absolute
   — no layout shift. Same textColor. Sign `+`/`−`. Update per change. Hide 1s
   after last change. Net 0 → hidden. Reset (⟳/⚙️/👥) → none.
-- **Life-change flash:** committed ± life change → brief pulse: life number
-  scale + center-column inset highlight (~200ms, low alpha, zone text color as
-  luminance source). No layout shift. Same trigger as delta burst. Reset →
-  none. Reduced motion (§9) → none.
+- **Life-change flash:** committed ± life change → full-zone highlight pulse:
+  ~200ms low-alpha tint overlay over the whole zone (luminance-paired), above
+  zone content, pointer-events none, aria-hidden. No layout shift. Same
+  trigger as delta burst (life ± buttons only). Reset → none. Reduced motion
+  (§9) → none.
 
 ### 4.3 Zone Rotation
 
@@ -510,8 +511,12 @@ Triggered by gear icon on zone. Width = fit-content
 
 Circular wheel, WUBRG order + Colorless clockwise.
 
-- **Selected:** full opacity, solid `--color-ui-textLight` ring, slight scale-up.
-- **Unselected:** 40% opacity.
+- **Selected:** icon full opacity, solid `--color-ui-textLight` ring, slight
+  scale-up.
+- **Unselected:** icon at 40% opacity — button-level opacity untouched so
+  rings/focus render solid.
+- **Focus:** `--color-ui-textLight` outline hugging the icon (offset 0 — no
+  detached ring).
 - **Colorless:** same selected treatment when current = `["c"]`; `aria-pressed`
   mirrors state.
 
