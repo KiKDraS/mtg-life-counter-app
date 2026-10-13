@@ -39,15 +39,17 @@ const HOLD_STEP = 10;
  * First trigger wins; the other finds `holdFiredRef` set and no-ops. After
  * the first commit ±10 repeats every 500ms while the hold stays active.
  * Committed ±10s stay on release — no cancel window, no preview — and the
- * release `click` is suppressed (±10 only, never ±11).
+ * release `click` is suppressed once, consuming the flag (±10 only, never
+ * ±11); a later keyboard activation is unaffected.
  *
  * `onContextMenu` ALWAYS calls `preventDefault` (kills the native menu /
  * callout during holds). It commits only when a hold is active and hasn't
  * fired yet — right-click (non-primary pointerdown), Shift+F10 and stale
  * events are swallowed without committing.
  *
- * Keyboard activation (Enter/Space) fires a single ±1 via `click` since no
- * pointer events precede it.
+ * Keyboard activation (Enter/Space) fires a single ±1 via `click` — no
+ * pointer events precede it, and the suppress flag from a previous hold was
+ * already consumed by that hold's release click.
  *
  * Returns a factory: pass a direction, spread the result onto a `<button>`.
  *
@@ -62,7 +64,8 @@ export function useLifeAdjustment(
   /* True between primary pointerdown and up/leave/cancel — gates repeats. */
   const holdActiveRef = useRef(false);
   /* True once the first ±10 of this hold committed — dedupes the contextmenu
-   * and fallback triggers, suppresses the release click's ±1. */
+   * and fallback triggers; suppresses the release click's ±1 and is consumed
+   * by that click. Reset on every pointerdown. */
   const holdFiredRef = useRef(false);
 
   useEffect(() => {
@@ -132,9 +135,11 @@ export function useLifeAdjustment(
        * firing on release would be ±11) AND stop propagation so
        * CommanderDamage's background onClick doesn't close the dialog when a
        * layout shift (damage text widening) moves the button away from the
-       * pointer's elementFromPoint. Keyboard activation (no pointerdown)
-       * always fires ±1 since holdFiredRef is untouched. */
+       * pointer's elementFromPoint. Consume the flag: it only ever suppresses
+       * this one release click — keyboard/menu activation afterwards must
+       * still fire ±1. */
       if (holdFiredRef.current) {
+        holdFiredRef.current = false;
         event.stopPropagation();
         return;
       }
