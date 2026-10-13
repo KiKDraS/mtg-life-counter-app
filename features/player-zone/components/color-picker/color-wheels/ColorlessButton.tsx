@@ -30,8 +30,9 @@ const COLORLESS: ManaColor[] = ["c"];
  * ManaActionButton.
  *
  * §6.5 — selected state (`["c"]`) mirrors the wheel's ring treatment:
- * full opacity + `--color-ui-textLight` ring + slight scale-up; unselected
- * at 40% opacity. `aria-pressed` mirrors state.
+ * full-opacity icon + `--color-ui-textLight` ring + slight scale-up;
+ * unselected → icon at 40% opacity, button opacity untouched so ring/focus
+ * render solid. `aria-pressed` mirrors state.
  *
  * @see DESIGN.md §6.5, SPEC.md §8.5.1
  */
@@ -60,14 +61,14 @@ export function ColorlessButton({
       data-dialog-id={dialogId}
       className={cn(
         className,
-        isSelected
-          ? "opacity-100 ring-4 ring-ui-textLight scale-110 z-10"
-          : "opacity-40",
+        isSelected && "ring-4 ring-ui-textLight scale-110 z-10",
       )}
       style={style}
       onClick={handleClick}
     >
-      {children}
+      <span className={isSelected ? undefined : "opacity-40"}>
+        {children}
+      </span>
     </button>
   );
 }

@@ -17,7 +17,7 @@ const WHEEL_ORDER: ManaColor[] = ["c", "w", "u", "b", "r", "g"];
 const manaWheelBtnClass = cn(
   "absolute rounded-full",
   "transition-transform",
-  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white cursor-pointer",
+  "focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-white cursor-pointer",
 );
 
 export const ManaWheel = ({ id }: { readonly id: string }) => {
