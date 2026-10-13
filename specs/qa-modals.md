@@ -14,7 +14,7 @@
 | 3 | Restart Life | Instant reset, counter/color preservation |
 | 4 | Initial Life Modal | §6.2 preset grid, numpad, backdrop/escape |
 | 5 | Player Selector Modal | §6.3 SVG layouts, count up/down, color preservation |
-| 6 | Color Picker | §6.5 wheel, multi-select, replace/add, Colorless, CheckCircle |
+| 6 | Color Picker | §6.5 wheel, multi-select, replace/add, Colorless selected-state (`aria-pressed`), wheel ring/opacity/scale |
 | 7 | Counters Overlay | §7.4 default counters, custom counter modal, restart |
 
 ---
@@ -460,7 +460,8 @@
 - Each button uses `aria-pressed` to indicate selected state
 - CheckCircle ✓ button centered in wheel (`aria-label="Confirm color"`)
 - No filter strip — all symbols on wheel
-- Default `["r"]` — Red highlighted (`aria-pressed="true"`)
+- Default `["r"]` — Red highlighted (`aria-pressed="true"`); visual treatment
+  (ring / opacity / scale) per TC-6.6
 
 ---
 
@@ -511,13 +512,65 @@
 - Player 1 zone solid colorless (`#CAC5C0`)
 - `PlayerState.color` = `["c"]`
 
-5. Open Color Picker for Player 2 (default `["r"]`)
-6. Tap White → zone preview updates to red+white gradient (dialog stays open)
-7. Tap CheckCircle ✓
+5. Reopen the Color Picker for Player 1 (`["c"]`)
+
+**Expected Results:**
+- Colorless button: `aria-pressed="true"` + selected treatment (full opacity, solid `--color-ui-textLight` ring, slight scale-up) — §6.5/§8.5.1 mirror Colorless state
+- All WUBRG buttons: `aria-pressed="false"`, 40% opacity
+
+6. Tap White → selected-colorless REPLACE per SPEC §8.5.1
+
+**Expected Results:**
+- White gains the selected treatment; Colorless drops to 40% opacity / `aria-pressed="false"`
+- Zone preview shows white mana (`#F8F6D8`)
+
+7. Open Color Picker for Player 2 (default `["r"]`)
+8. Tap White → zone preview updates to red+white gradient (dialog stays open)
+9. Tap CheckCircle ✓
 
 **Expected Results:**
 - Dialog closes
 - Player 2 zone remains red+white gradient (color already applied)
+
+---
+
+### TC-6.6: [NEW] Wheel selection states — ring + full opacity + scale vs 40% opacity
+
+**Description:** §6.5 COLOR SELECTION WHEEL: selected = full opacity + solid
+`--color-ui-textLight` ring + slight scale-up; unselected = 40% opacity. Colorless
+mirrors the same treatment and exposes `aria-pressed`.
+
+**Steps:**
+1. Open Color Picker for Player 1 (default `["r"]`)
+
+**Expected Results:**
+- Red button: `aria-pressed="true"`, computed `opacity` = 1, ring present
+  (Tailwind `ring-4 ring-ui-textLight` → `box-shadow` includes `rgb(250, 248, 245)`), scaled up (`transform` ≈ `matrix(1.1, 0, 0, 1.1, 0, 0)`, or boundingBox ≈ 10% larger than an unselected button), stacked above siblings (`z-10`)
+- W / U / B / G buttons AND Colorless: `aria-pressed="false"`, computed `opacity` = 0.4, no ring, no scale
+
+2. Tap White (multi-select → `["r","w"]`)
+
+**Expected Results:**
+- Red AND White both show full opacity + ring + scale; Blue/Black/Green stay at 0.4
+- Both selected buttons expose `aria-pressed="true"`
+
+3. Tap White again (remove → `["r"]`)
+
+**Expected Results:**
+- White back to `aria-pressed="false"` + 40% opacity
+- Red keeps the selected treatment
+
+4. Tap Colorless (C) → single-tap apply, dialog closes; reopen the picker
+
+**Expected Results:**
+- Colorless: `aria-pressed="true"` + selected treatment (opacity 1, ring, scale-up)
+- All WUBRG buttons: `aria-pressed="false"` + 40% opacity
+- Old expectation INVERTED: Colorless previously had no `aria-pressed` — it now mirrors its state (§6.5)
+
+> **Generator note:** `tests/e2e/color-picker.spec.ts` (≈L337) still carries the
+> stale comment "the Colorless button itself has no aria-pressed" — rewrite that
+> assertion to `aria-pressed="true"` when current = `["c"]` (and `false` after any
+> WUBRG replace). WUBRG `aria-pressed` behavior is unchanged.
 
 ---
 
@@ -645,5 +698,6 @@
 - Preset selection does not update life totals
 - Player count change does not propagate to DOM
 - Color change does not update zone background
+- Wheel selection state not reflected (missing ring, wrong opacity, missing `aria-pressed`)
 - Custom counter operations fail silently
 - ARIA labels missing or incorrect

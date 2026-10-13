@@ -242,29 +242,75 @@ test.describe("Color Picker", () => {
       .toMatch(/^none \| rgb\(228, 153, 119\)$/); // solid red again
   });
 
-  test("TC-6.4: Colorless closes immediately, CheckCircle closes without dispatch", async ({
+  test("TC-6.4: Colorless closes immediately, reopens selected; CheckCircle closes without dispatch", async ({
     page,
   }) => {
     await page.goto("/");
 
-    // Player 1 — Colorless dispatches ["c"] and closes immediately
+    // 1-3. Player 1 (default ["r"]): White adds → ["r","w"]; Blue adds →
+    //      ["r","w","u"] — dialog stays open on every toggle
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
     const dialog0 = colorPickerDialog(page, 0);
-    await page
-      .getByRole("button", { name: "Colorless mana" })
-      .first()
-      .click();
+    await dialog0.getByRole("button", { name: "White mana" }).click();
+    await dialog0.getByRole("button", { name: "Blue mana" }).click();
+    await expect(dialog0).toBeVisible();
+    await expect.poll(() => zoneBackground(page, 1)).toContain("gradient");
+
+    // 4. Tap Colorless (C) mana symbol
+    await dialog0.getByRole("button", { name: "Colorless mana" }).click();
+    // expect: Dialog closes immediately
     await expect(dialog0).not.toBeVisible();
+    // expect: Player 1 zone solid colorless (#CAC5C0)
     await expect
       .poll(() => zoneBackground(page, 1))
-      .toContain("rgb(202, 197, 192)"); // #CAC5C0 — solid colorless
+      .toContain("rgb(202, 197, 192)");
 
-    // Player 2 — White (toggle, dialog stays open) then ✓ close (no resetBehavior)
+    // 5. Reopen the Color Picker for Player 1 (["c"])
+    await zone(page, 1).getByRole("button", { name: "Change color" }).click();
+    await expect(dialog0).toBeVisible();
+    // expect: Colorless button aria-pressed="true" + selected treatment (full
+    // opacity, solid --color-ui-textLight ring, slight scale-up) — §6.5/§8.5.1
+    // mirror the Colorless state
+    const colorless = dialog0.getByRole("button", { name: "Colorless mana" });
+    await expect(colorless).toHaveAttribute("aria-pressed", "true");
+    await expect(colorless).toHaveCSS("opacity", "1");
+    await expect(colorless).toHaveCSS(
+      "box-shadow",
+      /rgb\(250, 248, 245\) 0px 0px 0px 4px/,
+    );
+    // expect: All WUBRG buttons aria-pressed="false", 40% opacity
+    for (const name of [
+      "White mana",
+      "Blue mana",
+      "Black mana",
+      "Red mana",
+      "Green mana",
+    ]) {
+      const btn = dialog0.getByRole("button", { name });
+      await expect(btn).toHaveAttribute("aria-pressed", "false");
+      await expect(btn).toHaveCSS("opacity", "0.4");
+    }
+
+    // 6. Tap White → selected-colorless REPLACE per SPEC §8.5.1
+    await dialog0.getByRole("button", { name: "White mana" }).click();
+    // expect: White gains the selected treatment; Colorless drops to 40% /
+    // aria-pressed="false"
+    await expect(
+      dialog0.getByRole("button", { name: "White mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(colorless).toHaveAttribute("aria-pressed", "false");
+    await expect(colorless).toHaveCSS("opacity", "0.4");
+    // expect: Zone preview shows white mana (#F8F6D8)
+    await expect
+      .poll(() => zoneBackground(page, 1))
+      .toContain("rgb(248, 246, 216)");
+
+    // 7-9. Player 2 — White (toggle, dialog stays open) then ✓ close (no dispatch)
     await zone(page, 2).getByRole("button", { name: "Change color" }).click();
     const dialog1 = colorPickerDialog(page, 1);
     await expect(dialog1).toBeVisible();
 
-    await page.getByRole("button", { name: "White mana" }).first().click();
+    await dialog1.getByRole("button", { name: "White mana" }).click();
     await expect(dialog1).toBeVisible(); // toggle does NOT close
     // White ADDS to default ["r"] → red+white gradient applied live (§8.5.1)
     await expect
@@ -277,6 +323,91 @@ test.describe("Color Picker", () => {
     await expect
       .poll(() => zoneBackground(page, 2))
       .toMatch(/gradient.*rgb\(228, 153, 119\).*rgb\(248, 246, 216\)/);
+  });
+
+  test("TC-6.6: Wheel selection states — ring + full opacity + scale vs 40% opacity", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // 1. Open Color Picker for Player 1 (default ["r"])
+    await zone(page, 1).getByRole("button", { name: "Change color" }).click();
+    const dialog = colorPickerDialog(page, 0);
+    await expect(dialog).toBeVisible();
+
+    const button = (name: string) => dialog.getByRole("button", { name });
+
+    // Selection treatment (§6.5): full opacity + solid --color-ui-textLight ring
+    // (ring-4 ring-ui-textLight → 4px rgb(250,248,245) box-shadow) + slight
+    // scale-up. Tailwind v4 `scale-110` lands in the standalone CSS `scale`
+    // property (the inline wheel transform is a translate) and transitions —
+    // toHaveCSS retries until the transition settles.
+    const expectSelected = async (name: string) => {
+      const btn = button(name);
+      await expect(btn).toHaveAttribute("aria-pressed", "true");
+      await expect(btn).toHaveCSS("opacity", "1");
+      await expect(btn).toHaveCSS("scale", "1.1");
+      await expect(btn).toHaveCSS(
+        "box-shadow",
+        /rgb\(250, 248, 245\) 0px 0px 0px 4px/,
+      );
+    };
+    const expectUnselected = async (name: string) => {
+      const btn = button(name);
+      await expect(btn).toHaveAttribute("aria-pressed", "false");
+      await expect(btn).toHaveCSS("opacity", "0.4");
+      await expect(btn).toHaveCSS("scale", "none");
+      await expect(btn).toHaveCSS("box-shadow", "none");
+    };
+
+    // expect: Red selected — full opacity, ring, scale-up, stacked (z-10)
+    await expectSelected("Red mana");
+    await expect(button("Red mana")).toHaveCSS("z-index", "10");
+
+    // expect: W / U / B / G buttons AND Colorless — 40% opacity, no ring, no scale
+    for (const name of [
+      "White mana",
+      "Blue mana",
+      "Black mana",
+      "Green mana",
+      "Colorless mana",
+    ]) {
+      await expectUnselected(name);
+    }
+
+    // 2. Tap White (multi-select → ["r","w"])
+    await button("White mana").click();
+    // expect: Red AND White both full opacity + ring + scale; Blue/Black/Green at 0.4
+    await expectSelected("White mana");
+    await expect(button("Red mana")).toHaveAttribute("aria-pressed", "true");
+    for (const name of ["Blue mana", "Black mana", "Green mana"]) {
+      await expect(button(name)).toHaveCSS("opacity", "0.4");
+    }
+
+    // 3. Tap White again (remove → ["r"])
+    await button("White mana").click();
+    // expect: White back to aria-pressed="false" + 40% opacity, no scale
+    await expectUnselected("White mana");
+    // expect: Red keeps the selected treatment
+    await expect(button("Red mana")).toHaveAttribute("aria-pressed", "true");
+
+    // 4. Tap Colorless (C) → single-tap apply, dialog closes; reopen the picker
+    await button("Colorless mana").click();
+    await expect(dialog).not.toBeVisible();
+    await zone(page, 1).getByRole("button", { name: "Change color" }).click();
+    await expect(dialog).toBeVisible();
+    // expect: Colorless aria-pressed="true" + selected treatment (opacity 1,
+    // ring, scale-up); all WUBRG buttons aria-pressed="false" + 40% opacity
+    await expectSelected("Colorless mana");
+    for (const name of [
+      "White mana",
+      "Blue mana",
+      "Black mana",
+      "Red mana",
+      "Green mana",
+    ]) {
+      await expectUnselected(name);
+    }
   });
 
   test("TC-6.5: Backdrop/Escape closes — colors already applied (no revert)", async ({
@@ -333,12 +464,15 @@ test.describe("Color Picker", () => {
       .poll(() => zoneBackground(page, 1))
       .toContain("rgb(202, 197, 192)");
 
-    // expect: reopen picker: White/Blue/Red all false ([c] replaced all —
-    // the Colorless button itself has no aria-pressed; its state is the solid
-    // colorless zone + the ring-less WUBRG buttons)
+    // expect: reopen picker: Colorless mirrors its state (§6.5) — the Colorless
+    // button is aria-pressed="true" while current = ["c"]; White/Blue/Red (the
+    // replaced selection) are all false
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
     const dialogReopen = colorPickerDialog(page, 0);
     await expect(dialogReopen).toBeVisible();
+    await expect(
+      dialogReopen.getByRole("button", { name: "Colorless mana" }),
+    ).toHaveAttribute("aria-pressed", "true");
     for (const name of ["White mana", "Blue mana", "Red mana"]) {
       await expect(
         dialogReopen.getByRole("button", { name: name }),

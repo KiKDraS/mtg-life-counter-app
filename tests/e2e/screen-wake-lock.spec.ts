@@ -123,10 +123,11 @@ async function swipeY(
 }
 
 /**
- * Hold gesture: press + hold + release. Per DESIGN §7.1, ±10 stages at 1s hold
- * and commits after 400ms more (1400ms). A 1100ms hold lands in the staged
- * cancel window (release before the 1400ms commit → no ±10, no ±1); pass
- * `ms ≥ 1400` to commit exactly one ±10.
+ * Hold gesture: press + hold + release. Per DESIGN §7.1 (rewritten), the first
+ * ±10 commits at the native long-press `contextmenu` instant (~500ms Android)
+ * else the 1000ms fallback timer; the release KEEPS it — no cancel window, no
+ * ±1 after a commit. The default 1100ms hold lands after the 1s fallback and
+ * before the 1.5s repeat, so it commits exactly one ±10.
  */
 async function holdButton(page: Page, button: Locator, ms = 1100): Promise<void> {
   const box = await visibleBox(button);
@@ -209,32 +210,37 @@ test.describe("Screen Wake Lock Regression", () => {
     //    PlayerRow remounted — a tap before that is silently wiped.
     await waitForBoot(page);
 
-    // 3. Tap P1 +1 life
+    // 2. Tap P1 `+1 life` (first pointerdown → both enforcers fire; must not block the tap)
     await zone(page, 1).getByRole("button", { name: "+1 life" }).click();
+    // expect: P1 life `"41"`
     await expect(lifeTotal(zone(page, 1))).toHaveText("41");
 
-    // 3. Tap P2 -1 life 3×
+    // 3. Tap P2 `-1 life` 3×
     for (let i = 0; i < 3; i++) {
       await zone(page, 2).getByRole("button", { name: "-1 life" }).click();
     }
+    // expect: P2 life `"37"`
     await expect(lifeTotal(zone(page, 2))).toHaveText("37");
 
-    // 4. Hold P1 +1 life (1100ms) — staged ±10 at 1s, released at 1100ms
-    //    before the 1400ms commit → cancelled (no ±10, no ±1)
+    // 4. Hold P1 `+1 life` (`holdButton`, 1100ms) — first ±10 commits at the
+    //    1000ms fallback; the release at 1100ms KEEPS it (§7.1: no cancel
+    //    window, no ±1 after a commit)
     await holdButton(page, zone(page, 1).getByRole("button", { name: "+1 life" }));
-    // expect: P1 life still reads 41 (cancel window — no ±10, no ±1)
-    await expect(lifeTotal(zone(page, 1))).toHaveText("41");
+    // expect: P1 life `"51"` (41 + 10 — exactly one +10; not 42)
+    await expect(lifeTotal(zone(page, 1))).toHaveText("51");
 
-    // 5. Hold P2 -1 life (1450ms) — commits exactly one −10 (commit at
-    //    1400ms; next stage at 1500ms not reached)
-    await holdButton(page, zone(page, 2).getByRole("button", { name: "-1 life" }), 1450);
-    // expect: P2 life reads 27 (37 − 10; exact — cadence is deterministic)
+    // 5. Hold P2 `-1 life` (`holdButton`, 1400ms) — one fallback commit at 1s,
+    //    the ±10 @1.5s not reached
+    await holdButton(page, zone(page, 2).getByRole("button", { name: "-1 life" }), 1400);
+    // expect: P2 life `"27"` (37 − 10; exact — cadence is deterministic)
     await expect(lifeTotal(zone(page, 2))).toHaveText("27");
 
-    // 6. Final state — P1 41, P2 27; wake-lock/fullscreen failures surface as
-    //    console.warn only — still zero errors
-    await expect(lifeTotal(zone(page, 1))).toHaveText("41");
+    // 6. Final state
+    // expect: P1 `"51"`, P2 `"27"`
+    await expect(lifeTotal(zone(page, 1))).toHaveText("51");
     await expect(lifeTotal(zone(page, 2))).toHaveText("27");
+    // expect: `errors` `toEqual([])` (wake-lock/fullscreen failures surface as
+    // `console.warn` only — still zero **errors**)
     expect(errors).toEqual([]);
   });
 

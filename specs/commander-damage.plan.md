@@ -2,7 +2,7 @@
 
 ## Application Overview
 
-MTG Life Counter — Commander Damage overlay (§7.3). Each player zone supports swipe-left to open a full-screen dialog showing opponent's color pill with Planeswalker symbol, damage total (starting at 0), and [+] button. Tap [+] adds 1 commander damage while reducing life by 1. Hold [+] stages ±10 at 1s, commits 400ms later (§7.1); release before commit → cancel — no ±10, no ±1. At 21+ damage: damage turns danger red, "Lethal — Player loses" badge appears, player life total turns red. Close via swipe on overlay, backdrop click, or Escape.
+MTG Life Counter — Commander Damage overlay (§7.3). Each player zone supports swipe-left to open a full-screen dialog showing opponent's color pill with Planeswalker symbol, damage total (starting at 0), and [+] button. Tap [+] adds 1 commander damage while reducing life by 1. Hold [+] commits ±10 per §7.1 (rewritten): first ±10 at the native long-press `contextmenu` instant (~500ms Android, `preventDefault` suppresses the menu) else a 1s fallback timer; then ±10 every 500ms held; committed ±10s NEVER cancel (no preview, no cancel window, no ±1 after a commit). At 21+ damage: damage turns danger red, "Lethal — Player loses" badge appears, player life total turns red. Close via swipe on overlay, backdrop click, or Escape.
 
 ## Test Scenarios
 
@@ -144,15 +144,15 @@ MTG Life Counter — Commander Damage overlay (§7.3). Each player zone supports
   4. Reopen P1
     - expect: P1 damage still = 5
 
-#### 3.3. Hold stages at 1s, commits exactly one +10 at 1.4s; pre-commit release cancels
+#### 3.3. Hold commits +10 at the 1s fallback (kept on release; no cancel window)
 
 **File:** `tests/e2e/commander-damage.spec.ts`
 
 **Steps:**
-  1. Open P1, hold + for 1200ms (staged at 1000ms) then release (before 1400ms commit)
-    - expect: Damage = 0 (cancelled — no +10, no +1)
-  2. Hold + for 1400ms then release
-    - expect: Damage = 10 (exactly one +10 committed; tap suppressed — not +11)
+  1. Open P1, hold + for 1200ms (1s fallback commit) then release
+    - expect: Damage = 10 (one +10 committed at 1s and KEPT; no +1 on release — not 11)
+  2. Hold + for 1450ms then release
+    - expect: Damage = 20 (one more +10; the +10 @1.5s of that hold not reached)
 
 #### 3.4. Repeated taps accumulate
 
@@ -192,15 +192,15 @@ MTG Life Counter — Commander Damage overlay (§7.3). Each player zone supports
   1. P1 tap + ten times, close
     - expect: P1 life = 30, P2 life = 40 unchanged
 
-#### 4.4. Hold also reduces life (commit at 1.4s; pre-commit release cancels)
+#### 4.4. Hold also reduces life (1s fallback commit; release keeps it)
 
 **File:** `tests/e2e/commander-damage.spec.ts`
 
 **Steps:**
-  1. Open P1, hold + for 1200ms (staged at 1000ms), release (before 1400ms commit)
-    - expect: Damage = 0, life = 40 (unchanged)
-  2. Hold + for 1400ms, close
+  1. Open P1, hold + for 1200ms (1s fallback commit), release
     - expect: Damage = 10, life = 30
+  2. Close, reopen, hold + for 1450ms, close
+    - expect: Damage = 20, life = 20
 
 #### 4.5. Life can go negative
 

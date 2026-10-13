@@ -55,6 +55,24 @@ async function holdButton(page: Page, button: Locator, ms: number): Promise<void
 }
 
 /**
+ * §7.1 native long-press path — dispatch a bubbling, cancelable `contextmenu`
+ * MouseEvent from inside the page and read back whether the handler suppressed
+ * the native menu. React's synthetic handler runs synchronously during
+ * `dispatchEvent`, so `defaultPrevented` is already set when it returns.
+ */
+async function contextMenuPrevented(button: Locator): Promise<boolean> {
+  return button.evaluate((el) => {
+    const ev = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    el.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  });
+}
+
+/**
  * Dev mode: the page reloads once ~100ms after load (HMR double connect), and
  * hydration remounts the zone nodes right after — both reset focus and
  * geometry. Wait until the P1 zone node has been stable for 300ms so Tab
@@ -193,66 +211,63 @@ test.describe("Player Zone — Life Display & Tap Adjustment", () => {
   });
 });
 
-test.describe("Player Zone — Hold Acceleration & Press Feedback", () => {
+test.describe("Player Zone — Hold Acceleration (§7.1 rewritten) & Press Feedback", () => {
   test("3.1. Short hold (<1s, ~750ms) fires only the ±1 tap on release", async ({ page }) => {
-    // 1. Navigate to `/`; hold P1 `+1 life` for 750ms (no stage — stage fires at 1000ms per §7.1)
+    // 1. Navigate to `/`; hold P1 `+1 life` for 750ms — no `contextmenu`, before
+    //    the 1000ms fallback (§7.1)
     await page.goto("/");
 
     const p1 = zone(page, 1);
     await holdButton(page, p1.getByRole("button", { name: "+1 life" }), 750);
 
-    // Only the ±1 tap fires on release (no ±10 staged before 1000ms)
-    const value = await lifeValue(p1);
-    expect(value).toBe(41);
+    // expect: P1 life reads 41 — release fires the ±1 tap, no ±10 committed
+    await expect(lifeTotal(p1)).toHaveText("41");
+    // expect: delta burst is +1 (the only commit was the tap)
+    await expect(delta(p1)).toHaveText("+1");
   });
 
-  test("3.2. Long hold (~1.7s) commits exactly one ±10 with cumulative preview (cadence: +10 @ 1.4s, +20 @ 1.9s)", async ({ page }) => {
-    // 1. Navigate to `/`; press down P1 `+1 life` and hold ~1700ms, asserting
-    //    the staged preview mid-hold; release before commit 2 (@1900ms)
+  test("3.2. Fallback long hold (~1.7s): ±10 commits at 1s and 1.5s — committed, never previewed", async ({ page }) => {
+    // 1. Navigate to `/`; `pointerdown` P1 `+1 life` and hold (desktop path —
+    //    no `contextmenu` ever fires, so the 1s fallback commits)
     await page.goto("/");
 
     const p1 = zone(page, 1);
     const button = p1.getByRole("button", { name: "+1 life" });
     const box = await visibleBox(button);
-    const cx = box.x + box.width / 2;
-    const cy = box.y + box.height / 2;
     // §4.6 splash cover is pointer-events:auto until hydration removes it — a
     // raw mouse.down on the overlay swallows the press. Wait it out first.
     await expect(page.locator("#extended-splash-screen")).toHaveCount(0);
-    await page.mouse.move(cx, cy);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
 
-    // expect: At ~1050ms into hold (stage @1000ms, pre-commit): delta visible,
-    // text +10 at 50% opacity (dimmed preview per §4.2; life unchanged)
+    // expect: At ~1050ms P1 life reads 50 — the first ±10 is COMMITTED at the
+    // 1s fallback (the old 50%-opacity preview is gone; the value is real)
     await page.waitForTimeout(1050);
-    await expect(delta(p1)).toHaveText("+10");
-    await expect(delta(p1)).toHaveCSS("opacity", "0.5");
-    // expect: P1 life still reads 40 at stage
-    await expect(lifeTotal(p1)).toHaveText("40");
-
-    // expect: At ~1400ms commit 1 fires — P1 life reads 50, delta +10 full opacity
-    await page.waitForTimeout(350);
     await expect(lifeTotal(p1)).toHaveText("50");
+    // expect: delta burst reads +10 at full opacity
     await expect(delta(p1)).toHaveText("+10");
     await expect(delta(p1)).toHaveCSS("opacity", "1");
 
-    // expect: At ~1550ms (stage 2 @1500ms, pre-commit 2): delta text +20 at 50%
-    // opacity — cumulative (committed +10 + staged +10), never "+10" flash;
-    // life still reads 50
-    await page.waitForTimeout(150);
+    // 2. Keep holding to ~1550ms — second ±10 @1.5s (exactly 500ms after the first)
+    await page.waitForTimeout(500);
+    // expect: P1 life reads 60 (+20 committed)
+    await expect(lifeTotal(p1)).toHaveText("60");
+    // expect: delta reads +20 (cumulative burst at full opacity — never a "+10" flash)
     await expect(delta(p1)).toHaveText("+20");
-    await expect(delta(p1)).toHaveCSS("opacity", "0.5");
-    await expect(lifeTotal(p1)).toHaveText("50");
+    await expect(delta(p1)).toHaveCSS("opacity", "1");
 
-    // 2. Release at 1700ms (before commit 2 @1900ms → cancelled)
+    // 3. Release at ~1700ms (the +30 @2s was never reached)
     await page.waitForTimeout(150);
     await page.mouse.up();
-    // expect: P1 life still reads 50 exactly (commit +10 @ 1400ms only; stage @
-    // 1500ms released before its 1900ms commit → cancelled, preview cleared —
-    // the committed +10 delta remains at full opacity)
-    await expect(lifeTotal(p1)).toHaveText("50");
-    await expect(delta(p1)).toHaveText("+10");
-    await expect(delta(p1)).toHaveCSS("opacity", "1");
+    await page.waitForTimeout(150);
+    // expect: P1 life still reads 60 (committed ±10s stay)
+    await expect(lifeTotal(p1)).toHaveText("60");
+    // expect: No ±1 on release (would read 61)
+
+    // 4. Wait 1200ms
+    await page.waitForTimeout(1200);
+    // expect: delta count 0 (inactivity timer re-armed by the last commit)
+    await expect(delta(p1)).toHaveCount(0);
   });
 
   test("3.3. Releasing the button stops adjustment immediately", async ({ page }) => {
@@ -262,46 +277,177 @@ test.describe("Player Zone — Hold Acceleration & Press Feedback", () => {
     const p1 = zone(page, 1);
     await holdButton(page, p1.getByRole("button", { name: "+1 life" }), 600);
 
+    // expect: P1 life reads 41 (600ms < 1000ms fallback → ±1 tap only, no ±10)
     const v = await lifeValue(p1);
+    expect(v).toBe(41);
+    // expect: Life unchanged after release — no repeat continues
     await page.waitForTimeout(400);
     expect(await lifeValue(p1)).toBe(v);
-
-    // 600ms < 1000ms stage → ±1 tap only, no ±10
-    expect(v).toBe(41);
   });
 
-  test("3.4. [NEW] Break mechanic: hold past the 1000ms stage, release before the 1400ms commit → life UNCHANGED, no ±1 (stays 40/20)", async ({ page }) => {
-    // 1. Navigate to `/`; tap p2 -1 life 20 times
+  test("3.4. Release at ~1.2s KEEPS the committed ±10 (no cancel window, no ±1 after commit)", async ({ page }) => {
+    // 1. Navigate to `/`; assert P1 life reads 40 and P2 life reads 40
     await page.goto("/");
     const p1 = zone(page, 1);
     const p2 = zone(page, 2);
-    const p2Minus = p2.getByRole("button", { name: "-1 life" });
-    for (let i = 0; i < 20; i++) {
-      await p2Minus.click();
-    }
-    // expect: P1 life reads 40, P2 life reads 20
     await expect(lifeTotal(p1)).toHaveText("40");
-    await expect(lifeTotal(p2)).toHaveText("20");
+    await expect(lifeTotal(p2)).toHaveText("40");
 
-    // 2. Hold p1 +1 for 1200ms (stage fires at 1000ms), release at 1200ms (before 1400ms commit)
+    // 2. Hold p1 +1 for 1200ms (fallback commit @1s), release at 1200ms
     await holdButton(page, p1.getByRole("button", { name: "+1 life" }), 1200);
-    // expect: P1 life still reads 40 (no +10 committed)
-    await expect(lifeTotal(p1)).toHaveText("40");
-    // expect: No +1 applied on release (cancel suppresses the tap)
-    await expect(lifeTotal(p1)).toHaveText("40");
+    // expect: P1 life reads 50 — the +10 stays
+    await expect(lifeTotal(p1)).toHaveText("50");
+    // expect: No +1 applied on release (would read 51)
 
-    // 3. Hold p2 -1 for 1200ms, release at 1200ms (before 1400ms commit)
-    await holdButton(page, p2Minus, 1200);
-    // expect: P2 life still reads 20 (no -10 committed, no -1 on release)
-    await expect(lifeTotal(p2)).toHaveText("20");
+    // 3. Hold p2 -1 for 1200ms, release at 1200ms
+    await holdButton(page, p2.getByRole("button", { name: "-1 life" }), 1200);
+    // expect: P2 life reads 30 — the −10 stays
+    await expect(lifeTotal(p2)).toHaveText("30");
+    // expect: No -1 applied on release (would read 29)
 
-    // 4. Read both life totals again
-    // expect: P1 reads 40, P2 reads 20 — unchanged start values
-    await expect(lifeTotal(p1)).toHaveText("40");
-    await expect(lifeTotal(p2)).toHaveText("20");
+    // 4. Wait 400ms, read both again
+    await page.waitForTimeout(400);
+    // expect: P1 reads 50, P2 reads 30 — nothing reverts after release
+    await expect(lifeTotal(p1)).toHaveText("50");
+    await expect(lifeTotal(p2)).toHaveText("30");
   });
 
-  test("3.4. Press feedback overlays the column with 8% black on pointer down", async ({ page }) => {
+  test("3.5. `contextmenu` mid-hold commits the first ±10 IMMEDIATELY, suppresses the native menu, cadence continues at +500ms", async ({ page }) => {
+    // 1. Navigate to `/`; assert P1 life reads 40
+    await page.goto("/");
+    const p1 = zone(page, 1);
+    const button = p1.getByRole("button", { name: "+1 life" });
+    const box = await visibleBox(button);
+    await expect(page.locator("#extended-splash-screen")).toHaveCount(0);
+
+    // 2. `pointerdown` on p1 +1 (arms the hold); wait ~200ms
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+    // expect: P1 life still reads 40 (no commit before the event / before 1s)
+    await expect(lifeTotal(p1)).toHaveText("40");
+
+    // 3. Dispatch a cancelable `contextmenu` MouseEvent on the p1 +1 button
+    //    and read back `defaultPrevented`
+    const prevented = await contextMenuPrevented(button);
+    // expect: defaultPrevented === true (native menu/callout suppressed, §4.2)
+    expect(prevented).toBe(true);
+    // expect: P1 life reads 50 IMMEDIATELY — first ±10 at the event instant
+    await expect(lifeTotal(p1)).toHaveText("50");
+    // expect: delta burst reads +10 at full opacity
+    await expect(delta(p1)).toHaveText("+10");
+    await expect(delta(p1)).toHaveCSS("opacity", "1");
+
+    // 4. Keep holding ~500ms more (no release)
+    await page.waitForTimeout(500);
+    // expect: P1 life reads 60 (+20 — the repeat chain fires 500ms after the commit)
+    await expect(lifeTotal(p1)).toHaveText("60");
+
+    // 5. Release; wait 300ms, read again
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    // expect: P1 life still reads 60 (committed ±10s stay)
+    await expect(lifeTotal(p1)).toHaveText("60");
+    // expect: No ±1 on the release click (would read 61)
+  });
+
+  test("3.6. `contextmenu` with NO active hold → preventDefault only, life unchanged", async ({ page }) => {
+    // 1. Navigate to `/`; assert P1 life reads 40
+    await page.goto("/");
+    const p1 = zone(page, 1);
+    const p2 = zone(page, 2);
+    const button = p1.getByRole("button", { name: "+1 life" });
+
+    // 2. Right-click p1 +1 — a non-primary `pointerdown` never arms the hold,
+    //    so the `contextmenu` has nothing to commit
+    await button.click({ button: "right" });
+    await page.waitForTimeout(150);
+    // expect: P1 life still reads 40
+    await expect(lifeTotal(p1)).toHaveText("40");
+    // expect: P2 unchanged at 40
+    await expect(lifeTotal(p2)).toHaveText("40");
+
+    // 3. Focus p1 +1 and press `Shift+F10` — keyboard-invoked `contextmenu`
+    //    also only suppresses the menu
+    await button.focus();
+    await page.keyboard.press("Shift+F10");
+    await page.waitForTimeout(150);
+    // expect: P1 life still reads 40
+    await expect(lifeTotal(p1)).toHaveText("40");
+
+    // 4. Guard assert: cancelable `contextmenu` with no hold active
+    const prevented = await contextMenuPrevented(button);
+    // expect: defaultPrevented === true (menu suppressed even with nothing to commit)
+    expect(prevented).toBe(true);
+    // expect: P1 life still reads 40
+    await expect(lifeTotal(p1)).toHaveText("40");
+
+    // 5. Click p1 +1 once
+    await button.click();
+    // expect: P1 life reads 41 — the ±1 tap path is unaffected by the suppressed menu
+    await expect(lifeTotal(p1)).toHaveText("41");
+  });
+
+  test("3.7. First trigger wins: the fallback commit cancels the `contextmenu` path and vice-versa", async ({ page }) => {
+    // 1. Navigate to `/`; `pointerdown` p1 +1 and hold for 1100ms with no event
+    await page.goto("/");
+    const p1 = zone(page, 1);
+    const button = p1.getByRole("button", { name: "+1 life" });
+    const box = await visibleBox(button);
+    await expect(page.locator("#extended-splash-screen")).toHaveCount(0);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(1100);
+    // expect: P1 life reads 50 (the 1s fallback committed the first +10)
+    await expect(lifeTotal(p1)).toHaveText("50");
+
+    // 2. While still held, dispatch `contextmenu`
+    const preventedHeld = await contextMenuPrevented(button);
+    // expect: P1 life still reads 50 — the hold already fired, no double-commit
+    await expect(lifeTotal(p1)).toHaveText("50");
+    // expect: defaultPrevented === true (menu still suppressed after the commit)
+    expect(preventedHeld).toBe(true);
+
+    // 3. Release at ~1200ms; read again
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+    // expect: P1 life reads 50 (the +20 repeat @1.5s was never reached)
+    await expect(lifeTotal(p1)).toHaveText("50");
+
+    // 4. Second hold: `pointerdown` again, dispatch `contextmenu` twice in a
+    //    row, then release immediately (~100ms)
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(50);
+    const preventedPair = await button.evaluate((el) => {
+      const results: boolean[] = [];
+      for (let i = 0; i < 2; i++) {
+        const ev = new MouseEvent("contextmenu", {
+          bubbles: true,
+          cancelable: true,
+          button: 2,
+        });
+        el.dispatchEvent(ev);
+        results.push(ev.defaultPrevented);
+      }
+      return results;
+    });
+    await expect(lifeTotal(p1)).toHaveText("60");
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+    // expect: P1 life reads 60 — exactly one +10 from the event pair (the
+    // second dispatch is a no-op) and no ±1 on release
+    expect(preventedPair).toEqual([true, true]);
+    await expect(lifeTotal(p1)).toHaveText("60");
+
+    // 5. Wait 1200ms (past the 1s window of the second hold)
+    await page.waitForTimeout(1200);
+    // expect: P1 life still reads 60 — the `contextmenu` commit cleared the
+    // fallback timer, so no delayed +10 arrives
+    await expect(lifeTotal(p1)).toHaveText("60");
+  });
+
+  test("3.8. Press feedback overlays the column with 8% black on pointer down", async ({ page }) => {
     // 1. Navigate to `/`; wait for the §4.6 splash cover to clear — while it
     //    is up (pointer-events: auto, z-9999) a raw mouse.down lands on the
     //    overlay, never on the button, so :active can't engage.

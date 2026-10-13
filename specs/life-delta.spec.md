@@ -2,7 +2,45 @@
 
 ## Application Overview
 
-MTG Life Counter — Life Delta Feedback (branch feature/life-delta-feedback, DESIGN.md §4.2/§7.1). Each player zone's center column shows a transient burst-NET delta ABOVE the life total when life changes via −/+ buttons. Delta accumulates across taps and hold commits (+,+ → "+2"; − → "−1", U+2212). Rendered only when net ≠ 0; hides 1s (DELTA_HIDE_MS=1000) after the LAST change (inactivity timer resets per change). Restart (⟳) remounts zones (game version bump) → delta cleared, none shown. Delta span is aria-hidden="true", absolutely positioned above the life total → no layout shift; life total aria-live announcement unchanged. Commander damage and counter changes dispatch directly to the reducer → no delta. Selectors: zone(page,n) = getByRole region /^Player n:/, lifeTotal = [aria-live="polite"], delta = zone.locator('.text-delta') (unique class, span[aria-hidden="true"]), buttons getByRole('button', { name: '+1 life' } / '-1 life' ), belt via getByLabel('Open Spellbook Menu') + 'Restart Life', swipes per restart-life.spec.ts conventions (P1 180°: physical right = Commander, left = Counters). Seed tests/seed.spec.ts, fresh 2-player game, both at 40 life.
+MTG Life Counter — Life Delta Feedback + Life-Change Flash (branch feature/ux-feedback-life-color, DESIGN.md §4.2/§7.1, §9). Each player zone's center column shows a transient burst-NET delta ABOVE the life total when life changes via −/+ buttons. Delta accumulates across taps and hold commits (+,+ → "+2"; − → "−1", U+2212). Rendered only when net ≠ 0; hides 1s (DELTA_HIDE_MS=1000) after the LAST change (inactivity timer resets per change). Restart (⟳) remounts zones (game version bump) → delta cleared, none shown. Delta span is aria-hidden="true", absolutely positioned above the life total → no layout shift; life total aria-live announcement unchanged. Commander damage and counter changes dispatch directly to the reducer → no delta. Selectors: zone(page,n) = getByRole region /^Player n:/, lifeTotal = [aria-live="polite"], delta = zone.locator('.text-delta') (unique class, span[aria-hidden="true"]), buttons getByRole('button', { name: '+1 life' } / '-1 life' ), belt via getByLabel('Open Spellbook Menu') + 'Restart Life', swipes per restart-life.spec.ts conventions (P1 180°: physical right = Commander, left = Counters). Seed tests/seed.spec.ts, fresh 2-player game, both at 40 life.
+
+## Life-Change Flash (NEW on this branch — DESIGN.md §4.2, §9)
+
+Every committed ± life change also pulses a ~200ms flash: the life number scales
+1 → 1.08 → 1 (WAAPI, easing ease-out) and a pre-mounted center-column tint
+overlay fades opacity 1 → 0. Both animations target **existing nodes** (no
+remount, no layout shift). Trigger = same as the delta burst (life-button path
+only). **Skipped** on the initial mount, on reset/remount, for commander-damage
+and counter changes, and under
+`prefers-reduced-motion: reduce` (§9).
+
+**Hold semantics feeding this doc (DESIGN.md §7.1, rewritten):** tap → ±1; hold →
+first ±10 commits at the native long-press `contextmenu` instant (~500ms Android,
+`preventDefault` suppresses the menu) **else a 1000ms fallback timer**; then ±10
+every 500ms held. **Committed ±10s never cancel** — no staged/dimmed preview, no
+release cancel window, no ±1 after a commit (release click consumed).
+
+**Testability — flash assertions (do NOT sample mid-animation CSS):**
+
+| Thing | Selector / probe |
+| --- | --- |
+| Life number (flash target 1) | `lifeTotal(zone)` `<p aria-live="polite">` |
+| Tint overlay (flash target 2) | `zone.locator('span[aria-hidden="true"].pointer-events-none')` (the `.text-delta` span is also `aria-hidden` — disambiguate by `pointer-events-none`) |
+| Running animations | `el.getAnimations()` via `locator.evaluate` — presence/length |
+| Keyframes/timing | `el.getAnimations()[0].effect.getKeyframes()` / `.effect.getTiming().duration` = 200 |
+
+- Assert **with a tight poll**, not a single immediate read: the WAAPI animations
+  are created in a passive effect that flushes a frame or two after the press, so
+  the first `getAnimations()` read can legitimately be empty.
+  `await expect.poll(() => count(lifeP), { timeout: 500 }).toBeGreaterThan(0)`
+  reliably catches the still-running 200ms animation. For **negative** cases,
+  sample `0` at ~0/100/200/300ms after the action (any sample inside a wrongly
+  fired flash's 200ms window catches it) — a lone post-hoc read does not.
+- Reduced motion via `page.emulateMedia({ reducedMotion: "reduce" })` (Playwright
+  drives `matchMedia`); restore with `{ reducedMotion: null }`.
+- Do not assert `opacity`/`transform` CSS values mid-animation — flaky. The tint
+  span's static class is `opacity-0`, so a CSS-value assert would pass even when
+  the flash never fired.
 
 ## Test Scenarios
 
@@ -81,26 +119,28 @@ MTG Life Counter — Life Delta Feedback (branch feature/life-delta-feedback, DE
   4. Wait 700ms more (t=1800)
     - expect: delta(zone(1)) count = 0
 
-#### 1.6. 6.1. Hold 1.9s commits two +10s with CUMULATIVE preview: +10 dimmed → commit → "+20" dimmed (never "+10" flash) → commit — delta +20, life 60
+#### 1.6. 6.1. Hold 1.9s commits two +10s at the 1s fallback / 1.5s repeat — delta +20, life 60 (no preview)
 
 **File:** `tests/e2e/life-delta.spec.ts`
 
+> Rewritten for the new §7.1: desktop has no `contextmenu` during a mouse hold, so
+> the 1s fallback commits. Nothing is previewed at 50% opacity and nothing
+> cancels on release.
+
 **Steps:**
-  1. Navigate to /; holdButton P1 '+1 life' for 1900ms
-    - expect: At ~1050ms into hold (stage 1 @1000ms, pre-commit): delta(zone(1)) visible
-      with text +10 and opacity 0.5 (preview per §4.2 = cumulative committed+staged
-      = 0+10; life NOT yet changed)
-    - expect: P1 life still reads 40 at first stage
-  2. Continue holding past 1400ms (commit 1 fires @1400ms)
-    - expect: P1 life reads 50, delta(zone(1)) text +10 full opacity
-  3. Continue holding to ~1550ms (stage 2 @1500ms, pre-commit 2)
-    - expect: delta(zone(1)) text +20 with opacity 0.5 — CUMULATIVE (committed +10
-      + staged +10), never "+10" flash; P1 life still reads 50
-  4. Release at 1900ms (commit 2 fires @1900ms)
-    - expect: delta(zone(1)) text +20 (full opacity), P1 life reads 60
-    - expect: No +1 on release (hold suppresses click)
-  5. Wait 1200ms
-    - expect: delta(zone(1)) count = 0 (hide timer re-armed by commit 2)
+  1. Navigate to /; hold P1 '+1 life' for 1900ms (no `contextmenu` dispatched)
+    - expect: At ~1050ms: P1 life reads 50 — first ±10 COMMITTED at the 1s
+      fallback; delta(zone(1)) visible with text +10 and opacity 1 (the old
+      opacity-0.5 preview stage is gone)
+    - expect: P1 life is no longer 40 — there is no pre-commit preview state
+  2. Continue holding to ~1550ms
+    - expect: P1 life reads 60 (second ±10 @1.5s = 500ms after the first)
+    - expect: delta(zone(1)) text +20, opacity 1 — cumulative burst, never "+10"
+  3. Release at 1900ms
+    - expect: P1 life still reads 60 (committed ±10s stay; +30 @2s not reached)
+    - expect: No +1 on release (hold suppresses the click; would read 61)
+  4. Wait 1200ms
+    - expect: delta(zone(1)) count = 0 (hide timer re-armed by the last commit)
 
 #### 1.7. 7.1. Restart while delta visible clears it, no spurious delta
 
@@ -163,3 +203,79 @@ MTG Life Counter — Life Delta Feedback (branch feature/life-delta-feedback, DE
     - expect: P1 life still reads 40
   4. Tap P1 '+1 life' once
     - expect: delta(zone(1)) shows +1 (life-button path still feeds delta)
+
+### 2. Life-Change Flash ([NEW] §4.2 / §9)
+
+**Seed:** `tests/seed.spec.ts`
+
+#### 2.1. 10.1. [NEW] A committed ± life change pulses the flash: life scale + tint fade, ~200ms, WAAPI-only
+
+**File:** `tests/e2e/life-delta.spec.ts`
+
+**Steps:**
+  1. Navigate to /; wait out the hydration remount; sample `getAnimations()` on
+     `lifeTotal(zone(1))` and on the tint span at ~0/100/200/300ms
+     - expect: 0 running animations on both at every sample (the initial mount
+       never flashes — the `flashKey` skip applies)
+  2. Tap P1 '+1 life' once, then poll `getAnimations()` on both elements with a
+     tight window (`expect.poll(..., { timeout: 500 })`)
+     - expect: ≥1 animation on the life `<p>` and ≥1 on the tint span (fresh
+       flash fired by the committed ±1)
+     - expect: Timing/keyframes: duration 200ms; life keyframes scale 1 → 1.08 → 1;
+       tint keyframes opacity 1 → 0
+  3. Read the life total box and the delta box
+     - expect: Delta burst reads +1; life `<p>` is the same DOM node (not
+       remounted) — `aria-live="polite"` preserved; no layout shift
+  4. Wait 300ms (past the 200ms window; both elements must report 0 again), then
+     tap P1 '-1 life' and poll again
+     - expect: Both elements 0 after the wait; the −1 commit fires a new flash
+       (≥1 each) — every committed change re-triggers, no commit is skipped
+  5. Hold P1 '+1 life' for 1200ms (fallback commit @1s), release, poll again
+     - expect: ≥1 on both (the ±10 hold commit also flashes); P1 life reads 50
+       (40 → +1 → −1 → 40, then +10 from the hold commit)
+     - expect: No ±1 applied on a hold release after a commit (would read 51)
+
+#### 2.2. 10.2. [NEW] `prefers-reduced-motion: reduce` suppresses the flash; life still changes
+
+**File:** `tests/e2e/life-delta.spec.ts`
+
+**Steps:**
+  1. `await page.emulateMedia({ reducedMotion: "reduce" })`; navigate to /
+    - expect: `matchMedia("(prefers-reduced-motion: reduce)").matches` is true in
+      the page (Playwright drives the media feature)
+  2. Tap P1 '+1 life' once, then poll `getAnimations()` on the life `<p>` and the
+     tint span across a ≥400ms window (samples at ~0/100/200/300ms)
+     - expect: 0 animations on both at every sample (§9: no life-change flash)
+     - expect: P1 life reads 41 (the change itself is NOT suppressed) and the
+       delta burst still shows +1 (reduced motion removes the flash only)
+  3. Hold P1 '+1 life' for 1200ms (fallback commit) and sample the same window
+     - expect: 0 animations at every sample; P1 life reads 51 (+10 committed —
+       hold works)
+  4. Restore: `await page.emulateMedia({ reducedMotion: null })`, then tap P1
+     '+1 life'
+     - expect: ≥1 animation on the life `<p>` and the tint span (tight poll) — the
+       suppression is media-driven, not permanent
+
+#### 2.3. 10.3. [NEW] No flash on reset/remount and no flash from commander damage or counters
+
+**File:** `tests/e2e/life-delta.spec.ts`
+
+**Steps:**
+  1. Navigate to /; tap P1 '+1 life' → tight poll on the life `<p>` shows ≥1
+     (baseline: the flash fires for the life-button path)
+  2. Wait 300ms for the flash to finish; open belt ('Open Spellbook Menu') → tap
+     'Restart Life'; sample `getAnimations()` on the (remounted) life `<p>` and
+     tint span at ~0/100/200/300ms
+     - expect: 0 at every sample — remount/`flashKey` reset never flashes
+     - expect: P1 life reads 40; delta(zone(1)) count = 0
+  3. Swipe physical right on P1 zone (Commander Damage overlay); tap
+     '+1 commander damage' twice; sample the same window
+     - expect: 0 at every sample on the life `<p>` and tint span — commander-driven
+       life changes (40 → 38) do not flash (§4.2: same trigger as the delta burst)
+     - expect: delta(zone(1)) count = 0
+  4. Escape to close; swipe physical left on P1 zone (Counters overlay); tap
+     '+1 poison counter' twice; sample the same window
+     - expect: 0 animations at every sample — counter changes do not flash
+  5. Close the overlay (Escape); tap P1 '+1 life' once
+     - expect: ≥1 animation on both (tight poll) — the life-button path flashes
+       again (baseline restored after the flash-free paths)

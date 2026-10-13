@@ -62,6 +62,24 @@ async function holdButton(page: Page, button: Locator, ms: number): Promise<void
   await page.mouse.up();
 }
 
+/**
+ * §7.1 native long-press path — dispatch a bubbling, cancelable `contextmenu`
+ * MouseEvent from inside the page and read back whether the handler suppressed
+ * the native menu. React's synthetic handler runs synchronously during
+ * `dispatchEvent`, so `defaultPrevented` is already set when it returns.
+ */
+async function contextMenuPrevented(button: Locator): Promise<boolean> {
+  return button.evaluate((el) => {
+    const ev = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    el.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  });
+}
+
 function counterValue(dlg: Locator, name: string): Locator {
   // Find the `+1 ${name} counter` button, then return the value span that
   // precedes the button group (`aria-live="polite"` is set on the <span> in
@@ -320,11 +338,29 @@ test.describe("Custom Counter Dialog — Modal", () => {
     // expect: Counter value reads 2
     await expect(counterValue(countersDlg, "Ticks")).toHaveText("2");
 
-    // 4. Hold +1 Ticks counter for 1450ms (commit fires at 1400ms; next stage
-    //    at 1500ms not reached — exactly one +10, no ±1 on release)
+    // 4. Hold +1 Ticks counter for 1450ms — the first +10 commits at the 1000ms
+    //    fallback; the +10 @1.5s is NOT reached (exactly one +10, no ±1 on release)
     await holdButton(page, plusTicks, 1450);
-    // expect: Counter value reads 12 (2 + exactly one +10; no ±1 on release)
+    // expect: Counter value reads 12 (2 + 10)
     await expect(counterValue(countersDlg, "Ticks")).toHaveText("12");
+    // expect: No ±1 on the release click (would read 13)
+
+    // 5. `pointerdown` on +1 Ticks, dispatch `contextmenu` on the button
+    //    (native Android long-press path), release immediately
+    const box = await visibleBox(plusTicks);
+    await expect(page.locator("#extended-splash-screen")).toHaveCount(0);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(100);
+    const prevented = await contextMenuPrevented(plusTicks);
+    // expect: Counter value reads 22 — the first ±10 of that hold committed
+    // IMMEDIATELY (no 1s wait); release keeps it
+    await expect(counterValue(countersDlg, "Ticks")).toHaveText("22");
+    // expect: defaultPrevented === true for a cancelable contextmenu MouseEvent
+    expect(prevented).toBe(true);
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+    await expect(counterValue(countersDlg, "Ticks")).toHaveText("22");
   });
 
   test("5.10. Multiple custom counters can be added", async ({ page }) => {
