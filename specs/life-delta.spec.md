@@ -4,12 +4,9 @@
 
 MTG Life Counter — Life Delta Feedback (branch feature/ux-feedback-life-color, DESIGN.md §4.2/§7.1). Each player zone's center column shows a transient burst-NET delta ABOVE the life total when life changes via −/+ buttons. Delta accumulates across taps and hold commits (+,+ → "+2"; − → "−1", U+2212). Rendered only when net ≠ 0; hides 1s (DELTA_HIDE_MS=1000) after the LAST change (inactivity timer resets per change). Restart (⟳) remounts zones (game version bump) → delta cleared, none shown. Delta span is aria-hidden="true", absolutely positioned above the life total → no layout shift; life total aria-live announcement unchanged. Commander damage and counter changes dispatch directly to the reducer → no delta. Selectors: zone(page,n) = getByRole region /^Player n:/, lifeTotal = [aria-live="polite"], delta = zone.locator('.text-delta') (unique class, span[aria-hidden="true"]), buttons getByRole('button', { name: '+1 life' } / '-1 life' ), belt via getByLabel('Open Spellbook Menu') + 'Restart Life', swipes per restart-life.spec.ts conventions (P1 180°: physical right = Commander, left = Counters). Seed tests/seed.spec.ts, fresh 2-player game, both at 40 life.
 
-> **Generator note:** `tests/e2e/life-delta.spec.ts` still carries the pre-revert
-> Life-Change Flash describe + probes (`tintOverlay`, `animationCount`,
-> `expectFlash`, `samplePeakAnimations`, `expectFlashOnBoth`, the
-> `flashNodeMarker` marker, and the flash-scale wait comment in scenario 1.1) —
-> DELETE all of it. This doc now has no flash scenarios; only the delta
-> scenarios 1.x + hold semantics apply.
+> **Generator note:** flash coverage fully removed at HEAD (`0321b69`, FB4
+> parked) — no flash probes, no flash scenarios. Delta scenarios 1.x + hold
+> semantics only. Do not reintroduce flash.
 
 ## Hold Semantics (DESIGN.md §7.1, rewritten)
 

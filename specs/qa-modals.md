@@ -570,13 +570,10 @@ Colorless mirrors the same treatment and exposes `aria-pressed`.
 - All WUBRG buttons: `aria-pressed="false"` + icon wrapper 40% (button opacity 1)
 - Old expectation INVERTED: Colorless previously had no `aria-pressed` — it now mirrors its state (§6.5)
 
-> **Generator note:** `tests/e2e/color-picker.spec.ts` carries stale assertions
-> from the pre-rework treatment: `toHaveCSS("opacity", "0.4")` on the BUTTON
-> (TC-6.4 ≈L291/L302 and TC-6.6 ≈L358/L384) must move to the button's icon
-> wrapper `span` — the button's own computed `opacity` is always 1. The stale
-> comment ≈L337 ("the Colorless button itself has no aria-pressed") stays wrong:
-> rewrite to `aria-pressed="true"` when current = `["c"]` (and `false` after any
-> WUBRG replace). WUBRG `aria-pressed` behavior is unchanged.
+> **Generator note:** `tests/e2e/color-picker.spec.ts` is already correct at HEAD
+> (`0321b69`): button computed `opacity` 1 everywhere, 40% on the icon wrapper
+> `span`; Colorless comment reflects `aria-pressed="true"` when current = `["c"]`.
+> Keep as-is.
 
 ---
 
@@ -609,10 +606,8 @@ wrapper, not the button.
 
 **Expected Results:**
 - Focused button computed outline: `outline-style: solid`, `outline-width: 2px`,
-  `outline-offset: 0px` (hugging — NO 4px offset); the color is Tailwind
-  `outline-white` → `rgb(255, 255, 255)` (DESIGN §6.5 names
-  `--color-ui-textLight` = `rgb(250, 248, 245)`; both are near-white — assert
-  width/offset and treat the exact shade as non-blocking)
+  `outline-offset: 0px` (hugging — NO 4px offset); the color is DESIGN §6.5
+  `--color-ui-textLight` → `rgb(250, 248, 245)` — assert it exactly
 - Outline not dimmed on unselected buttons: button computed `opacity` stays 1
   (the icon wrapper carries the 40%)
 
