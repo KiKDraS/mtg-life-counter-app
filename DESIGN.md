@@ -257,7 +257,7 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
   ignored.
 - **Overlay open:** Either X-direction swipe closes overlay → return to life.
 - **Life delta feedback:** burst net change directly above life number. Absolute
-  — no layout shift. Same textColor. Sign `+`/`−`. Update per change. Hide 1s
+  — no layout shift. Same textColor. Sign `+`/`−`. Update per change. Hide 3s
   after last change. Net 0 → hidden. Reset (⟳/⚙️/👥) → none.
 
 ### 4.3 Zone Rotation
@@ -562,7 +562,7 @@ Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
 | -------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Tap [+] / [-]  | +1 / -1 life                                                                                                              |
 | Hold [+] / [-] | First ±10 commits at native long-press instant — platform `contextmenu` (~500ms Android; `preventDefault` suppresses native menu) — else 1s timer fallback (iOS/desktop). First trigger wins; other cancelled. Then ±10 every 500ms held. Release any time → committed ±10s stay; no cancel window; no ±1 after first commit. Cadence: +10 @ ~0.5s (contextmenu) / 1s (fallback); +20 +500ms; +30 +1s… |
-| Delta feedback | Net change above life, `--text-delta` (§4.2). Update per change. Hide 1s after last change. Net 0 → hidden. Reset → none. |
+| Delta feedback | Net change above life, `--text-delta` (§4.2). Update per change. Hide 3s after last change. Net 0 → hidden. Reset → none. |
 
 ### 7.2 Swipe
 
