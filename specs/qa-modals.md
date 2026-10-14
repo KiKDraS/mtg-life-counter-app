@@ -619,6 +619,45 @@ wrapper, not the button.
 
 ---
 
+### TC-6.8: [NEW] Wheel button box == icon box (colorless regression guard)
+
+**Description:** Every wheel button's bounding box equals its icon's
+(`span[role="img"]`) bounding box — width and height equal within ±0.5px — for
+Colorless AND at least one WUBRG button, in BOTH unselected and selected
+states. Regression guard: `ColorlessButton`'s `<button>` was missing
+`MANA_BTN_SIZE` (fixed in `d8ad657`), so the button box was ~7px taller than
+its icon (extra gap above the icon) → the selection ring / focus ring wrapped a
+detached, wrong box ("doesn't fit").
+
+**Steps:**
+1. Open Color Picker for Player 1 (default `["r"]`)
+
+**Expected Results:**
+- Red (selected, `aria-pressed="true"`) AND Colorless (unselected,
+  `aria-pressed="false"`): button box == its `span[role="img"]` box — `|Δw| ≤
+  0.5px` and `|Δh| ≤ 0.5px`; top edges also match (`|Δtop| ≤ 0.5px` — no 7px
+  gap)
+- Selected includes `scale-110`: the ancestor transform scales button AND icon
+  subtree together, so boxes stay equal — both at the scaled size (~77.2×77.2
+  vs ~70.2×70.2 unselected; absolute px is viewport-dependent, `18cqmin`)
+
+2. Tap Colorless (C) → single-tap apply, dialog closes; reopen the picker
+   (Colorless now selected)
+
+**Expected Results:**
+- Colorless (selected): button box == icon box within ±0.5px, both at the
+  `scale-110` size
+- Red (now unselected): button box == icon box within ±0.5px at the base size
+
+> **Generator note:** add the assertion to `tests/e2e/color-picker.spec.ts` —
+> measure `button.boundingBox()` vs its `span[role="img"]` bounding box via
+> `page.evaluate` `getBoundingClientRect()` rects (robust to `scale-110` —
+> ancestor transforms are included in the rect), assert `|Δw| ≤ 0.5 && |Δh| ≤
+> 0.5` (optionally `Δtop`/`Δleft`) in both states. Do NOT assert absolute px
+> sizes — viewport-dependent.
+
+---
+
 ## Suite 7: Counters Overlay (§7.4)
 
 ### TC-7.1: Swipe right opens counters overlay

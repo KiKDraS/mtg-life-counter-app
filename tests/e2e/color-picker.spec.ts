@@ -37,6 +37,30 @@ function iconWrap(btn: Locator): Locator {
 }
 
 /**
+ * TC-6.8 — absolute |Δ| between a wheel button's box and its `span[role="img"]`
+ * icon box, from `getBoundingClientRect()` (ancestor `scale-110` transforms are
+ * included in both rects, so selected and unselected states stay comparable).
+ * Returned in CSS px; callers assert a ±0.5px tolerance — never absolute sizes
+ * (`18cqmin` is viewport-dependent).
+ */
+function boxDeltas(
+  btn: Locator,
+): Promise<{ w: number; h: number; top: number; left: number }> {
+  return btn.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    const icon = el
+      .querySelector('span[role="img"]')!
+      .getBoundingClientRect();
+    return {
+      w: Math.abs(box.width - icon.width),
+      h: Math.abs(box.height - icon.height),
+      top: Math.abs(box.top - icon.top),
+      left: Math.abs(box.left - icon.left),
+    };
+  });
+}
+
+/**
  * Press Tab until `target` holds focus (keyboard navigation — mouse clicks do
  * not trigger `:focus-visible`). Falls through to the real focus assertion so a
  * failure reports where focus actually landed.
@@ -491,6 +515,63 @@ test.describe("Color Picker", () => {
       "box-shadow",
       /rgb\(250, 248, 245\) 0px 0px 0px 4px/,
     );
+  });
+
+  test("TC-6.8: [NEW] Wheel button box == icon box (colorless regression guard)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    // §4.6 splash cover is pointer-events:auto until hydration removes it — a
+    // click landing on it would be swallowed.
+    await expect(page.locator("#extended-splash-screen")).toHaveCount(0);
+
+    // 1. Open Color Picker for Player 1 (default ["r"])
+    await zone(page, 1).getByRole("button", { name: "Change color" }).click();
+    const dialog = colorPickerDialog(page, 0);
+    await expect(dialog).toBeVisible();
+    const button = (name: string) => dialog.getByRole("button", { name });
+
+    // Regression guard (d8ad657): ColorlessButton's <button> was missing
+    // MANA_BTN_SIZE → its box was ~7px taller than the icon (gap above the
+    // icon), so the ring/focus outline wrapped a detached box. Every wheel
+    // button box must equal its icon box on all four edges.
+    const expectButtonFitsIcon = async (name: string) => {
+      const d = await boxDeltas(button(name));
+      expect(d.w).toBeLessThanOrEqual(0.5);
+      expect(d.h).toBeLessThanOrEqual(0.5);
+      expect(d.top).toBeLessThanOrEqual(0.5);
+      expect(d.left).toBeLessThanOrEqual(0.5);
+    };
+
+    // expect: Red selected (scale-110 — the ancestor transform scales button AND
+    // icon subtree together, so both rects stay equal) and Colorless unselected
+    // (base size): both button boxes == their icon boxes within ±0.5px
+    await expect(button("Red mana")).toHaveAttribute("aria-pressed", "true");
+    await expect(button("Colorless mana")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await expectButtonFitsIcon("Red mana");
+    await expectButtonFitsIcon("Colorless mana");
+
+    // 2. Tap Colorless (C) → single-tap apply, dialog closes; reopen the picker
+    await button("Colorless mana").click();
+    await expect(dialog).not.toBeVisible();
+    await expect
+      .poll(() => zoneBackground(page, 1))
+      .toContain("rgb(202, 197, 192)"); // solid colorless
+    await zone(page, 1).getByRole("button", { name: "Change color" }).click();
+    await expect(dialog).toBeVisible();
+
+    // expect: Colorless now selected (scaled), Red now unselected (base) — both
+    // boxes still match within ±0.5px
+    await expect(button("Colorless mana")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(button("Red mana")).toHaveAttribute("aria-pressed", "false");
+    await expectButtonFitsIcon("Colorless mana");
+    await expectButtonFitsIcon("Red mana");
   });
 
   test("TC-6.5: Backdrop/Escape closes — colors already applied (no revert)", async ({
