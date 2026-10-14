@@ -13,10 +13,6 @@ function lifeTotal(zoneLocator: Locator): Locator {
   return zoneLocator.locator('[aria-live="polite"]');
 }
 
-async function lifeValue(zoneLocator: Locator): Promise<number> {
-  return Number(await lifeTotal(zoneLocator).textContent());
-}
-
 function commanderDlg(page: Page): Locator {
   return page.getByRole("dialog", { name: "Commander Damage" });
 }
@@ -84,6 +80,24 @@ async function holdButton(
   await page.mouse.down();
   await page.waitForTimeout(ms);
   await page.mouse.up();
+}
+
+/**
+ * §7.1 native long-press path — dispatch a bubbling, cancelable `contextmenu`
+ * MouseEvent from inside the page and read back whether the handler suppressed
+ * the native menu. React's synthetic handler runs synchronously during
+ * `dispatchEvent`, so `defaultPrevented` is already set when it returns.
+ */
+async function contextMenuPrevented(button: Locator): Promise<boolean> {
+  return button.evaluate((el) => {
+    const ev = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    el.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  });
 }
 
 /* ───────────────────────────────────────────────
@@ -402,7 +416,7 @@ test.describe("Commander Damage — Damage Adjustment", () => {
     await expect(damageCounter(commanderDlg(page))).toHaveText("5");
   });
 
-  test("3.3. Hold [+] stages at 1s, commits exactly one +10 at 1.4s; pre-commit release cancels", async ({ page }) => {
+  test("3.3. Hold [+] commits at the 1s fallback and keeps it on release (no preview, no cancel)", async ({ page }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
@@ -412,18 +426,28 @@ test.describe("Commander Damage — Damage Adjustment", () => {
     // expect: Damage reads `0`
     await expect(damageCounter(dlg)).toHaveText("0");
 
-    // 3. Hold the `+1 commander damage` button for 1200ms (staged at 1000ms),
-    //    then release (before 1400ms commit)
+    // 3. Hold (pointerdown) the `+1 commander damage` button for 1200ms, then
+    //    release (past the 1s fallback commit, before the 1.5s repeat)
     await holdButton(page, plusButton(dlg), 1200);
-    // expect: Damage still reads `0` (cancelled — no +10, and no +1 tap on release)
-    await expect(damageCounter(dlg)).toHaveText("0");
-
-    // 4. Hold the `+1 commander damage` button for 1450ms, then release
-    //    (commit fires at 1400ms; next stage at 1500ms not reached)
-    await holdButton(page, plusButton(dlg), 1450);
-    // expect: Damage reads exactly `10` (one +10 committed at 1400ms; tap
-    //         suppressed — not `+11`)
+    // expect: Damage reads exactly `10` — one +10 committed at 1s and KEPT on release
     await expect(damageCounter(dlg)).toHaveText("10");
+    // expect: Not `11` (no ±1 on release) and not `0` (no cancel window)
+
+    // 4. Hold (pointerdown) the `+1 commander damage` button for 1450ms, then release
+    await holdButton(page, plusButton(dlg), 1450);
+    // expect: Damage reads `20` — exactly one more +10 (the +10 @1.5s of this hold was not reached)
+    await expect(damageCounter(dlg)).toHaveText("20");
+
+    // 5. Hold (pointerdown) the `+1 commander damage` button for 1900ms, then release
+    await holdButton(page, plusButton(dlg), 1900);
+    // expect: Damage reads `40` — both commits of this hold landed (1s and 1.5s)
+    await expect(damageCounter(dlg)).toHaveText("40");
+
+    // 6. Close dialog, read P1 life total
+    await page.keyboard.press("Escape");
+    await expect(dlg).not.toBeVisible();
+    // expect: P1 life = `0` (40 − 40; each committed ±10 reduced life immediately)
+    await expect(lifeTotal(zone(page, 1))).toHaveText("0");
   });
 
   test("3.4. Repeated taps accumulate correctly", async ({ page }) => {
@@ -441,6 +465,47 @@ test.describe("Commander Damage — Damage Adjustment", () => {
     }
     // expect: Damage counter reads `20`
     await expect(damageCounter(dlg)).toHaveText("20");
+  });
+
+  test("3.5. `contextmenu` mid-hold commits the first ±10 immediately and suppresses the native menu", async ({ page }) => {
+    // 1. Navigate to `/`
+    await page.goto("/");
+
+    // 2. Swipe left on P1 zone → Commander Damage dialog opens; assert damage reads `0`
+    await swipeOn(zone(page, 1), "right");
+    const dlg = commanderDlg(page);
+    const btn = plusButton(dlg);
+    await expect(damageCounter(dlg)).toHaveText("0");
+
+    // 3. `pointerdown` on the `+1 commander damage` button (arms the hold),
+    //    then dispatch `contextmenu` on it (the Android long-press path).
+    //    Press the button's screen-LEFT side: the damage widening 0 → 10
+    //    re-centers the row and slides the button ~9.6px left, so a centre
+    //    press would slide off the element and fire `pointerleave`, aborting
+    //    the repeat (mouse-only artifact — touch pointers never leave
+    //    mid-press, which is why the real Android long-press keeps its cadence).
+    const box = await visibleBox(btn);
+    await page.mouse.move(box.x + 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(100);
+    const prevented = await contextMenuPrevented(btn);
+    // expect: Damage reads `10` IMMEDIATELY (no 1s wait)
+    await expect(damageCounter(dlg)).toHaveText("10");
+    // expect: defaultPrevented === true for a cancelable contextmenu MouseEvent
+    // — the native callout/menu is suppressed (§4.2)
+    expect(prevented).toBe(true);
+
+    // 4. Keep holding ~500ms, then release
+    await page.waitForTimeout(500);
+    // expect: Damage reads `20` (+10 repeat 500ms after the commit; not 11 — no ±1 on release)
+    await expect(damageCounter(dlg)).toHaveText("20");
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+    await expect(damageCounter(dlg)).toHaveText("20");
+
+    // 5. Read P1 life total
+    // expect: P1 life = `20` (40 − 20; the commit path still drives life reduction)
+    await expect(lifeTotal(zone(page, 1))).toHaveText("20");
   });
 });
 
@@ -537,30 +602,34 @@ test.describe("Commander Damage — Life Reduction", () => {
     await expect(lifeTotal(zone(page, 2))).toHaveText("40");
   });
 
-  test("4.4. Hold [+] also reduces life by the committed amount (cancel window too)", async ({
+  test("4.4. Hold [+] also reduces life by the committed amount (released commits are kept)", async ({
     page,
   }) => {
     // 1. Navigate to `/`
     await page.goto("/");
 
-    // 2. Swipe left on P1 → hold [+] for 1200ms (staged at 1000ms), release
-    //    (before 1400ms commit)
+    // 2. Swipe left on P1 → hold [+] for 1200ms (1s fallback commit), release
     await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
     await holdButton(page, plusButton(dlg), 1200);
-    // expect: Damage still reads `0` (cancelled)
-    await expect(damageCounter(dlg)).toHaveText("0");
-
-    // 3. Hold [+] for 1450ms, release (commit fires at 1400ms)
-    await holdButton(page, plusButton(dlg), 1450);
-    // expect: Damage reads `10`
+    // expect: Damage reads `10` — the commit is kept on release (no cancel window)
     await expect(damageCounter(dlg)).toHaveText("10");
 
-    // 4. Close dialog, read P1 life
+    // 3. Close dialog, read P1 life
     await page.keyboard.press("Escape");
-    const life = await lifeValue(zone(page, 1));
+    await expect(dlg).not.toBeVisible();
     // expect: P1 life = 30 (40 − 10)
-    expect(life).toBe(30);
+    await expect(lifeTotal(zone(page, 1))).toHaveText("30");
+
+    // 4. Reopen, hold [+] for 1450ms, release, close
+    await swipeOn(zone(page, 1), "right");
+    const dlgReopen = commanderDlg(page);
+    await holdButton(page, plusButton(dlgReopen), 1450);
+    // expect: Damage reads `20`; P1 life = 20 (40 − 20)
+    await expect(damageCounter(dlgReopen)).toHaveText("20");
+    await page.keyboard.press("Escape");
+    await expect(dlgReopen).not.toBeVisible();
+    await expect(lifeTotal(zone(page, 1))).toHaveText("20");
   });
 
   test("4.5. Life can go negative from commander damage", async ({ page }) => {

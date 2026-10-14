@@ -82,7 +82,7 @@ export function CommanderDamageColumn({
           type="button"
           aria-label="-1 commander damage"
           className={cn(
-            "text-heading font-black tabular-nums focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white select-none touch-manipulation",
+            "text-heading font-black tabular-nums focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white select-none touch-manipulation [-webkit-touch-callout:none]",
             "inline-block text-center leading-tight",
           )}
           style={{ color: UI.textLight }}
@@ -96,7 +96,7 @@ export function CommanderDamageColumn({
           type="button"
           aria-label="+1 commander damage"
           className={cn(
-            "text-heading font-black tabular-nums focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white select-none touch-manipulation",
+            "text-heading font-black tabular-nums focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white select-none touch-manipulation [-webkit-touch-callout:none]",
             "inline-block text-center leading-tight",
           )}
           style={{ color: UI.textLight }}

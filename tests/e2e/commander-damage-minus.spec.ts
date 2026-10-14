@@ -90,6 +90,24 @@ async function holdButton(
   await page.mouse.up();
 }
 
+/**
+ * §7.1 native long-press path — dispatch a bubbling, cancelable `contextmenu`
+ * MouseEvent from inside the page and read back whether the handler suppressed
+ * the native menu. React's synthetic handler runs synchronously during
+ * `dispatchEvent`, so `defaultPrevented` is already set when it returns.
+ */
+async function contextMenuPrevented(button: Locator): Promise<boolean> {
+  return button.evaluate((el) => {
+    const ev = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    el.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  });
+}
+
 /* ───────────────────────────────────────────────
  * §1 — Commander Damage Decrement
  * ─────────────────────────────────────────────── */
@@ -205,11 +223,15 @@ test.describe("Commander Damage Decrement", () => {
     await expect(lifeTotal(zone(page, 1))).toHaveText("20");
   });
 
-  test("CDM-04: Hold - stages at 1s, commits exactly one -10 at 1.4s; pre-commit release cancels", async ({ page }) => {
+  test("CDM-04: Hold - commits -10 at the 1s fallback, keeps it on release, floors at 0", async ({
+    page,
+  }) => {
     // 1. Navigate to `/`
     await page.goto("/");
+    // expect: P1 life reads `40`
+    await expect(lifeTotal(zone(page, 1))).toHaveText("40");
 
-    // 2. Swipe right on P1 zone to open Commander Damage dialog
+    // 2. Swipe right on P1 zone (180° slot) to open Commander Damage dialog
     await swipeOn(zone(page, 1), "right");
     const dlg = commanderDlg(page);
 
@@ -220,26 +242,48 @@ test.describe("Commander Damage Decrement", () => {
     }
     // expect: Damage counter reads `15`
     await expect(damageCounter(dlg)).toHaveText("15");
+    // expect: P1 life reads `25` (40 − 15)
+    await expect(lifeTotal(zone(page, 1))).toHaveText("25");
 
     // 4. Hold (pointerdown) the first column `-1 commander damage` button for
-    //    1200ms (staged at 1000ms), then release (before the 1400ms commit)
+    //    1200ms, then release (past the 1s fallback commit, before the 1.5s repeat)
     await holdButton(page, minusButton(dlg), 1200);
-    // expect: Damage counter still reads `15` (cancelled — no -10 applied)
-    await expect(damageCounter(dlg)).toHaveText("15");
-    // expect: No -1 applied on release either (cancel suppresses the tap)
+    // expect: Damage counter reads `5` (exactly one -10 committed and KEPT)
+    await expect(damageCounter(dlg)).toHaveText("5");
+    // expect: No -1 applied on the release click (would read 4)
 
     // 5. Hold (pointerdown) the first column `-1 commander damage` button for
-    //    1450ms, then release (commit fires at 1400ms; next stage at 1500ms
-    //    never reached)
+    //    1450ms, then release
     await holdButton(page, minusButton(dlg), 1450);
-    // expect: Damage counter reads `5` (exactly one -10 committed)
-    await expect(damageCounter(dlg)).toHaveText("5");
+    // expect: Damage counter reads `0` (one -10 applies, floored at 0 — never negative)
+    await expect(damageCounter(dlg)).toHaveText("0");
     // expect: Damage counter reads >= 0 (floor)
     expect(Number(await damageCounter(dlg).textContent())).toBeGreaterThanOrEqual(0);
 
     // 6. Read P1 life total
-    // expect: P1 life reads `35` (40 − 5; life restored exactly by applied delta)
-    expect(await lifeValue(zone(page, 1))).toBe(35);
+    // expect: P1 life reads `40` (life restored exactly by the applied delta: 15 - 5 = 10 damage total)
+    await expect(lifeTotal(zone(page, 1))).toHaveText("40");
+
+    // 7. Tap +1 commander damage 15 times again, then `pointerdown` on the -1
+    //    button, dispatch `contextmenu` on it and release immediately
+    for (let i = 0; i < 15; i++) {
+      await plus.click();
+    }
+    await expect(damageCounter(dlg)).toHaveText("15");
+    const minus = minusButton(dlg);
+    const box = await visibleBox(minus);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(100);
+    const prevented = await contextMenuPrevented(minus);
+    // expect: Damage reads `5` — the first -10 of that hold committed
+    // IMMEDIATELY at the event instant (native long-press path, no 1s wait)
+    await expect(damageCounter(dlg)).toHaveText("5");
+    // expect: defaultPrevented === true (native menu suppressed, §4.2)
+    expect(prevented).toBe(true);
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+    await expect(damageCounter(dlg)).toHaveText("5");
   });
 
   test("CDM-05: [-] layout & accessibility - visible, order, focusable, aria-labels", async ({
@@ -301,7 +345,7 @@ test.describe("Commander Damage Decrement", () => {
     await expect(dlg).not.toBeVisible();
   });
 
-  test("CDM-06: Regression - [+] tap +1 and staged hold +10 unchanged", async ({
+  test("CDM-06: Regression - [+] tap +1 and hold +10 (1s fallback) unchanged", async ({
     page,
   }) => {
     // 1. Navigate to `/` and open Commander Damage dialog on P1
@@ -324,22 +368,60 @@ test.describe("Commander Damage Decrement", () => {
     // expect: Damage counter reads `4`
     await expect(damageCounter(dlg)).toHaveText("4");
 
-    // 4. Hold (pointerdown) `+1 commander damage` for 1200ms, then release
-    //    (pre-commit — staged at 1000ms, released before the 1400ms commit)
-    await holdButton(page, btn, 1200);
-    // expect: Damage counter still reads `4` (cancelled — no +10, no +1)
-    await expect(damageCounter(dlg)).toHaveText("4");
+    // 4. Hold (pointerdown) `+1 commander damage` for 600ms, then release
+    //    (before the 1s fallback — plain tap path)
+    await holdButton(page, btn, 600);
+    // expect: Damage counter reads `5` (the ±1 tap fires on release; no +10 yet)
+    await expect(damageCounter(dlg)).toHaveText("5");
 
-    // 5. Hold (pointerdown) `+1 commander damage` for 1450ms, then release
-    //    (commit fires at 1400ms; next stage at 1500ms not reached)
-    await holdButton(page, btn, 1450);
-    // expect: Damage counter reads `14` (exactly one +10 committed)
-    await expect(damageCounter(dlg)).toHaveText("14");
+    // 5. Hold (pointerdown) `+1 commander damage` for 1200ms, then release
+    //    (one fallback commit at 1s; the 1.5s repeat not reached)
+    await holdButton(page, btn, 1200);
+    // expect: Damage counter reads `15` (exactly one +10 committed and kept;
+    //         no +1 on the release click)
+    await expect(damageCounter(dlg)).toHaveText("15");
 
     // 6. Close with Escape and read P1 life
     await page.keyboard.press("Escape");
     await expect(dlg).not.toBeVisible();
-    // expect: P1 life = 26 (40 − 14)
-    expect(await lifeValue(zone(page, 1))).toBe(26);
+    // expect: P1 life = 25 (40 − 15)
+    expect(await lifeValue(zone(page, 1))).toBe(25);
+  });
+
+  test("CDM-07: Tap -1 still works after a suppressed right-click; `contextmenu` never commits without a hold", async ({
+    page,
+  }) => {
+    // 1. Navigate to `/` and open Commander Damage dialog on P1; tap +1
+    //    commander damage 5 times
+    await page.goto("/");
+    await swipeOn(zone(page, 1), "right");
+    const dlg = commanderDlg(page);
+    const plus = plusButton(dlg);
+    for (let i = 0; i < 5; i++) {
+      await plus.click();
+    }
+    // expect: Damage counter reads `5`
+    await expect(damageCounter(dlg)).toHaveText("5");
+
+    // 2. Right-click the -1 commander damage button — a non-primary
+    //    `pointerdown` never arms the hold, so there is nothing to commit
+    const minus = minusButton(dlg);
+    await minus.click({ button: "right" });
+    await page.waitForTimeout(150);
+    // expect: Damage counter still reads `5`
+    await expect(damageCounter(dlg)).toHaveText("5");
+    // expect: defaultPrevented === true for a cancelable contextmenu MouseEvent
+    // dispatched via page.evaluate with no hold active (native menu suppressed)
+    expect(await contextMenuPrevented(minus)).toBe(true);
+    await expect(damageCounter(dlg)).toHaveText("5");
+
+    // 3. Tap the -1 commander damage button once
+    await minus.click();
+    // expect: Damage counter reads `4` — the -1 tap path is unaffected by the suppressed menu
+    await expect(damageCounter(dlg)).toHaveText("4");
+
+    // 4. Read P1 life total
+    // expect: P1 life reads `36` (40 − 4)
+    await expect(lifeTotal(zone(page, 1))).toHaveText("36");
   });
 });

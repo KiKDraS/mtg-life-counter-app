@@ -66,6 +66,24 @@ async function holdButton(page: Page, button: Locator, ms: number): Promise<void
   await page.mouse.up();
 }
 
+/**
+ * §7.1 native long-press path — dispatch a bubbling, cancelable `contextmenu`
+ * MouseEvent from inside the page and read back whether the handler suppressed
+ * the native menu. React's synthetic handler runs synchronously during
+ * `dispatchEvent`, so `defaultPrevented` is already set when it returns.
+ */
+async function contextMenuPrevented(button: Locator): Promise<boolean> {
+  return button.evaluate((el) => {
+    const ev = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    el.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  });
+}
+
 function counterValue(dlg: Locator, name: string): Locator {
   // Find the `+1 ${name} counter` button, then return the value span that
   // precedes the button group (`aria-live="polite"` is set on the <span> in
@@ -88,7 +106,8 @@ test.describe("Counters Overlay — Layout & Content", () => {
     await expect(zone(page, 1)).toBeVisible();
     await expect(zone(page, 2)).toBeVisible();
 
-    // 2. Swipe right (~50px, <300ms) on the P1 zone wrapper
+    // 2. Swipe physical left (~50px, <300ms) on the P1 zone wrapper (P1 is
+    //    180° → player-right = physical-left opens Counters)
     await swipeOn(zone(page, 1), "left");
 
     // expect: A dialog with aria-labelledby="counters-title" opens
@@ -119,7 +138,7 @@ test.describe("Counters Overlay — Layout & Content", () => {
   });
 
   test("1.2. Four default counters render with icons", async ({ page }) => {
-    // 1. Navigate to /, swipe right on P1 zone to open Counters overlay
+    // 1. Navigate to /, swipe physical left on P1 zone (180° → Counters) to open the overlay
     await page.goto("/");
     await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
@@ -213,7 +232,7 @@ test.describe("Counters Overlay — Layout & Content", () => {
 
 test.describe("Counters Overlay — Counter Adjustment", () => {
   test("2.1. Tap [+]/[-] adjusts by exactly 1 per counter", async ({ page }) => {
-    // 1. Navigate to /, swipe right on P1 zone to open Counters overlay
+    // 1. Navigate to /, swipe physical left on P1 zone (180° → Counters) to open the overlay
     await page.goto("/");
     await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
@@ -248,7 +267,8 @@ test.describe("Counters Overlay — Counter Adjustment", () => {
   });
 
   test("2.2. Counter adjustment is independent per player", async ({ page }) => {
-    // 1. Navigate to /, swipe right on P1 zone, set poison to 5, close (Escape)
+    // 1. Navigate to /, swipe physical left on P1 zone (180° → Counters),
+    //    set poison to 5, close (Escape)
     await page.goto("/");
     await swipeOn(zone(page, 1), "left");
     const dlg1 = page.getByRole("dialog", { name: "Counters" });
@@ -288,48 +308,85 @@ test.describe("Counters Overlay — Counter Adjustment", () => {
     await expect(counterValue(dlg1Reopen, "energy")).toHaveText("0");
   });
 
-  test("2.3. Hold [+] stages at 1s, commits exactly one +10 at 1.4s; pre-commit release cancels", async ({ page }) => {
-    // 1. Navigate to /, swipe right on P1 zone to open Counters overlay
+  test("2.3. Hold [+] commits +10 at the 1s fallback (release keeps it); cadence +10 @1s then +10 @1.5s", async ({ page }) => {
+    // 1. Navigate to /, swipe physical left on P1 zone to open the Counters overlay
     await page.goto("/");
     await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     // expect: Poison counter reads 0
     await expect(counterValue(dlg, "poison")).toHaveText("0");
+    const plusPoison = dlg.getByRole("button", { name: "+1 poison counter" });
 
-    // 2. Hold (pointerdown) the +1 poison counter button for 1200ms (staged at
-    //    1000ms), then release (before 1400ms commit)
-    await holdButton(page, dlg.getByRole("button", { name: "+1 poison counter" }), 1200);
-    // expect: Poison counter still reads 0 (cancelled — no +10, no +1)
-    await expect(counterValue(dlg, "poison")).toHaveText("0");
-
-    // 3. Hold (pointerdown) the +1 poison counter button for 1450ms, then
-    //    release (commit fires at 1400ms; next stage at 1500ms not reached)
-    await holdButton(page, dlg.getByRole("button", { name: "+1 poison counter" }), 1450);
-    // expect: Poison counter reads 10 (exactly one +10 committed)
+    // 2. Hold (pointerdown) the +1 poison counter button for 1200ms, then
+    //    release (after the 1000ms fallback commit, before the 1500ms repeat)
+    await holdButton(page, plusPoison, 1200);
+    // expect: Poison counter reads 10 — exactly one +10 committed at 1s and
+    // KEPT on release (no staged preview, no cancel window)
     await expect(counterValue(dlg, "poison")).toHaveText("10");
+    // expect: Not 11 and not 0 — no ±1 on release, no cancel
+
+    // 3. Hold the +1 poison counter button for 1450ms, then release
+    await holdButton(page, plusPoison, 1450);
+    // expect: Poison counter reads 20 — one +10 at 1s of this hold; the +10 @1.5s was not reached
+    await expect(counterValue(dlg, "poison")).toHaveText("20");
+
+    // 4. Hold the +1 poison counter button for 1900ms, then release
+    await holdButton(page, plusPoison, 1900);
+    // expect: Poison counter reads 40 — both commits of this hold landed (+10 @1s and +10 @1.5s)
+    await expect(counterValue(dlg, "poison")).toHaveText("40");
+
+    // 5. `pointerdown` again, dispatch `contextmenu` on the same button (the
+    //    native Android long-press path), release immediately
+    const box = await visibleBox(plusPoison);
+    await expect(page.locator("#extended-splash-screen")).toHaveCount(0);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(100);
+    const prevented = await contextMenuPrevented(plusPoison);
+    // expect: Poison counter reads 50 — the first ±10 of this hold committed
+    // IMMEDIATELY at the event instant (no 1s wait)
+    await expect(counterValue(dlg, "poison")).toHaveText("50");
+    // expect: defaultPrevented === true (native menu suppressed, §4.2)
+    expect(prevented).toBe(true);
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+    // release keeps the committed ±10 (no ±1, no revert)
+    await expect(counterValue(dlg, "poison")).toHaveText("50");
   });
 
-  test("2.4. Hold [-] also accelerates", async ({ page }) => {
-    // 1. Navigate to /, swipe right on P1 zone, tap +1 poison 15 times (total=15)
+  test("2.4. Hold [-] also accelerates (and floors at 0)", async ({ page }) => {
+    // 1. Navigate to /, swipe physical left on P1 zone, tap +1 poison 25 times (total=25)
     await page.goto("/");
     await swipeOn(zone(page, 1), "left");
     const dlg = page.getByRole("dialog", { name: "Counters" });
     const plusPoison = dlg.getByRole("button", { name: "+1 poison counter" });
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 25; i++) {
       await plusPoison.click();
     }
-    // expect: Poison counter reads 15
-    await expect(counterValue(dlg, "poison")).toHaveText("15");
+    // expect: Poison counter reads 25
+    await expect(counterValue(dlg, "poison")).toHaveText("25");
+    const minusPoison = dlg.getByRole("button", { name: "-1 poison counter" });
 
-    // 2. Hold -1 poison counter for 1200ms, then release (pre-commit release)
-    await holdButton(page, dlg.getByRole("button", { name: "-1 poison counter" }), 1200);
-    // expect: Poison counter still reads 15 (cancelled — no -10, no -1)
-    await expect(counterValue(dlg, "poison")).toHaveText("15");
+    // 2. Hold (pointerdown) the -1 poison counter button for 600ms, then
+    //    release (before the 1s fallback — plain tap path)
+    await holdButton(page, minusPoison, 600);
+    // expect: Poison counter reads 24 (the ±1 tap fires on release; no -10 yet)
+    await expect(counterValue(dlg, "poison")).toHaveText("24");
 
-    // 3. Hold -1 poison counter for 1450ms, then release (commit at 1400ms)
-    await holdButton(page, dlg.getByRole("button", { name: "-1 poison counter" }), 1450);
-    // expect: Poison counter reads 5 (exactly one -10 committed)
-    await expect(counterValue(dlg, "poison")).toHaveText("5");
+    // 3. Hold -1 poison counter for 1200ms, then release (one fallback commit)
+    await holdButton(page, minusPoison, 1200);
+    // expect: Poison counter reads 14 (exactly one -10 committed and kept; no -1 on the release click)
+    await expect(counterValue(dlg, "poison")).toHaveText("14");
+
+    // 4. Hold -1 poison counter for 1200ms, then release
+    await holdButton(page, minusPoison, 1200);
+    // expect: Poison counter reads 4 (same cadence per hold)
+    await expect(counterValue(dlg, "poison")).toHaveText("4");
+
+    // 5. Hold -1 poison counter for 1450ms, then release
+    await holdButton(page, minusPoison, 1450);
+    // expect: Poison counter reads 0 (one -10 applied, floored at 0 — never negative)
+    await expect(counterValue(dlg, "poison")).toHaveText("0");
   });
 });
 

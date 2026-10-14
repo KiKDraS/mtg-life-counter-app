@@ -11,6 +11,8 @@ import {
   useGameStateContext,
 } from "@/features/game-shell/state/hooks";
 import { setGamePlayerColor } from "@/features/game-shell/state/actions";
+import { cn } from "@/shared/lib/cn";
+import { MANA_BTN_SIZE } from "@/features/player-zone/constants/color";
 
 interface ColorlessButtonProps {
   readonly dialogId: string;
@@ -28,6 +30,11 @@ const COLORLESS: ManaColor[] = ["c"];
  * closes the dialog by DOM id. Mirrors the close pattern of the original
  * ManaActionButton.
  *
+ * §6.5 — selected state (`["c"]`) mirrors the wheel's ring treatment:
+ * full-opacity icon + `--color-ui-textLight` ring + slight scale-up;
+ * unselected → icon at 40% opacity, button opacity untouched so ring/focus
+ * render solid. `aria-pressed` mirrors state.
+ *
  * @see DESIGN.md §6.5, SPEC.md §8.5.1
  */
 export function ColorlessButton({
@@ -39,6 +46,8 @@ export function ColorlessButton({
   const { state, dispatch: playerDispatch } = usePlayerStateContext();
   const { dispatch: gameDispatch } = useGameStateContext();
 
+  const isSelected = state.color.length === 1 && state.color[0] === "c";
+
   const handleClick = () => {
     playerDispatch(setColor(COLORLESS));
     gameDispatch(setGamePlayerColor(state.playerId, COLORLESS));
@@ -49,12 +58,19 @@ export function ColorlessButton({
     <button
       type="button"
       aria-label={MANA_LABELS.c}
+      aria-pressed={isSelected}
       data-dialog-id={dialogId}
-      className={className}
+      className={cn(
+        className,
+        MANA_BTN_SIZE,
+        isSelected && "ring-4 ring-ui-textLight scale-110 z-10",
+      )}
       style={style}
       onClick={handleClick}
     >
-      {children}
+      <span className={isSelected ? undefined : "opacity-40"}>
+        {children}
+      </span>
     </button>
   );
 }

@@ -2,7 +2,19 @@
 
 ## Application Overview
 
-MTG Life Counter — Life Delta Feedback (branch feature/life-delta-feedback, DESIGN.md §4.2/§7.1). Each player zone's center column shows a transient burst-NET delta ABOVE the life total when life changes via −/+ buttons. Delta accumulates across taps and hold commits (+,+ → "+2"; − → "−1", U+2212). Rendered only when net ≠ 0; hides 1s (DELTA_HIDE_MS=1000) after the LAST change (inactivity timer resets per change). Restart (⟳) remounts zones (game version bump) → delta cleared, none shown. Delta span is aria-hidden="true", absolutely positioned above the life total → no layout shift; life total aria-live announcement unchanged. Commander damage and counter changes dispatch directly to the reducer → no delta. Selectors: zone(page,n) = getByRole region /^Player n:/, lifeTotal = [aria-live="polite"], delta = zone.locator('.text-delta') (unique class, span[aria-hidden="true"]), buttons getByRole('button', { name: '+1 life' } / '-1 life' ), belt via getByLabel('Open Spellbook Menu') + 'Restart Life', swipes per restart-life.spec.ts conventions (P1 180°: physical right = Commander, left = Counters). Seed tests/seed.spec.ts, fresh 2-player game, both at 40 life.
+MTG Life Counter — Life Delta Feedback (branch feature/ux-feedback-life-color, DESIGN.md §4.2/§7.1). Each player zone's center column shows a transient burst-NET delta ABOVE the life total when life changes via −/+ buttons. Delta accumulates across taps and hold commits (+,+ → "+2"; − → "−1", U+2212). Rendered only when net ≠ 0; hides 3s (DELTA_HIDE_MS=3000) after the LAST change (inactivity timer resets per change). Restart (⟳) remounts zones (game version bump) → delta cleared, none shown. Delta span is aria-hidden="true", absolutely positioned above the life total → no layout shift; life total aria-live announcement unchanged. Commander damage and counter changes dispatch directly to the reducer → no delta. Selectors: zone(page,n) = getByRole region /^Player n:/, lifeTotal = [aria-live="polite"], delta = zone.locator('.text-delta') (unique class, span[aria-hidden="true"]), buttons getByRole('button', { name: '+1 life' } / '-1 life' ), belt via getByLabel('Open Spellbook Menu') + 'Restart Life', swipes per restart-life.spec.ts conventions (P1 180°: physical right = Commander, left = Counters). Seed tests/seed.spec.ts, fresh 2-player game, both at 40 life.
+
+> **Generator note:** flash coverage fully removed at HEAD (`0321b69`, FB4
+> parked) — no flash probes, no flash scenarios. Delta scenarios 1.x + hold
+> semantics only. Do not reintroduce flash.
+
+## Hold Semantics (DESIGN.md §7.1, rewritten)
+
+tap → ±1; hold → first ±10 commits at the native long-press `contextmenu` instant
+(~500ms Android, `preventDefault` suppresses the menu) **else a 1000ms fallback
+timer**; then ±10 every 500ms held. **Committed ±10s never cancel** — no
+staged/dimmed preview, no release cancel window, no ±1 after a commit (release
+click consumed).
 
 ## Test Scenarios
 
@@ -47,7 +59,7 @@ MTG Life Counter — Life Delta Feedback (branch feature/life-delta-feedback, DE
 **Steps:**
   1. Navigate to /; tap P1 '-1 life' once
     - expect: delta(zone(1)) visible, text −1 with U+2212 (assert code point 0x2212)
-  2. Tap P1 '+1 life' once within 1s window
+  2. Tap P1 '+1 life' once within the 3s hide window
     - expect: delta(zone(1)) count = 0 (net 0)
     - expect: P1 life reads 40
   3. Tap P1 '+1 life' twice then '-1 life' once
@@ -56,51 +68,58 @@ MTG Life Counter — Life Delta Feedback (branch feature/life-delta-feedback, DE
     - expect: delta(zone(1)) count = 0
     - expect: P1 life reads 40
 
-#### 1.4. 4.1. Delta hides 1.2s after last tap
+#### 1.4. 4.1. Delta still visible at 1.2s; hides ~3.2s after last tap
 
 **File:** `tests/e2e/life-delta.spec.ts`
 
 **Steps:**
   1. Navigate to /; tap P1 '+1 life' twice
     - expect: delta(zone(1)) visible, text +2
-  2. Wait 1200ms
+  2. Wait 1200ms (1.2s after the last tap — inside the 3s hide window)
+    - expect: delta(zone(1)) still visible, text +2
+    - expect: P1 life reads 42
+  3. Wait 2000ms more (~3.2s after the last tap — past DELTA_HIDE_MS=3000)
     - expect: delta(zone(1)) count = 0
     - expect: P1 life still reads 42
 
-#### 1.5. 5.1. Timer resets per change: visible at 1.1s from first tap
+#### 1.5. 5.1. Timer resets per change: visible at 3.2s from first tap, hides 3s after last
 
 **File:** `tests/e2e/life-delta.spec.ts`
 
 **Steps:**
   1. Navigate to /; tap P1 '+1 life' (t=0)
-    - expect: delta(zone(1)) visible, text +1 (timer A fires at t=1000)
+    - expect: delta(zone(1)) visible, text +1 (timer A fires at t=3000)
   2. Wait 600ms, tap P1 '+1 life' again (t=600)
-    - expect: delta(zone(1)) text +2 (timer B re-armed, fires at t=1600)
-  3. Wait 500ms (t=1100, 1100ms after first tap)
-    - expect: delta(zone(1)) still visible, text +2 (would have hidden at t=1000 if timer had not re-armed)
-  4. Wait 700ms more (t=1800)
+    - expect: delta(zone(1)) text +2 (timer B re-armed, fires at t=3600)
+  3. Wait 2600ms (t=3200, 3200ms after first tap)
+    - expect: delta(zone(1)) still visible, text +2 (would have hidden at t=3000 if timer had not re-armed)
+  4. Wait 600ms more (t=3800)
     - expect: delta(zone(1)) count = 0
 
-#### 1.6. 6.1. Hold 1.9s commits two +10s with CUMULATIVE preview: +10 dimmed → commit → "+20" dimmed (never "+10" flash) → commit — delta +20, life 60
+#### 1.6. 6.1. Hold 1.9s commits two +10s at the 1s fallback / 1.5s repeat — delta +20, life 60 (no preview)
 
 **File:** `tests/e2e/life-delta.spec.ts`
 
+> Rewritten for the new §7.1: desktop has no `contextmenu` during a mouse hold, so
+> the 1s fallback commits. Nothing is previewed at 50% opacity and nothing
+> cancels on release.
+
 **Steps:**
-  1. Navigate to /; holdButton P1 '+1 life' for 1900ms
-    - expect: At ~1050ms into hold (stage 1 @1000ms, pre-commit): delta(zone(1)) visible
-      with text +10 and opacity 0.5 (preview per §4.2 = cumulative committed+staged
-      = 0+10; life NOT yet changed)
-    - expect: P1 life still reads 40 at first stage
-  2. Continue holding past 1400ms (commit 1 fires @1400ms)
-    - expect: P1 life reads 50, delta(zone(1)) text +10 full opacity
-  3. Continue holding to ~1550ms (stage 2 @1500ms, pre-commit 2)
-    - expect: delta(zone(1)) text +20 with opacity 0.5 — CUMULATIVE (committed +10
-      + staged +10), never "+10" flash; P1 life still reads 50
-  4. Release at 1900ms (commit 2 fires @1900ms)
-    - expect: delta(zone(1)) text +20 (full opacity), P1 life reads 60
-    - expect: No +1 on release (hold suppresses click)
-  5. Wait 1200ms
-    - expect: delta(zone(1)) count = 0 (hide timer re-armed by commit 2)
+  1. Navigate to /; hold P1 '+1 life' for 1900ms (no `contextmenu` dispatched)
+    - expect: At ~1050ms: P1 life reads 50 — first ±10 COMMITTED at the 1s
+      fallback; delta(zone(1)) visible with text +10 and opacity 1 (the old
+      opacity-0.5 preview stage is gone)
+    - expect: P1 life is no longer 40 — there is no pre-commit preview state
+  2. Continue holding to ~1550ms
+    - expect: P1 life reads 60 (second ±10 @1.5s = 500ms after the first)
+    - expect: delta(zone(1)) text +20, opacity 1 — cumulative burst, never "+10"
+  3. Release at 1900ms
+    - expect: P1 life still reads 60 (committed ±10s stay; +30 @2s not reached)
+    - expect: No +1 on release (hold suppresses the click; would read 61)
+  4. Wait 1200ms (1.2s after the last commit — inside the 3s hide window)
+    - expect: delta(zone(1)) still visible, text +20
+  5. Wait 2000ms more (~3.2s after the last commit — past DELTA_HIDE_MS=3000)
+    - expect: delta(zone(1)) count = 0 (hide timer re-armed by the last commit)
 
 #### 1.7. 7.1. Restart while delta visible clears it, no spurious delta
 
@@ -109,11 +128,11 @@ MTG Life Counter — Life Delta Feedback (branch feature/life-delta-feedback, DE
 **Steps:**
   1. Navigate to /; tap P1 '+1 life' twice
     - expect: delta(zone(1)) visible, text +2
-  2. Open belt (Open Spellbook Menu), tap 'Restart Life' within 1s window
+  2. Open belt (Open Spellbook Menu), tap 'Restart Life' while the delta is still visible (within the 3s hide window)
     - expect: Belt auto-collapses
     - expect: P1 life reads 40
     - expect: delta(zone(1)) count = 0 immediately
-  3. Wait 1200ms
+  3. Wait 3200ms (past the full 3s hide window)
     - expect: delta(zone(1)) count = 0 (no spurious delta)
   4. Tap P1 '+1 life' once post-restart
     - expect: delta(zone(1)) shows +1
@@ -130,7 +149,7 @@ MTG Life Counter — Life Delta Feedback (branch feature/life-delta-feedback, DE
   2. Tap P1 '-1 life' five times
     - expect: delta(zone(1)) text −2 (U+2212)
     - expect: P1 life reads 38
-  3. Wait 1200ms
+  3. Wait 3200ms (past the 3s hide window)
     - expect: delta(zone(1)) count = 0
     - expect: P1 life still 38
 
@@ -144,7 +163,7 @@ MTG Life Counter — Life Delta Feedback (branch feature/life-delta-feedback, DE
   2. Tap '+1 commander damage' three times
     - expect: Damage counter reads 3
     - expect: delta(zone(1)) count = 0 (life 40→37 but no delta)
-  3. Close dialog (Escape); wait 1200ms
+  3. Close dialog (Escape); wait 3200ms (past the 3s hide window)
     - expect: P1 life reads 37
     - expect: delta(zone(1)) count = 0
 
@@ -158,7 +177,7 @@ MTG Life Counter — Life Delta Feedback (branch feature/life-delta-feedback, DE
   2. Tap '+1 Poison counter' twice
     - expect: Poison counter reads 2
     - expect: delta(zone(1)) count = 0
-  3. Close dialog (Escape); wait 1200ms
+  3. Close dialog (Escape); wait 3200ms (past the 3s hide window)
     - expect: delta(zone(1)) count = 0
     - expect: P1 life still reads 40
   4. Tap P1 '+1 life' once
