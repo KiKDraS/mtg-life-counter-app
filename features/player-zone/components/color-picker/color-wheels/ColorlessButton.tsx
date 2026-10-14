@@ -12,6 +12,7 @@ import {
 } from "@/features/game-shell/state/hooks";
 import { setGamePlayerColor } from "@/features/game-shell/state/actions";
 import { cn } from "@/shared/lib/cn";
+import { MANA_BTN_SIZE } from "@/features/player-zone/constants/color";
 
 interface ColorlessButtonProps {
   readonly dialogId: string;
@@ -61,6 +62,7 @@ export function ColorlessButton({
       data-dialog-id={dialogId}
       className={cn(
         className,
+        MANA_BTN_SIZE,
         isSelected && "ring-4 ring-ui-textLight scale-110 z-10",
       )}
       style={style}
