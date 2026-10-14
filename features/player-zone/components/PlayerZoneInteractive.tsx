@@ -38,8 +38,8 @@ interface PlayerZoneInteractiveProps extends PropsWithChildren {
 const getDialog = (id: string) =>
   document.getElementById(id) as HTMLDialogElement | null;
 
-/* §4.2 — delta hides 1s after last change (inactivity timer). */
-const DELTA_HIDE_MS = 1000;
+/* §4.2 — delta hides 3s after last change (inactivity timer). */
+const DELTA_HIDE_MS = 3000;
 
 const getDimensionClasses = (rotation: number) => {
   const isSideways = rotation === 90 || rotation === -90;
