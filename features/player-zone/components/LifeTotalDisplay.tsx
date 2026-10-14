@@ -1,5 +1,4 @@
 import { UI } from "@/shared/lib/constants/colors";
-import { cn } from "@/shared/lib/cn";
 
 interface LifeTotalDisplayProps {
   readonly life: number;
@@ -8,14 +7,15 @@ interface LifeTotalDisplayProps {
   readonly isCommanderLethal: boolean;
   readonly isPoisonLethal: boolean;
   readonly delta: number;
-  readonly pending: number;
 }
 
 /**
  * @description
  * Renders the central life total, conditional lethal badges, and burst delta.
- * Staged ±10 preview (§4.2) shows at 50% opacity and hides the committed
- * delta while active — the two never overlap.
+ * This component stays animation-free and the `aria-live="polite"` node is
+ * never remounted, so nothing shifts layout.
+ *
+ * @see DESIGN.md §4.2
  */
 export function LifeTotalDisplay({
   life,
@@ -24,28 +24,22 @@ export function LifeTotalDisplay({
   isCommanderLethal,
   isPoisonLethal,
   delta,
-  pending,
 }: Readonly<LifeTotalDisplayProps>) {
   const badgeClass =
     "text-caption font-bold uppercase tracking-wider leading-tight";
   const isAlive = life > 0;
-  const isPending = pending !== 0;
-  const displayDelta = isPending ? pending : delta;
 
   return (
-    <div className="relative flex h-full flex-col items-center justify-center">
+    <div className="flex h-full flex-col items-center justify-center">
       <div className="relative">
-        {displayDelta !== 0 && (
+        {delta !== 0 && (
           <span
             aria-hidden="true"
-            className={cn(
-              "absolute bottom-full left-0 right-0 mb-1 text-center tabular-nums font-bold leading-none text-delta",
-              isPending && "opacity-50",
-            )}
+            className="absolute bottom-full left-0 right-0 mb-1 text-center tabular-nums font-bold leading-none text-delta"
             style={{ color: textColor }}
           >
-            {displayDelta > 0 ? "+" : "−"}
-            {Math.abs(displayDelta)}
+            {delta > 0 ? "+" : "−"}
+            {Math.abs(delta)}
           </span>
         )}
 

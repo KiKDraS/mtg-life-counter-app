@@ -28,7 +28,7 @@ interface CounterRowProps {
  */
 const BORDERLESS_BTN_CLASS = cn(
   TEXT_CLASSES,
-  "select-none touch-manipulation focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white",
+  "select-none touch-manipulation [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white",
 );
 
 /*

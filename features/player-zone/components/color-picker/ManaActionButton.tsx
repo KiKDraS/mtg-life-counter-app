@@ -33,6 +33,9 @@ interface ManaActionButtonProps {
  * - Tap unselected: ADD `[...cur, color]`; single colorless `["c"]` → REPLACE `[color]`.
  * - Tap selected: single → NO-OP (keep last); multi → REMOVE.
  *
+ * §6.5 — dim lives on the icon wrap (40% unselected), never on the button,
+ * so ring/focus-visible render solid at all times.
+ *
  * @see DESIGN.md §6.5, SPEC.md §8.5.1
  */
 export function ManaActionButton({
@@ -78,12 +81,14 @@ export function ManaActionButton({
       className={cn(
         className,
         MANA_BTN_SIZE,
-        isSelected && "ring-4 ring-white/60",
+        isSelected && "ring-4 ring-ui-textLight scale-110 z-10",
       )}
       style={style}
       onClick={handleClick}
     >
-      {children}
+      <span className={isSelected ? undefined : "opacity-40"}>
+        {children}
+      </span>
     </button>
   );
 }

@@ -2,7 +2,7 @@
 
 ## Application Overview
 
-MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6.6). The Counters overlay is a full-screen dialog triggered by swiping right on a player zone. It displays a 2-column grid of trackable game counters (poison, energy, experience, time) each with value display, +/- buttons, tap ±1, hold ±10 staged per §7.1 (stage at 1s hold, commit 400ms later; release before commit → cancel — no ±10, no ±1). A [+] button at bottom-right opens the Custom Counter Name modal — a native `<dialog>` with lighter backdrop (rgba(0,0,0,0.35)), auto-focused input (maxLength=35, placeholder "Counter"), and [+ Add] button. Empty input does nothing; non-empty adds the counter to the grid with a first-letter pill. Poison at 10+ triggers lethal state (danger red).
+MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6.6). The Counters overlay is a full-screen dialog triggered by swiping right on a player zone. It displays a 2-column grid of trackable game counters (poison, energy, experience, time) each with value display, +/- buttons, tap ±1, hold ±10 per §7.1 — rewritten on this branch: the first ±10 commits at the native long-press `contextmenu` instant (≈500ms Android, `preventDefault` suppresses the menu) else a 1s fallback timer; then ±10 every 500ms held; committed ±10s NEVER cancel (no preview, no cancel window, no ±1 after a commit). A [+] button at bottom-right opens the Custom Counter Name modal — a native `<dialog>` with lighter backdrop (rgba(0,0,0,0.35)), auto-focused input (maxLength=35, placeholder "Counter"), and [+ Add] button. Empty input does nothing; non-empty adds the counter to the grid with a first-letter pill. Poison at 10+ triggers lethal state (danger red).
 
 ## Test Scenarios
 
@@ -104,29 +104,44 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
     - expect: P1 poison still reads 5
     - expect: P1 energy still reads 0
 
-#### 2.3. Hold [+] stages at 1s, commits exactly one +10 at 1.4s; pre-commit release cancels
+#### 2.3. Hold [+] commits +10 at the 1s fallback (release keeps it); cadence +10 @1s then +10 @1.5s
 
 **File:** `tests/e2e/counters-overlay.spec.ts`
+
+> §7.1 rewritten: no staged preview, no cancel window. On desktop the mouse hold
+> path commits via the 1s fallback timer; the Android `contextmenu` path commits
+> immediately (see step 5) and is driven with `dispatchEvent("contextmenu")`.
 
 **Steps:**
   1. Navigate to /, swipe left on P1 zone to open Counters overlay
     - expect: Poison counter reads 0
-  2. Hold (pointerdown) the +1 poison counter button for 1200ms (staged at 1000ms), then release (before 1400ms commit)
-    - expect: Poison counter still reads 0 (cancelled — no +10, no +1)
-  3. Hold (pointerdown) the +1 poison counter button for 1400ms, then release
-    - expect: Poison counter reads 10 (exactly one +10 committed)
+  2. Hold (pointerdown) the +1 poison counter button for 1200ms, then release (after the 1000ms fallback commit, before the 1500ms repeat)
+    - expect: Poison counter reads 10 — exactly one +10 committed at 1s and KEPT on release
+    - expect: Not 11 and not 0 — no ±1 on release, no cancel
+  3. Hold the +1 poison counter button for 1450ms, then release (second hold)
+    - expect: Poison counter reads 20 (one +10 at 1s of this hold; the +10 @1.5s was not reached)
+  4. Hold the +1 poison counter button for 1900ms, then release
+    - expect: Poison counter reads 40 (both commits of this hold landed: +10 @1s and +10 @1.5s)
+  5. `pointerdown` again, then dispatch `contextmenu` on the same button
+    (`locator.dispatchEvent("contextmenu")`), release immediately
+    - expect: Poison counter reads 50 — the first ±10 of this hold committed IMMEDIATELY at the event instant (native long-press path)
+    - expect: `defaultPrevented === true` when dispatched via `page.evaluate` with a cancelable MouseEvent (native menu suppressed, §4.2)
 
-#### 2.4. Hold [-] also accelerates
+#### 2.4. Hold [-] also accelerates (and floors at 0)
 
 **File:** `tests/e2e/counters-overlay.spec.ts`
 
 **Steps:**
-  1. Navigate to /, swipe left on P1 zone, tap +1 poison 15 times (total=15)
-    - expect: Poison counter reads 15
-  2. Hold -1 poison counter for 1200ms, then release (pre-commit release)
-    - expect: Poison counter still reads 15 (cancelled — no -10, no -1)
-  3. Hold -1 poison counter for 1400ms, then release
-    - expect: Poison counter reads 5 (exactly one -10 committed)
+  1. Navigate to /, swipe left on P1 zone, tap +1 poison 25 times (total=25)
+    - expect: Poison counter reads 25
+  2. Hold (pointerdown) the -1 poison counter button for 600ms, then release (before the 1s fallback — plain tap path)
+    - expect: Poison counter reads 24 (the ±1 tap fires on release; no -10 yet)
+  3. Hold -1 poison counter for 1200ms, then release (one fallback commit)
+    - expect: Poison counter reads 14 (exactly one -10 committed and kept; no -1 on the release click)
+  4. Hold -1 poison counter for 1200ms, then release
+    - expect: Poison counter reads 4 (same cadence per hold)
+  5. Hold -1 poison counter for 1450ms, then release
+    - expect: Poison counter reads 0 (one -10 applied, floored at 0 — never negative)
 
 ### 3. Poison Lethal State
 
@@ -351,8 +366,18 @@ MTG Life Counter — Counters Overlay (§7.4) and Custom Counter Name Modal (§6
     - expect: Counter value reads 3
   3. Tap -1 Ticks counter once
     - expect: Counter value reads 2
-  4. Hold +1 Ticks counter for 1400ms (commit window)
-    - expect: Counter value reads 12 (2 + exactly one +10; no ±1 on release)
+  4. Hold +1 Ticks counter for 1450ms (first +10 commits at the 1000ms fallback; the +10 @1.5s is not reached — exactly one +10, no ±1 on release)
+    - expect: Counter value reads 12 (2 + 10)
+    - expect: No ±1 on the release click (would read 13)
+  5. `pointerdown` on +1 Ticks, dispatch `contextmenu` on the button, release immediately
+    - expect: Counter value reads 22 — the first ±10 of that hold committed IMMEDIATELY (native long-press path), release keeps it
+    - expect: `defaultPrevented === true` for a cancelable `contextmenu` MouseEvent dispatched via `page.evaluate`
+
+> **Generator note:** the existing hold in `tests/e2e/custom-counter-dialog.spec.ts`
+> (≈L323) still encodes the old contract ("commit fires at 1400ms") — rewrite it to
+> the 1s fallback + no-cancel wording above. The shared hook is
+> `useLifeAdjustment` (`HOLD_DELAY_MS = 1000`, `REPEAT_INTERVAL_MS = 500`,
+> `HOLD_STEP = 10`).
 
 #### 5.10. Multiple custom counters can be added
 

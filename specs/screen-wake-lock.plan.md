@@ -56,12 +56,14 @@ present in local Chromium) or absent — either path must not throw or log an er
 | Belt toggle / open | `getByLabel("Open Spellbook Menu")` (+ `#spellbook-toggle` checked) |
 | Life adjust | zone `-1 life` / `+1 life` buttons |
 | Portrait overlay | `page.getByRole("heading", { name: "Portrait Mode Required" })` (present but hidden on desktop) |
-| Hold gesture | `mouse.move(cx, cy)` → `mouse.down()` → `waitForTimeout(ms)` → `mouse.up()` — ms in [1000, 1400) = staged-only → cancelled (no ±10, no ±1); ms ≥ 1400 commits exactly one ±10 per DESIGN §7.1 |
+| Hold gesture | `mouse.move(cx, cy)` → `mouse.down()` → `waitForTimeout(ms)` → `mouse.up()` — ms < 1000 with no `contextmenu` = tap only (±1 on release); ms ≥ 1000 commits the first ±10 at the 1s fallback and KEEPS it on release; +10 more every 500ms held (REPEAT_INTERVAL_MS). There is no cancel window (§7.1 rewritten) |
 
 Reuse `zone` / `lifeTotal` / `openBelt` / `closeBelt` / `consoleErrors` helpers verbatim
 from `tests/e2e/app-smoke.spec.ts` (per-spec local redefinition convention).
 `consoleErrors` must keep the `_vercel/speed-insights` 404 filter. New local helper:
-`holdButton(page, locator, ms = 1100)` implementing the hold gesture above. Note: default 1100ms lands in the staged-cancel window (stage @1000ms, commit @1400ms) — pass `ms ≥ 1400` to commit.
+`holdButton(page, locator, ms = 1100)` implementing the hold gesture above. Note: any
+`ms ≥ 1000` commits exactly one ±10 (default 1100ms lands after the 1s fallback and
+before the 1.5s repeat) — the released commit is never cancelled.
 
 ## Test Scenarios
 
@@ -96,12 +98,12 @@ from `tests/e2e/app-smoke.spec.ts` (per-spec local redefinition convention).
    - expect: P1 life `"41"`
 3. Tap P2 `-1 life` 3×
    - expect: P2 life `"37"`
-4. Hold P1 `+1 life` (`holdButton`, 1100ms) — staged ±10 at 1s, released at 1100ms before the 1400ms commit → cancelled
-   - expect: P1 life still `"41"` (no ±10, no ±1 — cancel window)
-5. Hold P2 `-1 life` (`holdButton`, 1400ms) — commits exactly one −10
+4. Hold P1 `+1 life` (`holdButton`, 1100ms) — first ±10 commits at the 1000ms fallback; the release at 1100ms KEEPS it (§7.1: no cancel window, no ±1 after a commit)
+   - expect: P1 life `"51"` (41 + 10 — exact one +10; not 42)
+5. Hold P2 `-1 life` (`holdButton`, 1400ms) — one fallback commit at 1s, the +10 @1.5s not reached
    - expect: P2 life `"27"` (37 − 10; exact — cadence is deterministic)
 6. Final state
-   - expect: P1 `"41"`, P2 `"27"`
+   - expect: P1 `"51"`, P2 `"27"`
    - expect: `errors` `toEqual([])` (wake-lock/fullscreen failures surface as
      `console.warn` only — still zero **errors**)
 
@@ -181,10 +183,13 @@ from `tests/e2e/app-smoke.spec.ts` (per-spec local redefinition convention).
   `app-smoke.spec.ts`. **Never** assert zero warnings — orientation-lock warnings
   repeat per pointerdown in headless Chromium (observed) and are explicitly acceptable
   per SM-01 convention. Assert zero **errors** only.
-- Hold assertions (WL-02): hold stages ±10 at 1s and commits 400ms later (§7.1). A 1100ms
-  hold = staged-only → cancelled (no ±10, no ±1) → assert life unchanged. A 1400ms hold
-  commits exactly one ±10 → assert the exact delta. Poll the aria-live text via
-  `expect.poll` for the post-commit value; never fixed sleeps.
+- Hold assertions (WL-02): the hold's first ±10 commits at the native long-press
+  `contextmenu` instant (~500ms Android) else the 1000ms fallback (§7.1 rewritten);
+  a 1100ms hold therefore commits exactly one ±10 and the release KEEPS it (no
+  cancel window, no ±1 — the release click is consumed). A hold < 1000ms is a plain
+  tap (±1 on release). Assert the exact delta and poll the aria-live text via
+  `expect.poll`; never fixed sleeps. The platform path can be simulated with
+  `locator.dispatchEvent("contextmenu")` mid-hold (commits immediately).
 - WL-03 structural check uses `toBeHidden()` on the heading (overlay present-but-hidden
   on desktop); do not assert `toHaveCount(0)` — the overlay div must stay mounted.
 - WL-05 keeps a `test.skip` body with the rationale comment; the gate scenarios are

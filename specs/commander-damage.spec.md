@@ -2,7 +2,7 @@
 
 ## Application Overview
 
-MTG Life Counter — Commander Damage overlay (branch `feature/player-zone`). Each player zone supports a player-left swipe to open a full-screen Commander Damage dialog (§7.3). Swipes are player-relative (§4.3): P1 sits on a 180°-rotated slot, so its physical direction is inverted — physical swipe-right on P1 = Commander, physical swipe-left on P2 = Commander. The overlay shows the opponent's mana-color pill with a Planeswalker symbol, the current commander damage total (starting at 0), and a [+] button. Tap [+] adds 1 commander damage while simultaneously reducing that player's life total by 1. Hold [+] stages ±10 at 1s and commits 400ms later (§7.1); release before commit → cancel — no ±10, no ±1. At 21+ damage, the damage count turns danger red (`#D50000`) and a "Lethal — Player loses" badge appears; the player's life total also turns red. The overlay closes via swipe-left/right on the overlay content, backdrop click, or Escape.
+MTG Life Counter — Commander Damage overlay (branch `feature/ux-feedback-life-color`). Each player zone supports a player-left swipe to open a full-screen Commander Damage dialog (§7.3). Swipes are player-relative (§4.3): P1 sits on a 180°-rotated slot, so its physical direction is inverted — physical swipe-right on P1 = Commander, physical swipe-left on P2 = Commander. The overlay shows the opponent's mana-color pill with a Planeswalker symbol, the current commander damage total (starting at 0), and a [+] button. Tap [+] adds 1 commander damage while simultaneously reducing that player's life total by 1. Hold [+] commits ±10 per §7.1 (rewritten): first ±10 at the native long-press `contextmenu` instant (~500ms Android, `preventDefault` suppresses the menu) else a 1s fallback timer; then ±10 every 500ms held. Committed ±10s NEVER cancel — no preview, no cancel window, no ±1 after a commit. At 21+ damage, the damage count turns danger red (`#D50000`) and a "Lethal — Player loses" badge appears; the player's life total also turns red. The overlay closes via swipe-left/right on the overlay content, backdrop click, or Escape.
 
 Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Commander Damage overlay displays the opponent's color pill (P1 sees red `r` opponent pill, P2 sees blue `u` opponent pill).
 
@@ -13,8 +13,8 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
 | `UI.danger` | `rgb(213, 0, 0)` | Danger red for lethal state |
 | `MANA.r` | `#E49977` → `rgb(228, 153, 119)` | Red mana background |
 | `MANA.u` | `#C1D7E9` → `rgb(193, 215, 233)` | Blue mana background |
-| `HOLD_STAGE_MS` | 1000 | Hold duration before ±10 stages (§7.1) |
-| `HOLD_COMMIT_MS` | 1400 | Stage + 400ms — ±10 commits at this hold duration |
+| `HOLD_DELAY_MS` | 1000 | Fallback hold duration before the first ±10 commits (§7.1; the Android `contextmenu` path fires earlier, ~500ms) |
+| `REPEAT_INTERVAL_MS` | 500 | Interval between subsequent ±10 commits while held |
 | `HOLD_STEP` | 10 | Accelerated step on hold |
 | `SWIPE_THRESHOLD_PX` | 10 | Minimum px for swipe gesture |
 | `SWIPE_TIMEOUT_MS` | 300 | Max ms for swipe gesture |
@@ -178,18 +178,27 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
 5. Close P2 dialog, swipe right on P1 zone
     - expect: P1 damage still reads `5`
 
-### 3.3. Hold [+] stages at 1s, commits exactly one +10 at 1.4s; pre-commit release cancels
+### 3.3. Hold [+] commits at the 1s fallback and keeps it on release (no preview, no cancel)
 
 **File:** `tests/e2e/commander-damage.spec.ts`
+
+> §7.1 rewritten. On desktop the mouse hold uses the 1s fallback timer (no
+> `contextmenu`); the Android path is driven by `dispatchEvent("contextmenu")`
+> (scenario 3.5).
 
 **Steps:**
   1. Navigate to `/`
   2. Swipe left on P1 zone → Commander Damage dialog opens
     - expect: Damage reads `0`
-  3. Hold (pointerdown) the `+1 commander damage` button for 1200ms (staged at 1000ms), then release (before 1400ms commit)
-    - expect: Damage still reads `0` (cancelled — no +10, and no +1 tap on release)
-  4. Hold (pointerdown) the `+1 commander damage` button for 1400ms, then release
-    - expect: Damage reads exactly `10` (one +10 committed at 1400ms; tap suppressed — not `+11`)
+  3. Hold (pointerdown) the `+1 commander damage` button for 1200ms, then release (past the 1s fallback commit, before the 1.5s repeat)
+    - expect: Damage reads exactly `10` — one +10 committed at 1s and KEPT on release
+    - expect: Not `11` (no ±1 on release) and not `0` (no cancel window)
+  4. Hold (pointerdown) the `+1 commander damage` button for 1450ms, then release
+    - expect: Damage reads `20` — exactly one more +10 (the +10 @1.5s of this hold was not reached)
+  5. Hold (pointerdown) the `+1 commander damage` button for 1900ms, then release
+    - expect: Damage reads `40` — both commits of this hold landed (1s and 1.5s)
+  6. Close dialog, read P1 life total
+    - expect: P1 life = `0` (40 − 40; each committed ±10 reduced life immediately)
 
 ### 3.4. Repeated taps accumulate correctly
 
@@ -200,6 +209,24 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
   2. Swipe left on P1 zone → Commander Damage dialog opens
   3. Tap [+] twenty times
     - expect: Damage counter reads `20`
+
+### 3.5. [NEW] `contextmenu` mid-hold commits the first ±10 immediately and suppresses the native menu
+
+**File:** `tests/e2e/commander-damage.spec.ts`
+
+> The overlay ± buttons use the same `useLifeAdjustment` hook as the life ±
+> buttons, so the Android long-press path applies here too.
+
+**Steps:**
+  1. Navigate to `/`
+  2. Swipe left on P1 zone → Commander Damage dialog opens; assert damage reads `0`
+  3. `pointerdown` on the `+1 commander damage` button (arms the hold), then dispatch `contextmenu` on it (`locator.dispatchEvent("contextmenu")`)
+    - expect: Damage reads `10` IMMEDIATELY (no 1s wait)
+    - expect: `defaultPrevented === true` for a cancelable `contextmenu` MouseEvent dispatched via `page.evaluate` — the native callout/menu is suppressed (§4.2)
+  4. Keep holding ~500ms, then release
+    - expect: Damage reads `20` (+10 repeat 500ms after the commit; not 11 — no ±1 on release)
+  5. Read P1 life total
+    - expect: P1 life = `20` (40 − 20; the commit path still drives life reduction)
 
 ---
 
@@ -244,18 +271,18 @@ Players are P1 (blue `u`, rotated 180°) and P2 (red `r`). Each player's Command
     - expect: P1 life = 30 (40 − 10)
     - expect: P2 life = 40 (unchanged)
 
-### 4.4. Hold [+] also reduces life by the committed amount (cancel window too)
+### 4.4. Hold [+] also reduces life by the committed amount (released commits are kept)
 
 **File:** `tests/e2e/commander-damage.spec.ts`
 
 **Steps:**
   1. Navigate to `/`
-  2. Swipe left on P1 → hold [+] for 1200ms (staged at 1000ms), release (before 1400ms commit)
-    - expect: Damage still reads `0` (cancelled)
-  3. Hold [+] for 1400ms, release
-    - expect: Damage reads `10`
-  4. Close dialog, read P1 life
+  2. Swipe left on P1 → hold [+] for 1200ms (1s fallback commit), release
+    - expect: Damage reads `10` — the commit is kept on release (no cancel window)
+  3. Close dialog, read P1 life
     - expect: P1 life = 30 (40 − 10)
+  4. Reopen, hold [+] for 1450ms, release, close
+    - expect: Damage reads `20`; P1 life = 20 (40 − 20)
 
 ### 4.5. Life can go negative from commander damage
 

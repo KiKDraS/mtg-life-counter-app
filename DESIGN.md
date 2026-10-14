@@ -245,7 +245,10 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
   zone color. Text auto-selects per luminance.
 - **Press feedback:** `pointerdown` → col BG overlays `rgba(0,0,0,0.08)`. 150ms
   fade in/out on col BG itself — no extra DOM.
-- **Tap:** ±1. **Hold:** ±10 staged per §7.1.
+- **Tap:** ±1. **Hold:** ±10 per §7.1 — first ±10 at native long-press instant
+  when platform reports it, else 1s timer. Committed amounts never cancel.
+- **Native long-press suppressed:** ± buttons — `contextmenu` preventDefault +
+  `-webkit-touch-callout: none`. No native menu/callout during hold.
 - **Lethal:** Life ≤ 0 → `#D50000`. ± cols unaffected.
 - **Swipe (player-relative):** From each player's own perspective, swipe left =
   Commander damage overlay; swipe right = Counters overlay. Physical screen
@@ -254,14 +257,8 @@ Auto-adapts to player count + orientation. Spellbook belt divides screen.
   ignored.
 - **Overlay open:** Either X-direction swipe closes overlay → return to life.
 - **Life delta feedback:** burst net change directly above life number. Absolute
-  — no layout shift. Same textColor. Sign `+`/`−`. Update per change. Hide 1s
+  — no layout shift. Same textColor. Sign `+`/`−`. Update per change. Hide 3s
   after last change. Net 0 → hidden. Reset (⟳/⚙️/👥) → none.
-- **Staged ±10 preview:** hold stages ±10 (§7.1) → delta preview above life at
-  50% opacity, same position/sign rules. Preview = TOTAL accumulated during
-  hold (committed + staged step): holding to +20 previews "+20", never "+10"
-  flashes. Commit → full opacity + life change. Cancel/release → preview
-  cleared, no change, no ±1. Preview ignores hide timer — only committed
-  changes re-arm it.
 
 ### 4.3 Zone Rotation
 
@@ -509,6 +506,15 @@ Triggered by gear icon on zone. Width = fit-content
 
 Circular wheel, WUBRG order + Colorless clockwise.
 
+- **Selected:** icon full opacity, solid `--color-ui-textLight` ring, slight
+  scale-up.
+- **Unselected:** icon at 40% opacity — button-level opacity untouched so
+  rings/focus render solid.
+- **Focus:** `--color-ui-textLight` outline hugging the icon (offset 0 — no
+  detached ring).
+- **Colorless:** same selected treatment when current = `["c"]`; `aria-pressed`
+  mirrors state.
+
 ### 6.6 Modal: Custom Counter Name
 
 Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
@@ -555,8 +561,8 @@ Triggered by [+] on Counters overlay (§7.4). Quick name entry — no chrome.
 | Gesture        | Result                                                                                                                    |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Tap [+] / [-]  | +1 / -1 life                                                                                                              |
-| Hold [+] / [-] | ±10 staged at 1s hold; commits after 400ms more. Release before commit → cancel (no ±10, no ±1). After commit: next ±10 stages 100ms later, same 400ms commit window. Preview = cumulative total (committed + staged): holding to +20 shows "+20". Cadence +10 @ 1.4s, +20 @ 1.9s, +30 @ 2.4s… |
-| Delta feedback | Net change above life, `--text-delta` (§4.2). Update per change. Hide 1s after last change. Net 0 → hidden. Reset → none. |
+| Hold [+] / [-] | First ±10 commits at native long-press instant — platform `contextmenu` (~500ms Android; `preventDefault` suppresses native menu) — else 1s timer fallback (iOS/desktop). First trigger wins; other cancelled. Then ±10 every 500ms held. Release any time → committed ±10s stay; no cancel window; no ±1 after first commit. Cadence: +10 @ ~0.5s (contextmenu) / 1s (fallback); +20 +500ms; +30 +1s… |
+| Delta feedback | Net change above life, `--text-delta` (§4.2). Update per change. Hide 3s after last change. Net 0 → hidden. Reset → none. |
 
 ### 7.2 Swipe
 
@@ -587,8 +593,8 @@ Data model: see SPEC.md §5 `CommanderDamage`. Behavior per SPEC.md §6. Player 
 - **Pill:** Rounded. Commander owner's mana color. `PlaneswalkerSymbol` inside
   (white fill).
 - **Total:** Archivo Bold. Text per luminance.
-- **[−]/[+] buttons:** Tap ±1, hold ±10 staged per §7.1 (no preview — cancel
-  window only). Borderless. Decrement floors at 0.
+- **[−]/[+] buttons:** Tap ±1, hold ±10 per §7.1. Borderless. Decrement floors
+  at 0.
 - **Wrap:** flex-wrap. 4p+ player 0 + player 5: 30% width (3/row). Else: 45%
   (2/row).
 - **Lethal:** Any commander ≥21 → current player loses. Value + life total →
@@ -613,8 +619,7 @@ Time
 
 - **Icon:** `iconLight` silhouette. No pill, no BG container.
 - **Value:** Archivo Bold, warm white per luminance.
-- **[-]/[+] buttons:** Tap ±1, hold ±10 staged per §7.1 (no preview — cancel
-  window only). Borderless.
+- **[-]/[+] buttons:** Tap ±1, hold ±10 per §7.1. Borderless.
 - **New counter (+):** Bottom-right → opens Custom Counter Name modal (§6.6).
   Starts at 0. Custom counters: rounded pill `#CAC5C0`, `iconDark`, first letter
   displayed.

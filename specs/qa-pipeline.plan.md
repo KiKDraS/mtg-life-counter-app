@@ -322,17 +322,17 @@ MTG Life Counter PWA (Next.js 16 App Router, React 19, Tailwind 4, @playwright/t
 
 **Seed:** `tests/seed.spec.ts`
 
-#### 5.1. LC-01: Tap ±1 and staged hold ±10 (commit @1.4s) on every zone type (regression)
+#### 5.1. LC-01: Tap ±1 and hold ±10 (1s fallback, kept on release) on every zone type (regression)
 
 **File:** `tests/e2e/player-zone.spec.ts`
 
 **Steps:**
   1. goto /; tap P1 +1 twice, P2 −1 once
     - expect: P1 = 42, P2 = 39
-  2. hold P1 +1 for 750ms (no stage — stage fires at 1000ms per §7.1)
+  2. hold P1 +1 for 750ms (before the 1000ms fallback — plain tap path)
     - expect: life reads 43 (42 + 1 tap on release; no ±10)
-  3. hold P1 +1 for 1700ms
-    - expect: life reads 53 (commit +10 @ 1400ms; stage @ 1500ms released before its 1900ms commit → cancelled)
+  3. hold P1 +1 for 1700ms (fallback commit @1s, repeat @1.5s)
+    - expect: life reads 63 (43 + 10 @1s + 10 @1.5s; released at 1700ms keeps both)
 
 #### 5.2. LC-02: Lethal ≤0 → #D50000, recovery restores normal color (regression)
 
@@ -408,7 +408,7 @@ MTG Life Counter PWA (Next.js 16 App Router, React 19, Tailwind 4, @playwright/t
   2. tap Colorless
     - expect: dialog closes immediately
     - expect: zone bg solid rgb(202,197,192) (#CAC5C0)
-    - expect: reopen picker: no WUBRG button pressed, White/Blue/Red false ([c] replaced all; Colorless button carries no aria-pressed)
+    - expect: reopen picker: no WUBRG button pressed, White/Blue/Red false ([c] replaced all; the Colorless button now exposes `aria-pressed="true"` — §6.5 mirror-state, rendered with the selected ring/full-opacity/scale treatment)
 
 #### 6.3. CP-03: CheckCircle / Escape / backdrop close without dispatch (regression)
 

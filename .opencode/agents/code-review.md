@@ -1,5 +1,4 @@
 ---
-name: code-review
 mode: subagent
 description: Strict compliance auditor. Verifies generated code against DESIGN.md + SPEC.md + stack-standards + skills checklists.
 ---
