@@ -14,7 +14,7 @@
 | 3 | Restart Life | Instant reset, counter/color preservation |
 | 4 | Initial Life Modal | §6.2 preset grid, numpad, backdrop/escape |
 | 5 | Player Selector Modal | §6.3 SVG layouts, count up/down, color preservation |
-| 6 | Color Picker | §6.5 wheel, multi-select, replace/add, Colorless selected-state (`aria-pressed`), wheel ring/opacity/scale |
+| 6 | Color Picker | §6.5 wheel, multi-select, replace/add, Colorless selected-state (`aria-pressed`), wheel ring/icon-dim/hugging focus ring |
 | 7 | Counters Overlay | §7.4 default counters, custom counter modal, restart |
 
 ---
@@ -461,7 +461,7 @@
 - CheckCircle ✓ button centered in wheel (`aria-label="Confirm color"`)
 - No filter strip — all symbols on wheel
 - Default `["r"]` — Red highlighted (`aria-pressed="true"`); visual treatment
-  (ring / opacity / scale) per TC-6.6
+  (ring / icon dim / scale) per TC-6.6
 
 ---
 
@@ -515,13 +515,13 @@
 5. Reopen the Color Picker for Player 1 (`["c"]`)
 
 **Expected Results:**
-- Colorless button: `aria-pressed="true"` + selected treatment (full opacity, solid `--color-ui-textLight` ring, slight scale-up) — §6.5/§8.5.1 mirror Colorless state
-- All WUBRG buttons: `aria-pressed="false"`, 40% opacity
+- Colorless button: `aria-pressed="true"` + selected treatment (button opacity 1, icon wrapper full opacity, solid `--color-ui-textLight` ring, slight scale-up) — §6.5/§8.5.1 mirror Colorless state
+- All WUBRG buttons: `aria-pressed="false"`; the 40% dim is on each button's icon wrapper `<span>` — the button's own computed `opacity` stays 1 (rings/focus render solid; TC-6.6/TC-6.7)
 
 6. Tap White → selected-colorless REPLACE per SPEC §8.5.1
 
 **Expected Results:**
-- White gains the selected treatment; Colorless drops to 40% opacity / `aria-pressed="false"`
+- White gains the selected treatment; Colorless drops to icon-wrapper 40% (button opacity 1) / `aria-pressed="false"`
 - Zone preview shows white mana (`#F8F6D8`)
 
 7. Open Color Picker for Player 2 (default `["r"]`)
@@ -534,42 +534,48 @@
 
 ---
 
-### TC-6.6: [NEW] Wheel selection states — ring + full opacity + scale vs 40% opacity
+### TC-6.6: [NEW] Wheel selection states — ring + scale on the button; 40% dim on the ICON wrapper
 
-**Description:** §6.5 COLOR SELECTION WHEEL: selected = full opacity + solid
-`--color-ui-textLight` ring + slight scale-up; unselected = 40% opacity. Colorless
-mirrors the same treatment and exposes `aria-pressed`.
+**Description:** §6.5 COLOR SELECTION WHEEL: selected = icon full opacity + solid
+`--color-ui-textLight` ring + slight scale-up; unselected = **icon wrapper at 40%
+opacity — the button-level opacity stays 1** so rings/focus render solid.
+Colorless mirrors the same treatment and exposes `aria-pressed`.
 
 **Steps:**
 1. Open Color Picker for Player 1 (default `["r"]`)
 
 **Expected Results:**
 - Red button: `aria-pressed="true"`, computed `opacity` = 1, ring present
-  (Tailwind `ring-4 ring-ui-textLight` → `box-shadow` includes `rgb(250, 248, 245)`), scaled up (`transform` ≈ `matrix(1.1, 0, 0, 1.1, 0, 0)`, or boundingBox ≈ 10% larger than an unselected button), stacked above siblings (`z-10`)
-- W / U / B / G buttons AND Colorless: `aria-pressed="false"`, computed `opacity` = 0.4, no ring, no scale
+  (Tailwind `ring-4 ring-ui-textLight` → `box-shadow` includes `rgb(250, 248, 245)`), scaled up (Tailwind `scale-110` → computed `scale` = 1.1, or boundingBox ≈ 10% larger than an unselected button), stacked above siblings (`z-10`)
+- W / U / B / G buttons AND Colorless: `aria-pressed="false"`, **button** computed `opacity` = 1 (NOT 0.4), no ring, no scale — the 40% dim lives on the button's icon wrapper `<span>` (its computed `opacity` = 0.4; it is the button's only `span` child)
 
 2. Tap White (multi-select → `["r","w"]`)
 
 **Expected Results:**
-- Red AND White both show full opacity + ring + scale; Blue/Black/Green stay at 0.4
+- Red AND White both show full button opacity + ring + scale; Blue/Black/Green
+  icon wrappers stay at 40% (button opacity 1)
 - Both selected buttons expose `aria-pressed="true"`
 
 3. Tap White again (remove → `["r"]`)
 
 **Expected Results:**
-- White back to `aria-pressed="false"` + 40% opacity
+- White back to `aria-pressed="false"` + icon wrapper 40% (button opacity 1, no
+  ring, no scale)
 - Red keeps the selected treatment
 
 4. Tap Colorless (C) → single-tap apply, dialog closes; reopen the picker
 
 **Expected Results:**
-- Colorless: `aria-pressed="true"` + selected treatment (opacity 1, ring, scale-up)
-- All WUBRG buttons: `aria-pressed="false"` + 40% opacity
+- Colorless: `aria-pressed="true"` + selected treatment (button opacity 1, ring, scale-up)
+- All WUBRG buttons: `aria-pressed="false"` + icon wrapper 40% (button opacity 1)
 - Old expectation INVERTED: Colorless previously had no `aria-pressed` — it now mirrors its state (§6.5)
 
-> **Generator note:** `tests/e2e/color-picker.spec.ts` (≈L337) still carries the
-> stale comment "the Colorless button itself has no aria-pressed" — rewrite that
-> assertion to `aria-pressed="true"` when current = `["c"]` (and `false` after any
+> **Generator note:** `tests/e2e/color-picker.spec.ts` carries stale assertions
+> from the pre-rework treatment: `toHaveCSS("opacity", "0.4")` on the BUTTON
+> (TC-6.4 ≈L291/L302 and TC-6.6 ≈L358/L384) must move to the button's icon
+> wrapper `span` — the button's own computed `opacity` is always 1. The stale
+> comment ≈L337 ("the Colorless button itself has no aria-pressed") stays wrong:
+> rewrite to `aria-pressed="true"` when current = `["c"]` (and `false` after any
 > WUBRG replace). WUBRG `aria-pressed` behavior is unchanged.
 
 ---
@@ -586,6 +592,35 @@ mirrors the same treatment and exposes `aria-pressed`.
 **Expected Results:**
 - Dialog closes
 - Player 1 remains red+blue gradient (applied on tap, no revert)
+
+---
+
+### TC-6.7: [NEW] Keyboard focus renders a hugging outline at full strength
+
+**Description:** §6.5 — the `:focus-visible` outline hugs the button
+(`outline-offset: 0`); the old 4px-offset detached ring is gone. The outline
+renders full strength even on unselected buttons: the 40% dim lives on the icon
+wrapper, not the button.
+
+**Steps:**
+1. Open Color Picker for Player 1 (default `["r"]`)
+2. Press `Tab` (keyboard — mouse clicks do not trigger `:focus-visible`) until a
+   wheel button receives focus; focus an UNSELECTED button (e.g. Blue or Green)
+
+**Expected Results:**
+- Focused button computed outline: `outline-style: solid`, `outline-width: 2px`,
+  `outline-offset: 0px` (hugging — NO 4px offset); the color is Tailwind
+  `outline-white` → `rgb(255, 255, 255)` (DESIGN §6.5 names
+  `--color-ui-textLight` = `rgb(250, 248, 245)`; both are near-white — assert
+  width/offset and treat the exact shade as non-blocking)
+- Outline not dimmed on unselected buttons: button computed `opacity` stays 1
+  (the icon wrapper carries the 40%)
+
+3. `Tab` to the selected (Red) button
+
+**Expected Results:**
+- Same hugging outline (`outline-offset: 0px`); the selected ring + scale +
+  `z-10` treatment (TC-6.6) is unchanged and renders solid together with focus
 
 ---
 
@@ -698,6 +733,6 @@ mirrors the same treatment and exposes `aria-pressed`.
 - Preset selection does not update life totals
 - Player count change does not propagate to DOM
 - Color change does not update zone background
-- Wheel selection state not reflected (missing ring, wrong opacity, missing `aria-pressed`)
+- Wheel selection state not reflected (missing ring, dim applied to the button instead of the icon wrapper, focus outline not hugging/`outline-offset: 0`, missing `aria-pressed`)
 - Custom counter operations fail silently
 - ARIA labels missing or incorrect

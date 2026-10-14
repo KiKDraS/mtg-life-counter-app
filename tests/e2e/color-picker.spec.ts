@@ -28,6 +28,32 @@ async function inlineBackground(page: Page, n: number): Promise<string> {
 }
 
 /**
+ * §6.5 — the 40% dim lives on the icon wrapper: the button's direct-child
+ * `<span>` (document-order first; the icon itself is a nested
+ * `span[role="img"]` inside it).
+ */
+function iconWrap(btn: Locator): Locator {
+  return btn.locator("span").first();
+}
+
+/**
+ * Press Tab until `target` holds focus (keyboard navigation — mouse clicks do
+ * not trigger `:focus-visible`). Falls through to the real focus assertion so a
+ * failure reports where focus actually landed.
+ */
+async function tabUntilFocused(
+  page: Page,
+  target: Locator,
+  max = 15,
+): Promise<void> {
+  for (let i = 0; i < max; i++) {
+    await page.keyboard.press("Tab");
+    if (await target.evaluate((el) => el === document.activeElement)) return;
+  }
+  await expect(target).toBeFocused();
+}
+
+/**
  * Normalize a gradient string: collapse whitespace, round percentages to 2dp,
  * convert hex colors to rgb, and canonicalize the corner direction. The
  * browser re-serializes `to bottom right` as `to right bottom` (same corner)
@@ -268,9 +294,9 @@ test.describe("Color Picker", () => {
     // 5. Reopen the Color Picker for Player 1 (["c"])
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
     await expect(dialog0).toBeVisible();
-    // expect: Colorless button aria-pressed="true" + selected treatment (full
-    // opacity, solid --color-ui-textLight ring, slight scale-up) — §6.5/§8.5.1
-    // mirror the Colorless state
+    // expect: Colorless button aria-pressed="true" + selected treatment (button
+    // opacity 1, icon wrapper full opacity, solid --color-ui-textLight ring,
+    // slight scale-up) — §6.5/§8.5.1 mirror the Colorless state
     const colorless = dialog0.getByRole("button", { name: "Colorless mana" });
     await expect(colorless).toHaveAttribute("aria-pressed", "true");
     await expect(colorless).toHaveCSS("opacity", "1");
@@ -278,7 +304,8 @@ test.describe("Color Picker", () => {
       "box-shadow",
       /rgb\(250, 248, 245\) 0px 0px 0px 4px/,
     );
-    // expect: All WUBRG buttons aria-pressed="false", 40% opacity
+    // expect: All WUBRG buttons aria-pressed="false"; the 40% dim is on each
+    // button's icon wrapper <span> — the button's own computed opacity stays 1
     for (const name of [
       "White mana",
       "Blue mana",
@@ -288,18 +315,20 @@ test.describe("Color Picker", () => {
     ]) {
       const btn = dialog0.getByRole("button", { name });
       await expect(btn).toHaveAttribute("aria-pressed", "false");
-      await expect(btn).toHaveCSS("opacity", "0.4");
+      await expect(btn).toHaveCSS("opacity", "1");
+      await expect(iconWrap(btn)).toHaveCSS("opacity", "0.4");
     }
 
     // 6. Tap White → selected-colorless REPLACE per SPEC §8.5.1
     await dialog0.getByRole("button", { name: "White mana" }).click();
-    // expect: White gains the selected treatment; Colorless drops to 40% /
-    // aria-pressed="false"
+    // expect: White gains the selected treatment; Colorless drops to
+    // icon-wrapper 40% (button opacity 1) / aria-pressed="false"
     await expect(
       dialog0.getByRole("button", { name: "White mana" }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(colorless).toHaveAttribute("aria-pressed", "false");
-    await expect(colorless).toHaveCSS("opacity", "0.4");
+    await expect(colorless).toHaveCSS("opacity", "1");
+    await expect(iconWrap(colorless)).toHaveCSS("opacity", "0.4");
     // expect: Zone preview shows white mana (#F8F6D8)
     await expect
       .poll(() => zoneBackground(page, 1))
@@ -325,7 +354,7 @@ test.describe("Color Picker", () => {
       .toMatch(/gradient.*rgb\(228, 153, 119\).*rgb\(248, 246, 216\)/);
   });
 
-  test("TC-6.6: Wheel selection states — ring + full opacity + scale vs 40% opacity", async ({
+  test("TC-6.6: [NEW] Wheel selection states — ring + scale on the button; 40% dim on the ICON wrapper", async ({
     page,
   }) => {
     await page.goto("/");
@@ -337,8 +366,8 @@ test.describe("Color Picker", () => {
 
     const button = (name: string) => dialog.getByRole("button", { name });
 
-    // Selection treatment (§6.5): full opacity + solid --color-ui-textLight ring
-    // (ring-4 ring-ui-textLight → 4px rgb(250,248,245) box-shadow) + slight
+    // Selection treatment (§6.5): button opacity 1 + solid --color-ui-textLight
+    // ring (ring-4 ring-ui-textLight → 4px rgb(250,248,245) box-shadow) + slight
     // scale-up. Tailwind v4 `scale-110` lands in the standalone CSS `scale`
     // property (the inline wheel transform is a translate) and transitions —
     // toHaveCSS retries until the transition settles.
@@ -352,10 +381,14 @@ test.describe("Color Picker", () => {
         /rgb\(250, 248, 245\) 0px 0px 0px 4px/,
       );
     };
+    // Unselected (§6.5): the 40% dim lives on the icon wrapper <span> (the
+    // button's only span child). The button's own opacity stays 1 so the ring
+    // and the focus outline render solid (TC-6.7).
     const expectUnselected = async (name: string) => {
       const btn = button(name);
       await expect(btn).toHaveAttribute("aria-pressed", "false");
-      await expect(btn).toHaveCSS("opacity", "0.4");
+      await expect(btn).toHaveCSS("opacity", "1");
+      await expect(iconWrap(btn)).toHaveCSS("opacity", "0.4");
       await expect(btn).toHaveCSS("scale", "none");
       await expect(btn).toHaveCSS("box-shadow", "none");
     };
@@ -364,7 +397,8 @@ test.describe("Color Picker", () => {
     await expectSelected("Red mana");
     await expect(button("Red mana")).toHaveCSS("z-index", "10");
 
-    // expect: W / U / B / G buttons AND Colorless — 40% opacity, no ring, no scale
+    // expect: W / U / B / G buttons AND Colorless — button opacity 1, icon
+    // wrapper 40%, no ring, no scale
     for (const name of [
       "White mana",
       "Blue mana",
@@ -377,16 +411,18 @@ test.describe("Color Picker", () => {
 
     // 2. Tap White (multi-select → ["r","w"])
     await button("White mana").click();
-    // expect: Red AND White both full opacity + ring + scale; Blue/Black/Green at 0.4
+    // expect: Red AND White both show full button opacity + ring + scale;
+    // Blue/Black/Green icon wrappers stay at 40% (button opacity 1)
     await expectSelected("White mana");
     await expect(button("Red mana")).toHaveAttribute("aria-pressed", "true");
     for (const name of ["Blue mana", "Black mana", "Green mana"]) {
-      await expect(button(name)).toHaveCSS("opacity", "0.4");
+      await expectUnselected(name);
     }
 
     // 3. Tap White again (remove → ["r"])
     await button("White mana").click();
-    // expect: White back to aria-pressed="false" + 40% opacity, no scale
+    // expect: White back to aria-pressed="false" + icon wrapper 40% (button
+    // opacity 1, no ring, no scale)
     await expectUnselected("White mana");
     // expect: Red keeps the selected treatment
     await expect(button("Red mana")).toHaveAttribute("aria-pressed", "true");
@@ -396,8 +432,9 @@ test.describe("Color Picker", () => {
     await expect(dialog).not.toBeVisible();
     await zone(page, 1).getByRole("button", { name: "Change color" }).click();
     await expect(dialog).toBeVisible();
-    // expect: Colorless aria-pressed="true" + selected treatment (opacity 1,
-    // ring, scale-up); all WUBRG buttons aria-pressed="false" + 40% opacity
+    // expect: Colorless aria-pressed="true" + selected treatment (button opacity
+    // 1, ring, scale-up); all WUBRG buttons aria-pressed="false" + icon wrapper
+    // 40% (button opacity 1)
     await expectSelected("Colorless mana");
     for (const name of [
       "White mana",
@@ -408,6 +445,52 @@ test.describe("Color Picker", () => {
     ]) {
       await expectUnselected(name);
     }
+  });
+
+  test("TC-6.7: [NEW] Keyboard focus renders a hugging outline at full strength", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // 1. Open Color Picker for Player 1 (default ["r"])
+    await zone(page, 1).getByRole("button", { name: "Change color" }).click();
+    const dialog = colorPickerDialog(page, 0);
+    await expect(dialog).toBeVisible();
+    const button = (name: string) => dialog.getByRole("button", { name });
+
+    // 2. Press Tab (keyboard — mouse clicks do not trigger :focus-visible) until
+    //    a wheel button receives focus; focus an UNSELECTED button (Blue)
+    await tabUntilFocused(page, button("Blue mana"));
+
+    // expect: Focused button computed outline: solid 2px, offset 0 (hugging —
+    // NO 4px offset), color = --color-ui-textLight rgb(250,248,245)
+    const blue = button("Blue mana");
+    await expect(blue).toBeFocused();
+    await expect(blue).toHaveCSS("outline-style", "solid");
+    await expect(blue).toHaveCSS("outline-width", "2px");
+    await expect(blue).toHaveCSS("outline-offset", "0px");
+    await expect(blue).toHaveCSS("outline-color", "rgb(250, 248, 245)");
+    // expect: Outline not dimmed on unselected buttons: button computed opacity
+    // stays 1 (the icon wrapper carries the 40%)
+    await expect(blue).toHaveCSS("opacity", "1");
+    await expect(iconWrap(blue)).toHaveCSS("opacity", "0.4");
+
+    // 3. Tab to the selected (Red) button
+    await tabUntilFocused(page, button("Red mana"));
+    // expect: Same hugging outline; the selected ring + scale + z-10 treatment
+    // (TC-6.6) is unchanged and renders solid together with focus
+    const red = button("Red mana");
+    await expect(red).toBeFocused();
+    await expect(red).toHaveCSS("outline-style", "solid");
+    await expect(red).toHaveCSS("outline-width", "2px");
+    await expect(red).toHaveCSS("outline-offset", "0px");
+    await expect(red).toHaveCSS("outline-color", "rgb(250, 248, 245)");
+    await expect(red).toHaveCSS("scale", "1.1");
+    await expect(red).toHaveCSS("z-index", "10");
+    await expect(red).toHaveCSS(
+      "box-shadow",
+      /rgb\(250, 248, 245\) 0px 0px 0px 4px/,
+    );
   });
 
   test("TC-6.5: Backdrop/Escape closes — colors already applied (no revert)", async ({

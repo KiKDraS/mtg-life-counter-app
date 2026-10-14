@@ -252,7 +252,7 @@ test.describe("Player Zone — Hold Acceleration (§7.1 rewritten) & Press Feedb
     await page.waitForTimeout(500);
     // expect: P1 life reads 60 (+20 committed)
     await expect(lifeTotal(p1)).toHaveText("60");
-    // expect: delta reads +20 (cumulative burst at full opacity — never a "+10" flash)
+    // expect: delta reads +20 (cumulative burst at full opacity)
     await expect(delta(p1)).toHaveText("+20");
     await expect(delta(p1)).toHaveCSS("opacity", "1");
 

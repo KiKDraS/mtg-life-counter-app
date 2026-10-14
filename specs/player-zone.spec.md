@@ -2,7 +2,7 @@
 
 ## Application Overview
 
-MTG Life Counter — Player Zone milestone (branch `feature/ux-feedback-life-color`). Two player zones on a full-viewport vertical split: Player 1 (blue mana #C1D7E9, rotated 180°) on top, Player 2 (red mana #E49977) on bottom, both starting at 40 life. Each zone has a massive Archivo Black life total with aria-live="polite", and −/+ buttons with tap = ±1 and hold = ±10 per step (§7.1, rewritten on this branch): first ±10 at the native long-press (`contextmenu`) instant, else a 1s fallback timer; then +10 every 500ms held. Committed amounts never cancel (no preview, no cancel window, no ±1 after a commit). Every committed ± life change also pulses a ~200ms flash on the life number + center-column tint (§4.2).
+MTG Life Counter — Player Zone milestone (branch `feature/ux-feedback-life-color`). Two player zones on a full-viewport vertical split: Player 1 (blue mana #C1D7E9, rotated 180°) on top, Player 2 (red mana #E49977) on bottom, both starting at 40 life. Each zone has a massive Archivo Black life total with aria-live="polite", and −/+ buttons with tap = ±1 and hold = ±10 per step (§7.1, rewritten on this branch): first ±10 at the native long-press (`contextmenu`) instant, else a 1s fallback timer; then +10 every 500ms held. Committed amounts never cancel (no preview, no cancel window, no ±1 after a commit).
 
 ## Test Scenarios
 
@@ -83,8 +83,6 @@ MTG Life Counter — Player Zone milestone (branch `feature/ux-feedback-life-col
   dimmed/50%-opacity preview, and **no ±1 after a commit** (the release click is
   consumed).
 - A non-primary `pointerdown` (e.g. right-click) does **not** arm the hold.
-- Every committed ± change also fires the ~200ms life-change flash (§4.2 — asserted
-  in `specs/life-delta.spec.md`).
 
 | Hold | Committed ±10 steps |
 | ---- | ------------------- |
@@ -116,8 +114,7 @@ MTG Life Counter — Player Zone milestone (branch `feature/ux-feedback-life-col
 
 **Steps:**
   1. Hold p1 +1 for 750ms (no `contextmenu`, before the 1000ms fallback)
-    - expect: P1 life reads 41 (release fires the ±1 tap; no ±10, no flash fired
-      by the hold — the only flash is the single ±1 commit)
+    - expect: P1 life reads 41 (release fires the ±1 tap; no ±10)
 
 #### 3.2. Fallback long hold (~1.7s): first ±10 commits at 1s, second at 1.5s (40 → 50 → 60) — committed, never previewed
 
@@ -130,7 +127,7 @@ MTG Life Counter — Player Zone milestone (branch `feature/ux-feedback-life-col
     - expect: Delta burst reads +10 at full opacity
   2. Keep holding to ~1550ms
     - expect: P1 life reads 60 (+20 — second ±10 @1.5s, exactly 500ms after the first)
-    - expect: Delta reads +20 (cumulative burst, full opacity — never a "+10" flash)
+    - expect: Delta reads +20 (cumulative burst, full opacity)
   3. Release at 1700ms
     - expect: P1 life still reads 60 (committed ±10s stay; +30 @2s never reached)
     - expect: No ±1 on release (would read 61)
