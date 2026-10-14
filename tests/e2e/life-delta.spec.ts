@@ -157,7 +157,7 @@ test.describe("life-delta", () => {
     const codePoint = ((await delta(p1).textContent()) ?? "").charCodeAt(0);
     expect(codePoint).toBe(0x2212);
 
-    // 2. Tap P1 '+1 life' once within 1s window
+    // 2. Tap P1 '+1 life' once within the 3s hide window
     await plus.click();
     // expect: delta(zone(1)) count = 0 (net 0)
     await expect(delta(p1)).toHaveCount(0);
@@ -179,7 +179,7 @@ test.describe("life-delta", () => {
     await expect(lifeTotal(p1)).toHaveText("40");
   });
 
-  test("4.1. Delta hides 1.2s after last tap", async ({ page }) => {
+  test("4.1. Delta still visible at 1.2s; hides ~3.2s after last tap", async ({ page }) => {
     // 1. Navigate to /; tap P1 '+1 life' twice
     await page.goto("/");
     const p1 = zone(page, 1);
@@ -189,15 +189,22 @@ test.describe("life-delta", () => {
     // expect: delta(zone(1)) visible, text +2
     await expect(delta(p1)).toHaveText("+2");
 
-    // 2. Wait 1200ms
+    // 2. Wait 1200ms (1.2s after the last tap — inside the 3s hide window)
     await page.waitForTimeout(1200);
+    // expect: delta(zone(1)) still visible, text +2
+    await expect(delta(p1)).toHaveText("+2");
+    // expect: P1 life reads 42
+    await expect(lifeTotal(p1)).toHaveText("42");
+
+    // 3. Wait 2000ms more (~3.2s after the last tap — past DELTA_HIDE_MS=3000)
+    await page.waitForTimeout(2000);
     // expect: delta(zone(1)) count = 0
     await expect(delta(p1)).toHaveCount(0);
     // expect: P1 life still reads 42
     await expect(lifeTotal(p1)).toHaveText("42");
   });
 
-  test("5.1. Timer resets per change: visible at 1.1s from first tap", async ({
+  test("5.1. Timer resets per change: visible at 3.2s from first tap, hides 3s after last", async ({
     page,
   }) => {
     // 1. Navigate to /; tap P1 '+1 life' (t=0)
@@ -205,22 +212,22 @@ test.describe("life-delta", () => {
     const p1 = zone(page, 1);
     const plus = p1.getByRole("button", { name: "+1 life" });
     await plus.click();
-    // expect: delta(zone(1)) visible, text +1 (timer A fires at t=1000)
+    // expect: delta(zone(1)) visible, text +1 (timer A fires at t=3000)
     await expect(delta(p1)).toHaveText("+1");
 
     // 2. Wait 600ms, tap P1 '+1 life' again (t=600)
     await page.waitForTimeout(600);
     await plus.click();
-    // expect: delta(zone(1)) text +2 (timer B re-armed, fires at t=1600)
+    // expect: delta(zone(1)) text +2 (timer B re-armed, fires at t=3600)
     await expect(delta(p1)).toHaveText("+2");
 
-    // 3. Wait 500ms (t=1100, 1100ms after first tap)
-    await page.waitForTimeout(500);
-    // expect: delta(zone(1)) still visible, text +2 (would have hidden at t=1000 if timer had not re-armed)
+    // 3. Wait 2600ms (t=3200, 3200ms after first tap)
+    await page.waitForTimeout(2600);
+    // expect: delta(zone(1)) still visible, text +2 (would have hidden at t=3000 if timer had not re-armed)
     await expect(delta(p1)).toHaveText("+2");
 
-    // 4. Wait 700ms more (t=1800)
-    await page.waitForTimeout(700);
+    // 4. Wait 600ms more (t=3800)
+    await page.waitForTimeout(600);
     // expect: delta(zone(1)) count = 0
     await expect(delta(p1)).toHaveCount(0);
   });
@@ -266,8 +273,13 @@ test.describe("life-delta", () => {
     await expect(lifeTotal(p1)).toHaveText("60");
     // expect: No +1 on release (hold suppresses the click; would read 61)
 
-    // 4. Wait 1200ms
+    // 4. Wait 1200ms (1.2s after the last commit — inside the 3s hide window)
     await page.waitForTimeout(1200);
+    // expect: delta(zone(1)) still visible, text +20
+    await expect(delta(p1)).toHaveText("+20");
+
+    // 5. Wait 2000ms more (~3.2s after the last commit — past DELTA_HIDE_MS=3000)
+    await page.waitForTimeout(2000);
     // expect: delta(zone(1)) count = 0 (hide timer re-armed by the last commit)
     await expect(delta(p1)).toHaveCount(0);
   });
@@ -284,7 +296,7 @@ test.describe("life-delta", () => {
     // expect: delta(zone(1)) visible, text +2
     await expect(delta(p1)).toHaveText("+2");
 
-    // 2. Open belt (Open Spellbook Menu), tap 'Restart Life' within 1s window
+    // 2. Open belt (Open Spellbook Menu), tap 'Restart Life' while the delta is still visible (within the 3s hide window)
     await page.getByLabel("Open Spellbook Menu").click();
     await page.getByRole("button", { name: "Restart Life" }).click();
     // expect: Belt auto-collapses
@@ -294,8 +306,8 @@ test.describe("life-delta", () => {
     // expect: delta(zone(1)) count = 0 immediately
     await expect(delta(p1)).toHaveCount(0);
 
-    // 3. Wait 1200ms
-    await page.waitForTimeout(1200);
+    // 3. Wait 3200ms (past the full 3s hide window)
+    await page.waitForTimeout(3200);
     // expect: delta(zone(1)) count = 0 (no spurious delta)
     await expect(delta(p1)).toHaveCount(0);
 
@@ -332,8 +344,8 @@ test.describe("life-delta", () => {
     // expect: P1 life reads 38
     await expect(lifeTotal(p1)).toHaveText("38");
 
-    // 3. Wait 1200ms
-    await page.waitForTimeout(1200);
+    // 3. Wait 3200ms (past the 3s hide window)
+    await page.waitForTimeout(3200);
     // expect: delta(zone(1)) count = 0
     await expect(delta(p1)).toHaveCount(0);
     // expect: P1 life still 38
@@ -361,10 +373,10 @@ test.describe("life-delta", () => {
     // expect: delta(zone(1)) count = 0 (life 40→37 but no delta)
     await expect(delta(zone(page, 1))).toHaveCount(0);
 
-    // 3. Close dialog (Escape); wait 1200ms
+    // 3. Close dialog (Escape); wait 3200ms (past the 3s hide window)
     await page.keyboard.press("Escape");
     await expect(dlg).not.toBeVisible();
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(3200);
     // expect: P1 life reads 37
     await expect(lifeTotal(zone(page, 1))).toHaveText("37");
     // expect: delta(zone(1)) count = 0
@@ -390,10 +402,10 @@ test.describe("life-delta", () => {
     // expect: delta(zone(1)) count = 0
     await expect(delta(zone(page, 1))).toHaveCount(0);
 
-    // 3. Close dialog (Escape); wait 1200ms
+    // 3. Close dialog (Escape); wait 3200ms (past the 3s hide window)
     await page.keyboard.press("Escape");
     await expect(dlg).not.toBeVisible();
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(3200);
     // expect: delta(zone(1)) count = 0
     await expect(delta(zone(page, 1))).toHaveCount(0);
     // expect: P1 life still reads 40

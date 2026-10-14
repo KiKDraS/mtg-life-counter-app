@@ -131,7 +131,9 @@ MTG Life Counter — Player Zone milestone (branch `feature/ux-feedback-life-col
   3. Release at 1700ms
     - expect: P1 life still reads 60 (committed ±10s stay; +30 @2s never reached)
     - expect: No ±1 on release (would read 61)
-  4. Wait 1200ms
+  4. Wait 1200ms (1.2s after the last commit — inside the 3s hide window)
+    - expect: Delta still visible, +20
+  5. Wait 2000ms more (~3.2s after the last commit — past DELTA_HIDE_MS=3000)
     - expect: Delta count 0 (inactivity timer re-armed by the last commit)
 
 #### 3.3. Releasing the button stops adjustment immediately

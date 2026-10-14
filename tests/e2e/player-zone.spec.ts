@@ -264,8 +264,13 @@ test.describe("Player Zone — Hold Acceleration (§7.1 rewritten) & Press Feedb
     await expect(lifeTotal(p1)).toHaveText("60");
     // expect: No ±1 on release (would read 61)
 
-    // 4. Wait 1200ms
+    // 4. Wait 1200ms (1.2s after the last commit — inside the 3s hide window)
     await page.waitForTimeout(1200);
+    // expect: delta still visible, +20
+    await expect(delta(p1)).toHaveText("+20");
+
+    // 5. Wait 2000ms more (~3.2s after the last commit — past DELTA_HIDE_MS=3000)
+    await page.waitForTimeout(2000);
     // expect: delta count 0 (inactivity timer re-armed by the last commit)
     await expect(delta(p1)).toHaveCount(0);
   });
